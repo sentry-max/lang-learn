@@ -1,0 +1,2053 @@
+[
+  {
+    "id": "b1-noun-tag",
+    "wordType": "noun",
+    "headword": "Tag",
+    "translations": {
+      "en": [
+        "day"
+      ],
+      "fa": [
+        "روز"
+      ]
+    },
+    "nounForms": {
+      "article": "der",
+      "plural": "-e"
+    },
+    "sentences": [
+      {
+        "german": "Wir sehen uns jeden Tag.",
+        "translations": {
+          "en": "We see each other every day.",
+          "fa": "ما هر روز همدیگر را می‌بینیم."
+        }
+      }
+    ],
+    "level": "B1",
+    "tags": [
+      "time",
+      "daily-routine"
+    ]
+  },
+  {
+    "id": "b1-noun-morgen",
+    "wordType": "noun",
+    "headword": "Morgen",
+    "translations": {
+      "en": [
+        "morning"
+      ],
+      "fa": [
+        "صبح"
+      ]
+    },
+    "nounForms": {
+      "article": "der",
+      "plural": "-"
+    },
+    "sentences": [
+      {
+        "german": "Am Morgen trinke ich immer Kaffee.",
+        "translations": {
+          "en": "In the morning I always drink coffee.",
+          "fa": "صبح‌ها همیشه قهوه می‌نوشم."
+        }
+      }
+    ],
+    "level": "B1",
+    "tags": [
+      "time",
+      "daily-routine"
+    ]
+  },
+  {
+    "id": "b1-noun-vormittag",
+    "wordType": "noun",
+    "headword": "Vormittag",
+    "translations": {
+      "en": [
+        "late morning",
+        "forenoon"
+      ],
+      "fa": [
+        "پیش از ظهر"
+      ]
+    },
+    "nounForms": {
+      "article": "der",
+      "plural": "-e"
+    },
+    "sentences": [
+      {
+        "german": "Ich habe am Vormittag einen Termin.",
+        "translations": {
+          "en": "I have an appointment in the late morning.",
+          "fa": "پیش از ظهر یک قرار ملاقات دارم."
+        }
+      }
+    ],
+    "level": "B1",
+    "tags": [
+      "time"
+    ]
+  },
+  {
+    "id": "b1-noun-mittag",
+    "wordType": "noun",
+    "headword": "Mittag",
+    "translations": {
+      "en": [
+        "midday",
+        "noon"
+      ],
+      "fa": [
+        "ظهر"
+      ]
+    },
+    "nounForms": {
+      "article": "der",
+      "plural": "-e"
+    },
+    "sentences": [
+      {
+        "german": "Wir treffen uns zu Mittag.",
+        "translations": {
+          "en": "We're meeting at noon.",
+          "fa": "ظهر همدیگر را می‌بینیم."
+        }
+      }
+    ],
+    "level": "B1",
+    "tags": [
+      "time"
+    ]
+  },
+  {
+    "id": "b1-noun-nachmittag",
+    "wordType": "noun",
+    "headword": "Nachmittag",
+    "translations": {
+      "en": [
+        "afternoon"
+      ],
+      "fa": [
+        "بعدازظهر"
+      ]
+    },
+    "nounForms": {
+      "article": "der",
+      "plural": "-e"
+    },
+    "sentences": [
+      {
+        "german": "Am Nachmittag gehe ich einkaufen.",
+        "translations": {
+          "en": "In the afternoon I'm going shopping.",
+          "fa": "بعدازظهر به خرید می‌روم."
+        }
+      }
+    ],
+    "level": "B1",
+    "tags": [
+      "time"
+    ]
+  },
+  {
+    "id": "b1-noun-abend",
+    "wordType": "noun",
+    "headword": "Abend",
+    "translations": {
+      "en": [
+        "evening"
+      ],
+      "fa": [
+        "عصر",
+        "غروب"
+      ]
+    },
+    "nounForms": {
+      "article": "der",
+      "plural": "-e"
+    },
+    "sentences": [
+      {
+        "german": "Am Abend gehen wir ins Kino.",
+        "translations": {
+          "en": "In the evening we're going to the cinema.",
+          "fa": "عصر به سینما می‌رویم."
+        }
+      }
+    ],
+    "level": "B1",
+    "tags": [
+      "time",
+      "daily-routine"
+    ]
+  },
+  {
+    "id": "b1-noun-nacht",
+    "wordType": "noun",
+    "headword": "Nacht",
+    "translations": {
+      "en": [
+        "night"
+      ],
+      "fa": [
+        "شب"
+      ]
+    },
+    "nounForms": {
+      "article": "die",
+      "plural": "¨-e"
+    },
+    "sentences": [
+      {
+        "german": "In der Nacht ist es sehr ruhig.",
+        "translations": {
+          "en": "At night it's very quiet.",
+          "fa": "شب‌ها خیلی آرام است."
+        }
+      }
+    ],
+    "level": "B1",
+    "tags": [
+      "time"
+    ]
+  },
+  {
+    "id": "b1-noun-woche",
+    "wordType": "noun",
+    "headword": "Woche",
+    "translations": {
+      "en": [
+        "week"
+      ],
+      "fa": [
+        "هفته"
+      ]
+    },
+    "nounForms": {
+      "article": "die",
+      "plural": "-n"
+    },
+    "sentences": [
+      {
+        "german": "Nächste Woche fahre ich nach Berlin.",
+        "translations": {
+          "en": "Next week I'm going to Berlin.",
+          "fa": "هفتهٔ آینده به برلین می‌روم."
+        }
+      }
+    ],
+    "level": "B1",
+    "tags": [
+      "time"
+    ]
+  },
+  {
+    "id": "b1-noun-monat",
+    "wordType": "noun",
+    "headword": "Monat",
+    "translations": {
+      "en": [
+        "month"
+      ],
+      "fa": [
+        "ماه"
+      ]
+    },
+    "nounForms": {
+      "article": "der",
+      "plural": "-e"
+    },
+    "sentences": [
+      {
+        "german": "Der Kurs dauert drei Monate.",
+        "translations": {
+          "en": "The course lasts three months.",
+          "fa": "این دوره سه ماه طول می‌کشد."
+        }
+      }
+    ],
+    "level": "B1",
+    "tags": [
+      "time"
+    ]
+  },
+  {
+    "id": "b1-noun-jahr",
+    "wordType": "noun",
+    "headword": "Jahr",
+    "translations": {
+      "en": [
+        "year"
+      ],
+      "fa": [
+        "سال"
+      ]
+    },
+    "nounForms": {
+      "article": "das",
+      "plural": "-e"
+    },
+    "sentences": [
+      {
+        "german": "Ich wohne seit einem Jahr in Dushanbe.",
+        "translations": {
+          "en": "I've been living in Dushanbe for a year.",
+          "fa": "یک سال است که در دوشنبه زندگی می‌کنم."
+        }
+      }
+    ],
+    "level": "B1",
+    "tags": [
+      "time"
+    ]
+  },
+  {
+    "id": "b1-noun-wochenende",
+    "wordType": "noun",
+    "headword": "Wochenende",
+    "translations": {
+      "en": [
+        "weekend"
+      ],
+      "fa": [
+        "آخر هفته"
+      ]
+    },
+    "nounForms": {
+      "article": "das",
+      "plural": "-n"
+    },
+    "sentences": [
+      {
+        "german": "Was machst du am Wochenende?",
+        "translations": {
+          "en": "What are you doing on the weekend?",
+          "fa": "آخر هفته چه‌کار می‌کنی؟"
+        }
+      }
+    ],
+    "level": "B1",
+    "tags": [
+      "time"
+    ]
+  },
+  {
+    "id": "b1-noun-anfang",
+    "wordType": "noun",
+    "headword": "Anfang",
+    "translations": {
+      "en": [
+        "beginning",
+        "start"
+      ],
+      "fa": [
+        "شروع",
+        "آغاز"
+      ]
+    },
+    "nounForms": {
+      "article": "der",
+      "plural": "¨-e"
+    },
+    "sentences": [
+      {
+        "german": "Am Anfang habe ich bei der Arbeit viele Fragen gestellt.",
+        "translations": {
+          "en": "At the beginning I asked a lot of questions at work.",
+          "fa": "در ابتدا در محل کار سؤال‌های زیادی پرسیدم."
+        }
+      },
+      {
+        "german": "Wir machen Anfang Juli Ferien.",
+        "translations": {
+          "en": "We're going on holiday at the start of July.",
+          "fa": "ما اوایل ژوئیه به تعطیلات می‌رویم."
+        }
+      }
+    ],
+    "level": "B1",
+    "tags": [
+      "time"
+    ]
+  },
+  {
+    "id": "b1-verb-anfangen",
+    "wordType": "verb",
+    "headword": "anfangen",
+    "translations": {
+      "en": [
+        "to begin",
+        "to start"
+      ],
+      "fa": [
+        "شروع کردن"
+      ]
+    },
+    "verbForms": {
+      "infinitive": "anfangen",
+      "presentThirdPerson": "fängt an",
+      "simplePast": "fing an",
+      "perfect": "hat angefangen",
+      "passive": "wird angefangen",
+      "auxiliaryIsSein": false,
+      "separable": true
+    },
+    "sentences": [
+      {
+        "german": "Wann fängst du mit der Arbeit an?",
+        "translations": {
+          "en": "When are you starting work?",
+          "fa": "کِی کارت را شروع می‌کنی؟"
+        }
+      },
+      {
+        "german": "Hier fängt die Bahnhofstraße an.",
+        "translations": {
+          "en": "This is where Bahnhofstraße begins.",
+          "fa": "خیابان بان‌هوف‌اشتراسه از اینجا شروع می‌شود."
+        }
+      }
+    ],
+    "level": "B1",
+    "tags": [
+      "daily-routine"
+    ]
+  },
+  {
+    "id": "b1-adverb-anfangs",
+    "wordType": "adverb",
+    "headword": "anfangs",
+    "translations": {
+      "en": [
+        "at first",
+        "initially"
+      ],
+      "fa": [
+        "در ابتدا",
+        "ابتدا"
+      ]
+    },
+    "sentences": [
+      {
+        "german": "Anfangs ging alles gut.",
+        "translations": {
+          "en": "At first everything went well.",
+          "fa": "در ابتدا همه‌چیز خوب پیش می‌رفت."
+        }
+      }
+    ],
+    "level": "B1",
+    "tags": [
+      "time"
+    ]
+  },
+  {
+    "id": "b1-verb-abbiegen",
+    "wordType": "verb",
+    "headword": "abbiegen",
+    "translations": {
+      "en": [
+        "to turn (off)"
+      ],
+      "fa": [
+        "پیچیدن"
+      ]
+    },
+    "verbForms": {
+      "infinitive": "abbiegen",
+      "presentThirdPerson": "biegt ab",
+      "simplePast": "bog ab",
+      "perfect": "ist abgebogen",
+      "passive": null,
+      "auxiliaryIsSein": true,
+      "separable": true
+    },
+    "sentences": [
+      {
+        "german": "An der nächsten Kreuzung müssen Sie links abbiegen.",
+        "translations": {
+          "en": "You have to turn left at the next intersection.",
+          "fa": "در چهارراه بعدی باید به چپ بپیچید."
+        }
+      }
+    ],
+    "level": "B1",
+    "tags": [
+      "directions",
+      "traffic"
+    ]
+  },
+  {
+    "id": "b1-noun-abbildung",
+    "wordType": "noun",
+    "headword": "Abbildung",
+    "translations": {
+      "en": [
+        "illustration",
+        "figure"
+      ],
+      "fa": [
+        "تصویر",
+        "شکل"
+      ]
+    },
+    "nounForms": {
+      "article": "die",
+      "plural": "-en"
+    },
+    "sentences": [
+      {
+        "german": "Auf der Abbildung sehen Sie, wie man das Gerät einschaltet.",
+        "translations": {
+          "en": "The illustration shows you how to switch on the device.",
+          "fa": "در تصویر می‌بینید که چگونه دستگاه را روشن کنید."
+        }
+      }
+    ],
+    "level": "B1",
+    "tags": []
+  },
+  {
+    "id": "b1-noun-abenteuer",
+    "wordType": "noun",
+    "headword": "Abenteuer",
+    "translations": {
+      "en": [
+        "adventure"
+      ],
+      "fa": [
+        "ماجراجویی"
+      ]
+    },
+    "nounForms": {
+      "article": "das",
+      "plural": "-"
+    },
+    "sentences": [
+      {
+        "german": "Unser Urlaub war ein tolles Abenteuer.",
+        "translations": {
+          "en": "Our holiday was a great adventure.",
+          "fa": "تعطیلات ما یک ماجراجویی فوق‌العاده بود."
+        }
+      }
+    ],
+    "level": "B1",
+    "tags": []
+  },
+  {
+    "id": "b1-conjunction-aber",
+    "wordType": "conjunction",
+    "headword": "aber",
+    "translations": {
+      "en": [
+        "but",
+        "however"
+      ],
+      "fa": [
+        "اما",
+        "ولی"
+      ]
+    },
+    "sentences": [
+      {
+        "german": "Heute kann ich nicht, aber morgen ganz bestimmt.",
+        "translations": {
+          "en": "I can't today, but definitely tomorrow.",
+          "fa": "امروز نمی‌توانم، اما فردا حتماً."
+        }
+      },
+      {
+        "german": "Wir haben nur eine kleine Wohnung, sind aber damit zufrieden.",
+        "translations": {
+          "en": "We only have a small apartment, but we're happy with it.",
+          "fa": "ما فقط یک آپارتمان کوچک داریم، اما راضی هستیم."
+        }
+      }
+    ],
+    "level": "B1",
+    "tags": []
+  },
+  {
+    "id": "b1-verb-abfahren",
+    "wordType": "verb",
+    "headword": "abfahren",
+    "translations": {
+      "en": [
+        "to depart",
+        "to leave"
+      ],
+      "fa": [
+        "حرکت کردن",
+        "راه افتادن"
+      ]
+    },
+    "verbForms": {
+      "infinitive": "abfahren",
+      "presentThirdPerson": "fährt ab",
+      "simplePast": "fuhr ab",
+      "perfect": "ist abgefahren",
+      "passive": null,
+      "auxiliaryIsSein": true,
+      "separable": true
+    },
+    "sentences": [
+      {
+        "german": "Unser Zug ist pünktlich abgefahren.",
+        "translations": {
+          "en": "Our train left on time.",
+          "fa": "قطارمان سر ساعت حرکت کرد."
+        }
+      }
+    ],
+    "level": "B1",
+    "tags": [
+      "travel"
+    ]
+  },
+  {
+    "id": "b1-noun-abfahrt",
+    "wordType": "noun",
+    "headword": "Abfahrt",
+    "translations": {
+      "en": [
+        "departure"
+      ],
+      "fa": [
+        "حرکت",
+        "عزیمت"
+      ]
+    },
+    "nounForms": {
+      "article": "die",
+      "plural": "-en"
+    },
+    "sentences": [
+      {
+        "german": "Es bleiben uns noch zwanzig Minuten bis zur Abfahrt.",
+        "translations": {
+          "en": "We still have twenty minutes until departure.",
+          "fa": "بیست دقیقه تا حرکت وقت داریم."
+        }
+      }
+    ],
+    "level": "B1",
+    "tags": [
+      "travel"
+    ]
+  },
+  {
+    "id": "b1-noun-abfall",
+    "wordType": "noun",
+    "headword": "Abfall",
+    "translations": {
+      "en": [
+        "rubbish",
+        "waste"
+      ],
+      "fa": [
+        "زباله"
+      ]
+    },
+    "nounForms": {
+      "article": "der",
+      "plural": "¨-e"
+    },
+    "sentences": [
+      {
+        "german": "Werfen Sie den Bioabfall bitte nicht zum normalen Müll.",
+        "translations": {
+          "en": "Please don't put organic waste in with the regular rubbish.",
+          "fa": "لطفاً زبالهٔ آلی را با زبالهٔ عادی مخلوط نکنید."
+        }
+      }
+    ],
+    "level": "B1",
+    "tags": [
+      "environment"
+    ]
+  },
+  {
+    "id": "b1-verb-abgeben",
+    "wordType": "verb",
+    "headword": "abgeben",
+    "translations": {
+      "en": [
+        "to hand in",
+        "to drop off"
+      ],
+      "fa": [
+        "تحویل دادن"
+      ]
+    },
+    "verbForms": {
+      "infinitive": "abgeben",
+      "presentThirdPerson": "gibt ab",
+      "simplePast": "gab ab",
+      "perfect": "hat abgegeben",
+      "passive": "wird abgegeben",
+      "auxiliaryIsSein": false,
+      "separable": true
+    },
+    "sentences": [
+      {
+        "german": "Ich soll dieses Päckchen bei Herrn Müller abgeben.",
+        "translations": {
+          "en": "I'm supposed to drop off this package at Mr. Müller's.",
+          "fa": "باید این بسته را به آقای مولر تحویل دهم."
+        }
+      }
+    ],
+    "level": "B1",
+    "tags": []
+  },
+  {
+    "id": "b1-verb-abhaengen",
+    "wordType": "verb",
+    "headword": "abhängen",
+    "translations": {
+      "en": [
+        "to depend (on)"
+      ],
+      "fa": [
+        "بستگی داشتن"
+      ]
+    },
+    "verbForms": {
+      "infinitive": "abhängen",
+      "presentThirdPerson": "hängt ab",
+      "simplePast": "hing ab",
+      "perfect": "hat abgehangen",
+      "passive": null,
+      "auxiliaryIsSein": false,
+      "separable": true
+    },
+    "sentences": [
+      {
+        "german": "Vielleicht bleiben wir ein paar Tage länger, das hängt vom Wetter ab.",
+        "translations": {
+          "en": "Maybe we'll stay a few days longer, it depends on the weather.",
+          "fa": "شاید چند روز بیشتر بمانیم، این به آب‌وهوا بستگی دارد."
+        }
+      }
+    ],
+    "level": "B1",
+    "tags": []
+  },
+  {
+    "id": "b1-adjective-abhaengig",
+    "wordType": "adjective",
+    "headword": "abhängig",
+    "translations": {
+      "en": [
+        "dependent"
+      ],
+      "fa": [
+        "وابسته"
+      ]
+    },
+    "sentences": [
+      {
+        "german": "Gregor ist finanziell von seinen Eltern abhängig.",
+        "translations": {
+          "en": "Gregor is financially dependent on his parents.",
+          "fa": "گرگور از نظر مالی به والدینش وابسته است."
+        }
+      }
+    ],
+    "level": "B1",
+    "tags": []
+  },
+  {
+    "id": "b1-verb-abheben",
+    "wordType": "verb",
+    "headword": "abheben",
+    "translations": {
+      "en": [
+        "to withdraw (money)"
+      ],
+      "fa": [
+        "برداشت کردن (پول)"
+      ]
+    },
+    "verbForms": {
+      "infinitive": "abheben",
+      "presentThirdPerson": "hebt ab",
+      "simplePast": "hob ab",
+      "perfect": "hat abgehoben",
+      "passive": "wird abgehoben",
+      "auxiliaryIsSein": false,
+      "separable": true
+    },
+    "sentences": [
+      {
+        "german": "Für die Reise habe ich 500 Euro von meinem Konto abgehoben.",
+        "translations": {
+          "en": "I withdrew 500 euros from my account for the trip.",
+          "fa": "برای سفر پانصد یورو از حسابم برداشت کردم."
+        }
+      }
+    ],
+    "level": "B1",
+    "tags": [
+      "money",
+      "banking"
+    ]
+  },
+  {
+    "id": "b1-verb-abholen",
+    "wordType": "verb",
+    "headword": "abholen",
+    "translations": {
+      "en": [
+        "to pick up (a person or thing)"
+      ],
+      "fa": [
+        "دنبال کسی رفتن",
+        "تحویل گرفتن"
+      ]
+    },
+    "verbForms": {
+      "infinitive": "abholen",
+      "presentThirdPerson": "holt ab",
+      "simplePast": "holte ab",
+      "perfect": "hat abgeholt",
+      "passive": "wird abgeholt",
+      "auxiliaryIsSein": false,
+      "separable": true
+    },
+    "sentences": [
+      {
+        "german": "Meine Freundin hat mich vom Bahnhof abgeholt.",
+        "translations": {
+          "en": "My friend picked me up from the train station.",
+          "fa": "دوستم مرا از ایستگاه قطار سوار کرد."
+        }
+      }
+    ],
+    "level": "B1",
+    "tags": [
+      "daily-routine"
+    ]
+  },
+  {
+    "id": "b1-verb-achten",
+    "wordType": "verb",
+    "headword": "achten",
+    "translations": {
+      "en": [
+        "to pay attention (to)",
+        "to make sure"
+      ],
+      "fa": [
+        "توجه کردن",
+        "مراقب بودن"
+      ]
+    },
+    "verbForms": {
+      "infinitive": "achten",
+      "presentThirdPerson": "achtet",
+      "simplePast": "achtete",
+      "perfect": "hat geachtet",
+      "passive": null,
+      "auxiliaryIsSein": false,
+      "separable": false
+    },
+    "sentences": [
+      {
+        "german": "Achten Sie bitte darauf, dass Sie abschließen, wenn Sie gehen.",
+        "translations": {
+          "en": "Please make sure to lock up when you leave.",
+          "fa": "لطفاً توجه کنید وقتی می‌روید در را قفل کنید."
+        }
+      }
+    ],
+    "level": "B1",
+    "tags": []
+  },
+  {
+    "id": "b1-noun-adresse",
+    "wordType": "noun",
+    "headword": "Adresse",
+    "translations": {
+      "en": [
+        "address"
+      ],
+      "fa": [
+        "آدرس",
+        "نشانی"
+      ]
+    },
+    "nounForms": {
+      "article": "die",
+      "plural": "-n"
+    },
+    "sentences": [
+      {
+        "german": "Hast du schon meine neue Adresse?",
+        "translations": {
+          "en": "Do you already have my new address?",
+          "fa": "آدرس جدید من را داری؟"
+        }
+      }
+    ],
+    "level": "B1",
+    "tags": []
+  },
+  {
+    "id": "b1-adjective-aehnlich",
+    "wordType": "adjective",
+    "headword": "ähnlich",
+    "translations": {
+      "en": [
+        "similar"
+      ],
+      "fa": [
+        "شبیه",
+        "مشابه"
+      ]
+    },
+    "sentences": [
+      {
+        "german": "Emilia ist in einer ganz ähnlichen Situation wie ich.",
+        "translations": {
+          "en": "Emilia is in a very similar situation to me.",
+          "fa": "امیلیا در وضعیتی کاملاً شبیه به من است."
+        }
+      },
+      {
+        "german": "Oleg sieht seinem Bruder sehr ähnlich.",
+        "translations": {
+          "en": "Oleg looks a lot like his brother.",
+          "fa": "اولگ خیلی شبیه برادرش است."
+        }
+      }
+    ],
+    "level": "B1",
+    "tags": []
+  },
+  {
+    "id": "b1-noun-ahnung",
+    "wordType": "noun",
+    "headword": "Ahnung",
+    "translations": {
+      "en": [
+        "idea",
+        "clue"
+      ],
+      "fa": [
+        "ایده",
+        "حدس"
+      ]
+    },
+    "nounForms": {
+      "article": "die",
+      "plural": null
+    },
+    "sentences": [
+      {
+        "german": "Ich hatte keine Ahnung, dass du heute Geburtstag hast.",
+        "translations": {
+          "en": "I had no idea it was your birthday today.",
+          "fa": "اصلاً نمی‌دانستم امروز تولدت است."
+        }
+      }
+    ],
+    "level": "B1",
+    "tags": []
+  },
+  {
+    "id": "b1-adjective-aktiv",
+    "wordType": "adjective",
+    "headword": "aktiv",
+    "translations": {
+      "en": [
+        "active"
+      ],
+      "fa": [
+        "فعال"
+      ]
+    },
+    "sentences": [
+      {
+        "german": "Ich bin sehr aktiv und mache viel Sport.",
+        "translations": {
+          "en": "I'm very active and do a lot of sport.",
+          "fa": "من خیلی فعال هستم و ورزش زیادی می‌کنم."
+        }
+      }
+    ],
+    "level": "B1",
+    "tags": []
+  },
+  {
+    "id": "b1-noun-aktivitaet",
+    "wordType": "noun",
+    "headword": "Aktivität",
+    "translations": {
+      "en": [
+        "activity"
+      ],
+      "fa": [
+        "فعالیت"
+      ]
+    },
+    "nounForms": {
+      "article": "die",
+      "plural": "-en"
+    },
+    "sentences": [
+      {
+        "german": "In den Ferien bietet die Stadt für Kinder verschiedene Freizeitaktivitäten.",
+        "translations": {
+          "en": "During the holidays the city offers various leisure activities for children.",
+          "fa": "شهر در تعطیلات فعالیت‌های تفریحی گوناگونی برای کودکان ارائه می‌دهد."
+        }
+      }
+    ],
+    "level": "B1",
+    "tags": []
+  },
+  {
+    "id": "b1-adjective-aktuell",
+    "wordType": "adjective",
+    "headword": "aktuell",
+    "translations": {
+      "en": [
+        "current",
+        "topical"
+      ],
+      "fa": [
+        "فعلی",
+        "به‌روز"
+      ]
+    },
+    "sentences": [
+      {
+        "german": "Umweltschutz ist ein aktuelles Thema.",
+        "translations": {
+          "en": "Environmental protection is a current topic.",
+          "fa": "حفاظت از محیط‌زیست موضوعی به‌روز است."
+        }
+      }
+    ],
+    "level": "B1",
+    "tags": []
+  },
+  {
+    "id": "b1-verb-akzeptieren",
+    "wordType": "verb",
+    "headword": "akzeptieren",
+    "translations": {
+      "en": [
+        "to accept"
+      ],
+      "fa": [
+        "پذیرفتن",
+        "قبول کردن"
+      ]
+    },
+    "verbForms": {
+      "infinitive": "akzeptieren",
+      "presentThirdPerson": "akzeptiert",
+      "simplePast": "akzeptierte",
+      "perfect": "hat akzeptiert",
+      "passive": "wird akzeptiert",
+      "auxiliaryIsSein": false,
+      "separable": false
+    },
+    "sentences": [
+      {
+        "german": "Ich kann diese Bedingungen nicht akzeptieren.",
+        "translations": {
+          "en": "I cannot accept these conditions.",
+          "fa": "من نمی‌توانم این شرایط را بپذیرم."
+        }
+      }
+    ],
+    "level": "B1",
+    "tags": []
+  },
+  {
+    "id": "b1-adverb-allein",
+    "wordType": "adverb",
+    "headword": "allein",
+    "translations": {
+      "en": [
+        "alone",
+        "on one's own"
+      ],
+      "fa": [
+        "تنها"
+      ]
+    },
+    "sentences": [
+      {
+        "german": "Ich gehe nicht gern allein spazieren.",
+        "translations": {
+          "en": "I don't like going for walks alone.",
+          "fa": "دوست ندارم تنها پیاده‌روی کنم."
+        }
+      },
+      {
+        "german": "Soll ich Ihnen helfen? – Danke, ich schaffe es schon allein.",
+        "translations": {
+          "en": "Shall I help you? – Thanks, I can manage on my own.",
+          "fa": "کمکتان کنم؟ – ممنون، خودم از پسش برمی‌آیم."
+        }
+      }
+    ],
+    "level": "B1",
+    "tags": []
+  },
+  {
+    "id": "b1-adverb-allerdings",
+    "wordType": "adverb",
+    "headword": "allerdings",
+    "translations": {
+      "en": [
+        "however",
+        "though"
+      ],
+      "fa": [
+        "اگرچه",
+        "هرچند"
+      ]
+    },
+    "sentences": [
+      {
+        "german": "Wir können uns morgen treffen, allerdings habe ich erst ab Mittag Zeit.",
+        "translations": {
+          "en": "We can meet tomorrow, though I'm only free from midday.",
+          "fa": "می‌توانیم فردا همدیگر را ببینیم، اگرچه من فقط از ظهر وقت دارم."
+        }
+      }
+    ],
+    "level": "B1",
+    "tags": []
+  },
+  {
+    "id": "b1-adjective-allgemein",
+    "wordType": "adjective",
+    "headword": "allgemein",
+    "translations": {
+      "en": [
+        "general"
+      ],
+      "fa": [
+        "عمومی",
+        "کلی"
+      ]
+    },
+    "sentences": [
+      {
+        "german": "Wir haben nur über allgemeine Probleme gesprochen.",
+        "translations": {
+          "en": "We only talked about general problems.",
+          "fa": "ما فقط دربارهٔ مشکلات عمومی صحبت کردیم."
+        }
+      },
+      {
+        "german": "Im Allgemeinen bin ich mit meiner Arbeit sehr zufrieden.",
+        "translations": {
+          "en": "In general I'm very satisfied with my work.",
+          "fa": "به‌طور کلی از کارم بسیار راضی‌ام."
+        }
+      }
+    ],
+    "level": "B1",
+    "tags": []
+  },
+  {
+    "id": "b1-adjective-alt",
+    "wordType": "adjective",
+    "headword": "alt",
+    "translations": {
+      "en": [
+        "old"
+      ],
+      "fa": [
+        "قدیمی",
+        "پیر"
+      ]
+    },
+    "sentences": [
+      {
+        "german": "Wie alt sind Sie?",
+        "translations": {
+          "en": "How old are you?",
+          "fa": "چند سالتان است؟"
+        }
+      },
+      {
+        "german": "Maria ist eine alte Freundin von mir.",
+        "translations": {
+          "en": "Maria is an old friend of mine.",
+          "fa": "ماریا یکی از دوستان قدیمی من است."
+        }
+      }
+    ],
+    "level": "B1",
+    "tags": []
+  },
+  {
+    "id": "b1-noun-alter",
+    "wordType": "noun",
+    "headword": "Alter",
+    "translations": {
+      "en": [
+        "age"
+      ],
+      "fa": [
+        "سن"
+      ]
+    },
+    "nounForms": {
+      "article": "das",
+      "plural": null
+    },
+    "sentences": [
+      {
+        "german": "Wir sind etwa im gleichen Alter.",
+        "translations": {
+          "en": "We're about the same age.",
+          "fa": "ما تقریباً هم‌سن هستیم."
+        }
+      }
+    ],
+    "level": "B1",
+    "tags": []
+  },
+  {
+    "id": "b1-adjective-alternativ",
+    "wordType": "adjective",
+    "headword": "alternativ",
+    "translations": {
+      "en": [
+        "alternative"
+      ],
+      "fa": [
+        "جایگزین"
+      ]
+    },
+    "sentences": [
+      {
+        "german": "Wir brauchen alternative Energien.",
+        "translations": {
+          "en": "We need alternative energy sources.",
+          "fa": "ما به انرژی‌های جایگزین نیاز داریم."
+        }
+      }
+    ],
+    "level": "B1",
+    "tags": [
+      "environment"
+    ]
+  },
+  {
+    "id": "b1-noun-alternative",
+    "wordType": "noun",
+    "headword": "Alternative",
+    "translations": {
+      "en": [
+        "alternative"
+      ],
+      "fa": [
+        "جایگزین",
+        "گزینه"
+      ]
+    },
+    "nounForms": {
+      "article": "die",
+      "plural": "-n"
+    },
+    "sentences": [
+      {
+        "german": "Auf dieser Strecke ist der Zug eine gute Alternative zum Flugzeug.",
+        "translations": {
+          "en": "On this route the train is a good alternative to flying.",
+          "fa": "در این مسیر قطار جایگزین خوبی برای هواپیماست."
+        }
+      }
+    ],
+    "level": "B1",
+    "tags": [
+      "travel"
+    ]
+  },
+  {
+    "id": "b1-noun-ampel",
+    "wordType": "noun",
+    "headword": "Ampel",
+    "translations": {
+      "en": [
+        "traffic light"
+      ],
+      "fa": [
+        "چراغ راهنما"
+      ]
+    },
+    "nounForms": {
+      "article": "die",
+      "plural": "-n"
+    },
+    "sentences": [
+      {
+        "german": "Dort an der Ampel kannst du über die Straße gehen.",
+        "translations": {
+          "en": "You can cross the street there at the traffic light.",
+          "fa": "آنجا کنار چراغ راهنما می‌توانی از خیابان رد شوی."
+        }
+      }
+    ],
+    "level": "B1",
+    "tags": [
+      "directions",
+      "traffic"
+    ]
+  },
+  {
+    "id": "b1-noun-amt",
+    "wordType": "noun",
+    "headword": "Amt",
+    "translations": {
+      "en": [
+        "(government) office"
+      ],
+      "fa": [
+        "اداره"
+      ]
+    },
+    "nounForms": {
+      "article": "das",
+      "plural": "¨-er"
+    },
+    "sentences": [
+      {
+        "german": "Das Arbeitsamt befindet sich neben dem Busbahnhof.",
+        "translations": {
+          "en": "The employment office is next to the bus station.",
+          "fa": "ادارهٔ کاریابی کنار ترمینال اتوبوس است."
+        }
+      }
+    ],
+    "level": "B1",
+    "tags": []
+  },
+  {
+    "id": "b1-verb-sich-amuesieren",
+    "wordType": "verb",
+    "headword": "sich amüsieren",
+    "translations": {
+      "en": [
+        "to enjoy oneself",
+        "to have fun"
+      ],
+      "fa": [
+        "خوش گذراندن"
+      ]
+    },
+    "verbForms": {
+      "infinitive": "sich amüsieren",
+      "presentThirdPerson": "amüsiert sich",
+      "simplePast": "amüsierte sich",
+      "perfect": "hat sich amüsiert",
+      "passive": null,
+      "auxiliaryIsSein": false,
+      "separable": false
+    },
+    "sentences": [
+      {
+        "german": "Bei dem Fest haben wir uns sehr gut amüsiert.",
+        "translations": {
+          "en": "We had a lot of fun at the party.",
+          "fa": "در آن جشن خیلی خوش گذراندیم."
+        }
+      }
+    ],
+    "level": "B1",
+    "tags": []
+  },
+  {
+    "id": "b1-verb-analysieren",
+    "wordType": "verb",
+    "headword": "analysieren",
+    "translations": {
+      "en": [
+        "to analyze"
+      ],
+      "fa": [
+        "تحلیل کردن"
+      ]
+    },
+    "verbForms": {
+      "infinitive": "analysieren",
+      "presentThirdPerson": "analysiert",
+      "simplePast": "analysierte",
+      "perfect": "hat analysiert",
+      "passive": "wird analysiert",
+      "auxiliaryIsSein": false,
+      "separable": false
+    },
+    "sentences": [
+      {
+        "german": "Die Politiker analysieren die Situation auf dem Arbeitsmarkt.",
+        "translations": {
+          "en": "The politicians are analyzing the situation on the job market.",
+          "fa": "سیاست‌مداران وضعیت بازار کار را تحلیل می‌کنند."
+        }
+      }
+    ],
+    "level": "B1",
+    "tags": []
+  },
+  {
+    "id": "b1-conjunction-also",
+    "wordType": "conjunction",
+    "headword": "also",
+    "translations": {
+      "en": [
+        "so",
+        "therefore"
+      ],
+      "fa": [
+        "پس",
+        "بنابراین"
+      ]
+    },
+    "sentences": [
+      {
+        "german": "Irina hat Urlaub. Sie kann uns also helfen.",
+        "translations": {
+          "en": "Irina is on holiday. So she can help us.",
+          "fa": "ایرینا تعطیلات است. پس می‌تواند به ما کمک کند."
+        }
+      }
+    ],
+    "level": "B1",
+    "tags": []
+  },
+  {
+    "id": "b1-conjunction-als",
+    "wordType": "conjunction",
+    "headword": "als",
+    "translations": {
+      "en": [
+        "when (past)",
+        "than",
+        "as"
+      ],
+      "fa": [
+        "وقتی که",
+        "از (در مقایسه)"
+      ]
+    },
+    "sentences": [
+      {
+        "german": "Als mein Mann kam, war die Party schon zu Ende.",
+        "translations": {
+          "en": "When my husband arrived, the party was already over.",
+          "fa": "وقتی شوهرم آمد، مهمانی قبلاً تمام شده بود."
+        }
+      },
+      {
+        "german": "Meine Schwester ist älter als ich.",
+        "translations": {
+          "en": "My sister is older than me.",
+          "fa": "خواهرم از من بزرگ‌تر است."
+        }
+      }
+    ],
+    "level": "B1",
+    "tags": []
+  },
+  {
+    "id": "b1-adjective-alltaeglich",
+    "wordType": "adjective",
+    "headword": "alltäglich",
+    "translations": {
+      "en": [
+        "everyday",
+        "ordinary"
+      ],
+      "fa": [
+        "روزمره"
+      ]
+    },
+    "sentences": [
+      {
+        "german": "Das alltägliche Leben ist manchmal langweilig.",
+        "translations": {
+          "en": "Everyday life is sometimes boring.",
+          "fa": "زندگی روزمره گاهی خسته‌کننده است."
+        }
+      }
+    ],
+    "level": "B1",
+    "tags": [
+      "daily-routine"
+    ]
+  },
+  {
+    "id": "b1-noun-montag",
+    "wordType": "noun",
+    "headword": "Montag",
+    "translations": {
+      "en": [
+        "Monday"
+      ],
+      "fa": [
+        "دوشنبه"
+      ]
+    },
+    "nounForms": {
+      "article": "der",
+      "plural": null
+    },
+    "sentences": [
+      {
+        "german": "Am Montag fängt die Schule wieder an.",
+        "translations": {
+          "en": "School starts again on Monday.",
+          "fa": "دوشنبه مدرسه دوباره شروع می‌شود."
+        }
+      }
+    ],
+    "level": "B1",
+    "tags": [
+      "time",
+      "weekdays"
+    ]
+  },
+  {
+    "id": "b1-noun-dienstag",
+    "wordType": "noun",
+    "headword": "Dienstag",
+    "translations": {
+      "en": [
+        "Tuesday"
+      ],
+      "fa": [
+        "سه‌شنبه"
+      ]
+    },
+    "nounForms": {
+      "article": "der",
+      "plural": null
+    },
+    "sentences": [
+      {
+        "german": "Dann sehen wir uns also am Dienstag.",
+        "translations": {
+          "en": "So we'll see each other on Tuesday then.",
+          "fa": "پس سه‌شنبه همدیگر را می‌بینیم."
+        }
+      }
+    ],
+    "level": "B1",
+    "tags": [
+      "time",
+      "weekdays"
+    ]
+  },
+  {
+    "id": "b1-noun-mittwoch",
+    "wordType": "noun",
+    "headword": "Mittwoch",
+    "translations": {
+      "en": [
+        "Wednesday"
+      ],
+      "fa": [
+        "چهارشنبه"
+      ]
+    },
+    "nounForms": {
+      "article": "der",
+      "plural": null
+    },
+    "sentences": [
+      {
+        "german": "Der Kurs findet mittwochs statt.",
+        "translations": {
+          "en": "The course takes place on Wednesdays.",
+          "fa": "این دوره چهارشنبه‌ها برگزار می‌شود."
+        }
+      }
+    ],
+    "level": "B1",
+    "tags": [
+      "time",
+      "weekdays"
+    ]
+  },
+  {
+    "id": "b1-noun-donnerstag",
+    "wordType": "noun",
+    "headword": "Donnerstag",
+    "translations": {
+      "en": [
+        "Thursday"
+      ],
+      "fa": [
+        "پنجشنبه"
+      ]
+    },
+    "nounForms": {
+      "article": "der",
+      "plural": null
+    },
+    "sentences": [
+      {
+        "german": "Am Donnerstag habe ich keine Zeit.",
+        "translations": {
+          "en": "I don't have time on Thursday.",
+          "fa": "پنجشنبه وقت ندارم."
+        }
+      }
+    ],
+    "level": "B1",
+    "tags": [
+      "time",
+      "weekdays"
+    ]
+  },
+  {
+    "id": "b1-noun-freitag",
+    "wordType": "noun",
+    "headword": "Freitag",
+    "translations": {
+      "en": [
+        "Friday"
+      ],
+      "fa": [
+        "جمعه"
+      ]
+    },
+    "nounForms": {
+      "article": "der",
+      "plural": null
+    },
+    "sentences": [
+      {
+        "german": "Freitags gehe ich immer schwimmen.",
+        "translations": {
+          "en": "I always go swimming on Fridays.",
+          "fa": "جمعه‌ها همیشه شنا می‌روم."
+        }
+      }
+    ],
+    "level": "B1",
+    "tags": [
+      "time",
+      "weekdays"
+    ]
+  },
+  {
+    "id": "b1-noun-samstag",
+    "wordType": "noun",
+    "headword": "Samstag",
+    "translations": {
+      "en": [
+        "Saturday"
+      ],
+      "fa": [
+        "شنبه"
+      ]
+    },
+    "nounForms": {
+      "article": "der",
+      "plural": null
+    },
+    "sentences": [
+      {
+        "german": "Samstag bleibt unser Geschäft geschlossen.",
+        "translations": {
+          "en": "Our shop stays closed on Saturday.",
+          "fa": "شنبه مغازهٔ ما بسته می‌ماند."
+        }
+      }
+    ],
+    "level": "B1",
+    "tags": [
+      "time",
+      "weekdays"
+    ]
+  },
+  {
+    "id": "b1-noun-sonntag",
+    "wordType": "noun",
+    "headword": "Sonntag",
+    "translations": {
+      "en": [
+        "Sunday"
+      ],
+      "fa": [
+        "یکشنبه"
+      ]
+    },
+    "nounForms": {
+      "article": "der",
+      "plural": null
+    },
+    "sentences": [
+      {
+        "german": "Sonntags schlafe ich lange.",
+        "translations": {
+          "en": "On Sundays I sleep in.",
+          "fa": "یکشنبه‌ها دیر می‌خوابم (تا دیر می‌خوابم)."
+        }
+      }
+    ],
+    "level": "B1",
+    "tags": [
+      "time",
+      "weekdays"
+    ]
+  },
+  {
+    "id": "b1-noun-januar",
+    "wordType": "noun",
+    "headword": "Januar",
+    "translations": {
+      "en": [
+        "January"
+      ],
+      "fa": [
+        "ژانویه"
+      ]
+    },
+    "nounForms": {
+      "article": "der",
+      "plural": null
+    },
+    "sentences": [
+      {
+        "german": "Im Januar ist es meistens sehr kalt.",
+        "translations": {
+          "en": "In January it's usually very cold.",
+          "fa": "در ژانویه معمولاً خیلی سرد است."
+        }
+      }
+    ],
+    "level": "B1",
+    "tags": [
+      "time",
+      "months"
+    ]
+  },
+  {
+    "id": "b1-noun-februar",
+    "wordType": "noun",
+    "headword": "Februar",
+    "translations": {
+      "en": [
+        "February"
+      ],
+      "fa": [
+        "فوریه"
+      ]
+    },
+    "nounForms": {
+      "article": "der",
+      "plural": null
+    },
+    "sentences": [
+      {
+        "german": "Mein Geburtstag ist im Februar.",
+        "translations": {
+          "en": "My birthday is in February.",
+          "fa": "تولدم در فوریه است."
+        }
+      }
+    ],
+    "level": "B1",
+    "tags": [
+      "time",
+      "months"
+    ]
+  },
+  {
+    "id": "b1-noun-maerz",
+    "wordType": "noun",
+    "headword": "März",
+    "translations": {
+      "en": [
+        "March"
+      ],
+      "fa": [
+        "مارس"
+      ]
+    },
+    "nounForms": {
+      "article": "der",
+      "plural": null
+    },
+    "sentences": [
+      {
+        "german": "Der Frühling beginnt im März.",
+        "translations": {
+          "en": "Spring begins in March.",
+          "fa": "بهار در مارس شروع می‌شود."
+        }
+      }
+    ],
+    "level": "B1",
+    "tags": [
+      "time",
+      "months"
+    ]
+  },
+  {
+    "id": "b1-noun-april",
+    "wordType": "noun",
+    "headword": "April",
+    "translations": {
+      "en": [
+        "April"
+      ],
+      "fa": [
+        "آوریل"
+      ]
+    },
+    "nounForms": {
+      "article": "der",
+      "plural": null
+    },
+    "sentences": [
+      {
+        "german": "Im April regnet es hier oft.",
+        "translations": {
+          "en": "It often rains here in April.",
+          "fa": "در آوریل اینجا اغلب باران می‌بارد."
+        }
+      }
+    ],
+    "level": "B1",
+    "tags": [
+      "time",
+      "months"
+    ]
+  },
+  {
+    "id": "b1-noun-mai",
+    "wordType": "noun",
+    "headword": "Mai",
+    "translations": {
+      "en": [
+        "May"
+      ],
+      "fa": [
+        "مه"
+      ]
+    },
+    "nounForms": {
+      "article": "der",
+      "plural": null
+    },
+    "sentences": [
+      {
+        "german": "Wir heiraten im Mai.",
+        "translations": {
+          "en": "We're getting married in May.",
+          "fa": "ما در ماه مه ازدواج می‌کنیم."
+        }
+      }
+    ],
+    "level": "B1",
+    "tags": [
+      "time",
+      "months"
+    ]
+  },
+  {
+    "id": "b1-noun-juni",
+    "wordType": "noun",
+    "headword": "Juni",
+    "translations": {
+      "en": [
+        "June"
+      ],
+      "fa": [
+        "ژوئن"
+      ]
+    },
+    "nounForms": {
+      "article": "der",
+      "plural": null
+    },
+    "sentences": [
+      {
+        "german": "Die Schule endet im Juni.",
+        "translations": {
+          "en": "School ends in June.",
+          "fa": "مدرسه در ژوئن تمام می‌شود."
+        }
+      }
+    ],
+    "level": "B1",
+    "tags": [
+      "time",
+      "months"
+    ]
+  },
+  {
+    "id": "b1-noun-august",
+    "wordType": "noun",
+    "headword": "August",
+    "translations": {
+      "en": [
+        "August"
+      ],
+      "fa": [
+        "اوت"
+      ]
+    },
+    "nounForms": {
+      "article": "der",
+      "plural": null
+    },
+    "sentences": [
+      {
+        "german": "Im August machen wir Urlaub.",
+        "translations": {
+          "en": "We're going on holiday in August.",
+          "fa": "در اوت به تعطیلات می‌رویم."
+        }
+      }
+    ],
+    "level": "B1",
+    "tags": [
+      "time",
+      "months"
+    ]
+  },
+  {
+    "id": "b1-noun-september",
+    "wordType": "noun",
+    "headword": "September",
+    "translations": {
+      "en": [
+        "September"
+      ],
+      "fa": [
+        "سپتامبر"
+      ]
+    },
+    "nounForms": {
+      "article": "der",
+      "plural": null
+    },
+    "sentences": [
+      {
+        "german": "Im September fängt das neue Semester an.",
+        "translations": {
+          "en": "The new semester starts in September.",
+          "fa": "ترم جدید در سپتامبر شروع می‌شود."
+        }
+      }
+    ],
+    "level": "B1",
+    "tags": [
+      "time",
+      "months"
+    ]
+  },
+  {
+    "id": "b1-noun-oktober",
+    "wordType": "noun",
+    "headword": "Oktober",
+    "translations": {
+      "en": [
+        "October"
+      ],
+      "fa": [
+        "اکتبر"
+      ]
+    },
+    "nounForms": {
+      "article": "der",
+      "plural": null
+    },
+    "sentences": [
+      {
+        "german": "Im Oktober werden die Tage kürzer.",
+        "translations": {
+          "en": "In October the days get shorter.",
+          "fa": "در اکتبر روزها کوتاه‌تر می‌شوند."
+        }
+      }
+    ],
+    "level": "B1",
+    "tags": [
+      "time",
+      "months"
+    ]
+  },
+  {
+    "id": "b1-noun-november",
+    "wordType": "noun",
+    "headword": "November",
+    "translations": {
+      "en": [
+        "November"
+      ],
+      "fa": [
+        "نوامبر"
+      ]
+    },
+    "nounForms": {
+      "article": "der",
+      "plural": null
+    },
+    "sentences": [
+      {
+        "german": "Im November ist das Wetter oft grau.",
+        "translations": {
+          "en": "The weather is often grey in November.",
+          "fa": "در نوامبر هوا اغلب ابری است."
+        }
+      }
+    ],
+    "level": "B1",
+    "tags": [
+      "time",
+      "months"
+    ]
+  },
+  {
+    "id": "b1-noun-dezember",
+    "wordType": "noun",
+    "headword": "Dezember",
+    "translations": {
+      "en": [
+        "December"
+      ],
+      "fa": [
+        "دسامبر"
+      ]
+    },
+    "nounForms": {
+      "article": "der",
+      "plural": null
+    },
+    "sentences": [
+      {
+        "german": "Im Dezember feiern wir Weihnachten.",
+        "translations": {
+          "en": "We celebrate Christmas in December.",
+          "fa": "در دسامبر کریسمس را جشن می‌گیریم."
+        }
+      }
+    ],
+    "level": "B1",
+    "tags": [
+      "time",
+      "months"
+    ]
+  }
+]

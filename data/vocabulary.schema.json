@@ -1,0 +1,87 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "B1VocabularyImport",
+  "description": "Array of vocabulary entries importable into the B1 Vocab Trainer app. Supports multiple UI/translation languages (fa = Persian, default; en = English, fallback).",
+  "type": "array",
+  "items": {
+    "type": "object",
+    "required": ["id", "wordType", "headword", "translations", "sentences", "level", "tags"],
+    "properties": {
+      "id": {
+        "type": "string",
+        "description": "Stable unique id, e.g. 'b1-noun-abend'. Never change this once imported, or progress history for the word will be lost."
+      },
+      "wordType": {
+        "type": "string",
+        "enum": ["noun", "verb", "adjective", "adverb", "preposition", "conjunction", "pronoun", "numeral", "phrase", "other"]
+      },
+      "headword": {
+        "type": "string",
+        "description": "The word itself, without article, e.g. 'Abend' or 'anfangen'."
+      },
+      "translations": {
+        "type": "object",
+        "description": "Translations keyed by language code. At least one language required; 'fa' (Persian) is the app default, 'en' is the fallback when the selected language is missing for a word.",
+        "properties": {
+          "fa": { "type": "array", "items": { "type": "string" }, "minItems": 1 },
+          "en": { "type": "array", "items": { "type": "string" }, "minItems": 1 }
+        },
+        "minProperties": 1
+      },
+      "nounForms": {
+        "type": "object",
+        "description": "Required when wordType is 'noun'.",
+        "properties": {
+          "article": { "type": ["string", "null"], "enum": ["der", "die", "das", null] },
+          "plural": { "type": ["string", "null"], "description": "e.g. '-e', '¨-er', or full plural word" }
+        }
+      },
+      "verbForms": {
+        "type": "object",
+        "description": "Required when wordType is 'verb'.",
+        "properties": {
+          "infinitive": { "type": "string" },
+          "presentThirdPerson": { "type": "string", "description": "e.g. 'fängt an'" },
+          "simplePast": { "type": "string", "description": "Präteritum, e.g. 'fing an'" },
+          "perfect": { "type": "string", "description": "e.g. 'hat angefangen' or 'ist gefahren'" },
+          "passive": { "type": ["string", "null"], "description": "e.g. 'wird gemacht', null if not applicable" },
+          "auxiliaryIsSein": { "type": "boolean" },
+          "separable": { "type": "boolean" }
+        },
+        "required": ["infinitive", "presentThirdPerson", "simplePast", "perfect", "auxiliaryIsSein", "separable"]
+      },
+      "sentences": {
+        "type": "array",
+        "minItems": 1,
+        "items": {
+          "type": "object",
+          "required": ["german", "translations"],
+          "properties": {
+            "german": { "type": "string" },
+            "translations": {
+              "type": "object",
+              "description": "Sentence translation keyed by language code, e.g. { \"fa\": \"...\", \"en\": \"...\" }. At least one required.",
+              "properties": {
+                "fa": { "type": "string" },
+                "en": { "type": "string" }
+              },
+              "minProperties": 1
+            }
+          }
+        }
+      },
+      "level": {
+        "type": "string",
+        "enum": ["A1", "A2", "B1", "B2", "C1", "C2"]
+      },
+      "tags": {
+        "type": "array",
+        "items": { "type": "string" }
+      },
+      "regionalVariant": {
+        "type": "string",
+        "description": "Optional, e.g. 'CH' or 'A' for Swiss/Austrian standard variants."
+      }
+    }
+  }
+}
