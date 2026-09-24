@@ -5,8 +5,6 @@ import {
   normalizeTranslationsMap,
 } from "@domain/entities/VocabularyEntry";
 import { VocabularyRepository } from "@domain/repositories/VocabularyRepository";
-import { toAppError } from "@domain/errors/AppError";
-import { throwIfSupabaseError } from "@infrastructure/supabase/supabaseErrors";
 
 /** Row shape as stored in the `vocabulary_entries` table (see supabase/schema.sql). */
 interface VocabularyRow {
@@ -73,69 +71,57 @@ export class SupabaseVocabularyRepository implements VocabularyRepository {
   constructor(private readonly client: SupabaseClient) {}
 
   async getAll(): Promise<VocabularyEntry[]> {
-    try {
-      const { data, error } = await this.client.from("vocabulary_entries").select("*");
-      throwIfSupabaseError(error, "Failed to load vocabulary.");
-      return (data as VocabularyRow[]).map(rowToEntry);
-    } catch (err) {
-      throw toAppError(err, "Failed to load vocabulary.");
-    }
-  }
+    // Supabase/PostgREST caps a single response at the project's "Max Rows"
+    // setting (1000 by default), regardless of how many rows match the query.
+    // Page through with .range() so we always get everything, no matter the
+    // table size or that project setting.
+    const pageSize = 1000;
+    const allRows: VocabularyRow[] = [];
+    let from = 0;
 
-  async getById(id: string): Promise<VocabularyEntry | null> {
-    try {
+    // eslint-disable-next-line no-constant-condition
+    while (true) {
       const { data, error } = await this.client
         .from("vocabulary_entries")
         .select("*")
-        .eq("id", id)
-        .maybeSingle();
-      throwIfSupabaseError(error, "Failed to load that vocabulary entry.");
-      return data ? rowToEntry(data as VocabularyRow) : null;
-    } catch (err) {
-      throw toAppError(err, "Failed to load that vocabulary entry.");
+        .range(from, from + pageSize - 1);
+      if (error) throw new Error(`Failed to load vocabulary: ${error.message}`);
+      if (!data || data.length === 0) break;
+
+      allRows.push(...(data as VocabularyRow[]));
+      if (data.length < pageSize) break; // last page
+      from += pageSize;
     }
+
+    return allRows.map(rowToEntry);
+  }
+
+  async getById(id: string): Promise<VocabularyEntry | null> {
+    const { data, error } = await this.client
+      .from("vocabulary_entries")
+      .select("*")
+      .eq("id", id)
+      .maybeSingle();
+    if (error)
+      throw new Error(
+        `Failed to load vocabulary entry ${id}: ${error.message}`,
+      );
+    return data ? rowToEntry(data as VocabularyRow) : null;
   }
 
   async saveMany(entries: VocabularyEntry[]): Promise<void> {
-    try {
-      const rows = entries.map(entryToRow);
-      const { error } = await this.client
-        .from("vocabulary_entries")
-        .upsert(rows, { onConflict: "id" });
-      throwIfSupabaseError(error, "Failed to save vocabulary.");
-    } catch (err) {
-      throw toAppError(err, "Failed to save vocabulary.");
-    }
+    const rows = entries.map(entryToRow);
+    const { error } = await this.client
+      .from("vocabulary_entries")
+      .upsert(rows, { onConflict: "id" });
+    if (error) throw new Error(`Failed to save vocabulary: ${error.message}`);
   }
 
   async count(): Promise<number> {
-    try {
-      const { count, error } = await this.client
-        .from("vocabulary_entries")
-        .select("*", { count: "exact", head: true });
-      throwIfSupabaseError(error, "Failed to count vocabulary.");
-      return count ?? 0;
-    } catch (err) {
-      throw toAppError(err, "Failed to count vocabulary.");
-    }
-  }
-
-  async deleteById(id: string): Promise<void> {
-    try {
-      const { error } = await this.client.from("vocabulary_entries").delete().eq("id", id);
-      throwIfSupabaseError(error, "Failed to delete that vocabulary entry.");
-    } catch (err) {
-      throw toAppError(err, "Failed to delete that vocabulary entry.");
-    }
-  }
-
-  async deleteAll(): Promise<void> {
-    try {
-      // "id is not null" matches every row — Supabase requires an explicit filter on delete.
-      const { error } = await this.client.from("vocabulary_entries").delete().not("id", "is", null);
-      throwIfSupabaseError(error, "Failed to delete vocabulary.");
-    } catch (err) {
-      throw toAppError(err, "Failed to delete vocabulary.");
-    }
+    const { count, error } = await this.client
+      .from("vocabulary_entries")
+      .select("*", { count: "exact", head: true });
+    if (error) throw new Error(`Failed to count vocabulary: ${error.message}`);
+    return count ?? 0;
   }
 }
