@@ -69,6 +69,26 @@ function entryToRow(entry: VocabularyEntry): VocabularyRow {
 
 export class SupabaseVocabularyRepository implements VocabularyRepository {
   constructor(private readonly client: SupabaseClient) {}
+  async deleteById(id: string): Promise<void> {
+    const { error } = await this.client
+      .from("vocabulary_entries")
+      .delete()
+      .eq("id", id);
+    if (error)
+      throw new Error(
+        `Failed to delete vocabulary entry ${id}: ${error.message}`,
+      );
+  }
+
+  async deleteAll(): Promise<void> {
+    // PostgREST rejects a DELETE with no filter, so match every row explicitly.
+    const { error } = await this.client
+      .from("vocabulary_entries")
+      .delete()
+      .not("id", "is", null);
+    if (error)
+      throw new Error(`Failed to delete all vocabulary: ${error.message}`);
+  }
 
   async getAll(): Promise<VocabularyEntry[]> {
     // Supabase/PostgREST caps a single response at the project's "Max Rows"
