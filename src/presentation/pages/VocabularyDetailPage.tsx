@@ -125,6 +125,46 @@ export default function VocabularyDetailPage() {
   const blocker = publishBlocker(v.wordCount);
   let lastLetter = "";
 
+  const downloadButton = isDownloaded ? (
+    <button
+      className="btn btn-secondary"
+      disabled={busy}
+      onClick={() => act(() => vocabularies.removeDownload(user.id, v.id), "downloadError", downloadedIds.reload)}
+    >
+      <Icon name="check" size={16} /> {t("removeDownload")}
+    </button>
+  ) : (
+    <button
+      className="btn"
+      disabled={busy || v.status !== "published"}
+      onClick={() =>
+        act(
+          () => vocabularies.download(user.id, v),
+          "downloadError",
+          () => {
+            prepareOffline.execute(user.id).catch(() => {});
+            downloadedIds.reload();
+            vocabulary.reload();
+            setMessage(t("downloadedNowInQuiz"));
+          }
+        )
+      }
+    >
+      <Icon name="download" size={16} /> {t("download")}
+    </button>
+  );
+
+  const wordButtons = (
+    <>
+      <button className="btn btn-secondary" disabled={busy} onClick={() => fileInputRef.current?.click()}>
+        <Icon name="upload" size={18} /> {busy ? t("importing") : t("importJsonButton")}
+      </button>
+      <button className="btn" disabled={busy} onClick={() => setDialog({ kind: "form" })}>
+        <Icon name="plus" size={18} /> {t("addWordButton")}
+      </button>
+    </>
+  );
+
   return (
     <div className="app-main">
       <Link className="back-link" to={isOwner ? "/vocabularies" : "/feed"}>
@@ -210,35 +250,8 @@ export default function VocabularyDetailPage() {
                 {t("delete")}
               </button>
             </>
-          ) : isDownloaded ? (
-            <button
-              className="btn btn-secondary"
-              disabled={busy}
-              onClick={() =>
-                act(() => vocabularies.removeDownload(user.id, v.id), "downloadError", downloadedIds.reload)
-              }
-            >
-              <Icon name="check" size={16} /> {t("removeDownload")}
-            </button>
           ) : (
-            <button
-              className="btn"
-              disabled={busy || v.status !== "published"}
-              onClick={() =>
-                act(
-                  () => vocabularies.download(user.id, v),
-                  "downloadError",
-                  () => {
-                    prepareOffline.execute(user.id).catch(() => {});
-                    downloadedIds.reload();
-                    vocabulary.reload();
-                    setMessage(t("downloadedNowInQuiz"));
-                  }
-                )
-              }
-            >
-              <Icon name="download" size={16} /> {t("download")}
-            </button>
+            <div className="hide-mobile">{downloadButton}</div>
           )}
         </div>
         {isOwner && v.status === "draft" && (
@@ -253,23 +266,19 @@ export default function VocabularyDetailPage() {
         <div className="toolbar">
           <input
             type="search"
+            className="toolbar-search"
+            enterKeyHint="search"
             placeholder={t("searchPlaceholder")}
             value={search}
             onChange={(e) => {
               setSearch(e.target.value);
               setLimit(WORDS_PAGE);
             }}
-            style={{ maxWidth: 240 }}
           />
           <div className="toolbar-spacer" />
           {isOwner && (
             <>
-              <button className="btn btn-secondary" disabled={busy} onClick={() => setDialog({ kind: "form" })}>
-                {t("addWordButton")}
-              </button>
-              <button className="btn btn-secondary" disabled={busy} onClick={() => fileInputRef.current?.click()}>
-                {busy ? t("importing") : t("importJsonButton")}
-              </button>
+              <div className="button-row hide-mobile">{wordButtons}</div>
               <input
                 ref={fileInputRef}
                 type="file"
@@ -374,6 +383,11 @@ export default function VocabularyDetailPage() {
       </div>
 
       {v.status === "published" && <ReviewsSection vocabulary={v} onChanged={vocabulary.reload} />}
+
+      {/* Phones: the main actions float at the bottom, within thumb reach. */}
+      {(isOwner || v.status === "published") && (
+        <div className="page-actions mobile-only">{isOwner ? wordButtons : downloadButton}</div>
+      )}
 
       {dialog.kind === "details" && (
         <Modal title={displayForm(dialog.word)} onClose={() => setDialog({ kind: "none" })}>

@@ -15,12 +15,23 @@ export function applyAppearance(appearance: Appearance): void {
   else root.setAttribute("data-theme", appearance.theme);
   root.setAttribute("data-font-size", appearance.fontSize);
   root.setAttribute("data-reduce-motion", String(appearance.reduceMotion));
+  syncThemeColor(appearance.theme);
   try {
     const { theme, fontSize, reduceMotion } = appearance;
     window.localStorage.setItem(STORAGE_KEY, JSON.stringify({ theme, fontSize, reduceMotion }));
   } catch {
     // Storage unavailable: it still applies for this visit.
   }
+}
+
+const THEME_COLORS = { light: "#f4f5fb", dark: "#0e1120" };
+
+/** The mobile browser bar follows the app's theme, not only the OS one. */
+function syncThemeColor(theme: Appearance["theme"]): void {
+  document.querySelectorAll<HTMLMetaElement>('meta[name="theme-color"]').forEach((meta) => {
+    const own = meta.media.includes("dark") ? THEME_COLORS.dark : THEME_COLORS.light;
+    meta.content = theme === "system" ? own : THEME_COLORS[theme];
+  });
 }
 
 export function applyStoredAppearance(): void {

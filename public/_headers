@@ -1,0 +1,7 @@
+# Cloudflare static assets: build files have content hashes in their names,
+# so browsers can keep them for a year and never re-download them.
+/assets/*
+  Cache-Control: public, max-age=31536000, immutable
+
+/icons/*
+  Cache-Control: public, max-age=604800

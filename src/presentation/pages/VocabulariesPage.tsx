@@ -62,15 +62,16 @@ export default function VocabulariesPage() {
     <div className="app-main">
       <div className="page-header">
         <h2>{t("navVocabularies")}</h2>
-        <div className="button-row">
+        {/* In the header on wide screens; floating at the bottom on phones. */}
+        <div className="button-row page-actions">
           <button className="btn btn-secondary" onClick={() => setAddingWord(true)}>
-            {t("addWordButton")}
+            <Icon name="plus" size={18} /> {t("addWordButton")}
           </button>
-          <Link className="btn btn-secondary" to="/feed">
+          <Link className="btn btn-secondary hide-mobile" to="/feed">
             {t("browseFeed")}
           </Link>
           <Link className="btn" to="/vocabularies/new">
-            {t("newVocabulary")}
+            <Icon name="book" size={18} /> {t("newVocabulary")}
           </Link>
         </div>
       </div>

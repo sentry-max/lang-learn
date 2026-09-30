@@ -155,6 +155,25 @@ tab stays open (`src/infrastructure/offline/`):
 - A reload or a new visit starts with an empty memory cache, so it needs to
   be online to load data again.
 
+## Phones
+
+On small screens the app is laid out for one-handed use:
+
+- Tabs sit in a bottom bar; a page's main actions (new vocabulary, add word,
+  import, download) float just above it. Both hide while you type, so the
+  keyboard has room.
+- A running quiz goes full screen: the word in the middle and the rating
+  buttons (or **Next**) pinned to the bottom. Swipe the card sideways to go
+  to the next word. Answers can also vibrate (Settings → Sound effects).
+- Dialogs open as bottom sheets; drag one down to close it.
+- The language menu and sign-out move to Settings (Profile and Account).
+
+Performance: fonts load in parallel with the app, other pages are fetched in
+the background once the device is idle (skipped with Data Saver or on 2G),
+long lists skip rendering rows that are off screen, and countdowns re-render
+only their own bar. `public/_headers` lets Cloudflare cache the hashed build
+files for a year.
+
 ## Vocabularies
 
 - **Create**: title (required) and description (optional), the words'

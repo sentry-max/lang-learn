@@ -18,6 +18,8 @@ import { useErrorMessage } from "@presentation/hooks/useErrorMessage";
 import { applyAppearance } from "@presentation/appearance";
 import { canSpeak, speak } from "@presentation/speech";
 import { playCue } from "@presentation/sound";
+import { canVibrate, vibrate } from "@presentation/haptics";
+import SignOutButton from "@presentation/components/SignOutButton";
 import ErrorBanner from "@presentation/components/ErrorBanner";
 import RatingPill from "@presentation/components/RatingPill";
 import Icon from "@presentation/components/ui/Icon";
@@ -316,6 +318,17 @@ export default function SettingsPage() {
             </button>
           </div>
         )}
+        {canVibrate() && (
+          <Switch
+            checked={p.haptics}
+            onChange={(v) => {
+              setPref("haptics", v);
+              if (v) vibrate("success");
+            }}
+            label={t("hapticsLabel")}
+            description={t("hapticsHint")}
+          />
+        )}
       </section>
 
       <section className="card">
@@ -388,6 +401,18 @@ export default function SettingsPage() {
           <Icon name="book" /> {t("settingsWords")}
         </h3>
         <Switch checked={p.continuousAdd} onChange={(v) => setPref("continuousAdd", v)} label={t("keepAddingLabel")} description={t("keepAddingHint")} />
+      </section>
+
+      <section className="card">
+        <h3 className="card-title">
+          <Icon name="logout" /> {t("settingsAccount")}
+        </h3>
+        {user.email && (
+          <p className="muted" dir="auto">
+            {t("signedInAs", { email: user.email })}
+          </p>
+        )}
+        <SignOutButton className="btn btn-secondary danger-text btn-block" withLabel />
       </section>
 
     </div>

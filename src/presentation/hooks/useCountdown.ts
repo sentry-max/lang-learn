@@ -1,14 +1,29 @@
 import { useEffect, useRef, useState } from "react";
 
 /**
- * Milliseconds left until `deadline` (epoch ms), updated ~10×/second while
- * `running`. Calls `onExpire` once when it reaches zero. Paused countdowns
- * keep showing the last value.
+ * Calls `onExpire` once when `deadline` (epoch ms) passes while `running`.
+ * A single timeout, not a ticking clock, so the calling component never
+ * re-renders because time passes.
  */
-export function useCountdown(deadline: number | null, running: boolean, onExpire?: () => void): number {
-  const [remaining, setRemaining] = useState(() => (deadline === null ? 0 : Math.max(0, deadline - Date.now())));
+export function useDeadline(deadline: number | null, running: boolean, onExpire: () => void): void {
   const onExpireRef = useRef(onExpire);
   onExpireRef.current = onExpire;
+
+  useEffect(() => {
+    if (deadline === null || !running) return;
+    const timer = window.setTimeout(() => onExpireRef.current(), Math.max(0, deadline - Date.now()));
+    return () => window.clearTimeout(timer);
+  }, [deadline, running]);
+}
+
+/**
+ * Milliseconds left until `deadline`, refreshed every `intervalMs` while
+ * `running`. Only the component that displays the time should use this, so
+ * a tick re-renders a small bar rather than a whole page. Stopped or cleared
+ * countdowns keep showing their last value.
+ */
+export function useRemaining(deadline: number | null, running: boolean, intervalMs = 200): number {
+  const [remaining, setRemaining] = useState(() => (deadline === null ? 0 : Math.max(0, deadline - Date.now())));
 
   useEffect(() => {
     if (deadline === null) return;
@@ -17,22 +32,12 @@ export function useCountdown(deadline: number | null, running: boolean, onExpire
       setRemaining(left);
       return left;
     };
-    if (!running) {
-      tick();
-      return;
-    }
-    if (tick() === 0) {
-      onExpireRef.current?.();
-      return;
-    }
+    if (tick() === 0 || !running) return;
     const interval = window.setInterval(() => {
-      if (tick() === 0) {
-        window.clearInterval(interval);
-        onExpireRef.current?.();
-      }
-    }, 100);
+      if (tick() === 0) window.clearInterval(interval);
+    }, intervalMs);
     return () => window.clearInterval(interval);
-  }, [deadline, running]);
+  }, [deadline, running, intervalMs]);
 
   return remaining;
 }

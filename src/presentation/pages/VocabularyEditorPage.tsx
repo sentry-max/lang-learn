@@ -170,12 +170,12 @@ export default function VocabularyEditorPage() {
 
         {!isEdit && <p className="muted form-hint">{t("newVocabularyHint")}</p>}
 
-        <div className="button-row">
-          <button className="btn" type="submit" disabled={saving}>
-            {saving ? t("saving") : isEdit ? t("saveButton") : t("createAndAddWords")}
-          </button>
+        <div className="button-row action-bar">
           <button className="btn btn-secondary" type="button" onClick={() => navigate(-1)}>
             {t("cancelButton")}
+          </button>
+          <button className="btn" type="submit" disabled={saving}>
+            {saving ? t("saving") : isEdit ? t("saveButton") : t("createAndAddWords")}
           </button>
         </div>
       </form>

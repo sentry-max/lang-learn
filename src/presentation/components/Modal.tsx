@@ -1,9 +1,14 @@
-import { ReactNode, useCallback, useEffect, useId, useRef, useState } from "react";
+import { PointerEvent, ReactNode, useCallback, useEffect, useId, useRef, useState } from "react";
 import { useLanguage } from "@presentation/context/LanguageContext";
 import { prefersReducedMotion } from "@presentation/appearance";
 import Icon from "@presentation/components/ui/Icon";
 
 const EXIT_MS = 180;
+/** Dragging a bottom sheet down this far closes it. */
+const DISMISS_DRAG_PX = 90;
+
+/** Touch screens: don't pop the keyboard up the moment a dialog opens. */
+const isTouchScreen = () => typeof window.matchMedia === "function" && window.matchMedia("(pointer: coarse)").matches;
 
 interface Props {
   title: string;
@@ -16,7 +21,11 @@ interface Props {
   footer?: (close: () => void) => ReactNode;
 }
 
-/** Dialog with enter/exit animations, Escape/backdrop to close, focus handling and scroll lock. */
+/**
+ * Dialog with enter/exit animations, Escape/backdrop to close, focus handling
+ * and scroll lock. On phones it is a bottom sheet that can be dragged down
+ * to close.
+ */
 export default function Modal({ title, onClose, children, wide, compact, footer }: Props) {
   const { t } = useLanguage();
   const titleId = useId();
@@ -35,7 +44,7 @@ export default function Modal({ title, onClose, children, wide, compact, footer 
     const box = boxRef.current;
     const focusable =
       box?.querySelector<HTMLElement>("[data-autofocus]") ??
-      box?.querySelector<HTMLElement>("input, select, textarea, button:not(.modal-close)");
+      (isTouchScreen() ? null : box?.querySelector<HTMLElement>("input, select, textarea, button:not(.modal-close)"));
     (focusable ?? box)?.focus();
     const previousOverflow = document.body.style.overflow;
     document.body.style.overflow = "hidden";
@@ -54,6 +63,29 @@ export default function Modal({ title, onClose, children, wide, compact, footer 
     };
   }, [close]);
 
+  // Drag-to-close for the bottom sheet (touch and pen only, from the header).
+  const drag = useRef<{ y: number; dy: number } | null>(null);
+  function onDragStart(e: PointerEvent<HTMLDivElement>) {
+    if (e.pointerType === "mouse" || (e.target as HTMLElement).closest("button")) return;
+    drag.current = { y: e.clientY, dy: 0 };
+    e.currentTarget.setPointerCapture(e.pointerId);
+    if (boxRef.current) boxRef.current.style.transition = "none";
+  }
+  function onDragMove(e: PointerEvent<HTMLDivElement>) {
+    if (!drag.current || !boxRef.current) return;
+    drag.current.dy = Math.max(0, e.clientY - drag.current.y);
+    boxRef.current.style.transform = `translateY(${drag.current.dy}px)`;
+  }
+  function onDragEnd() {
+    const dy = drag.current?.dy ?? 0;
+    drag.current = null;
+    const box = boxRef.current;
+    if (!box) return;
+    box.style.transition = "";
+    if (dy > DISMISS_DRAG_PX) close();
+    else box.style.transform = "";
+  }
+
   return (
     <div
       className={`modal-backdrop${closing ? " closing" : ""}`}
@@ -69,7 +101,13 @@ export default function Modal({ title, onClose, children, wide, compact, footer 
         aria-modal="true"
         aria-labelledby={titleId}
       >
-        <div className="modal-header">
+        <div
+          className="modal-header"
+          onPointerDown={onDragStart}
+          onPointerMove={onDragMove}
+          onPointerUp={onDragEnd}
+          onPointerCancel={onDragEnd}
+        >
           <h3 id={titleId}>{title}</h3>
           <button type="button" className="modal-close" onClick={close} aria-label={t("close")}>
             <Icon name="close" size={18} />

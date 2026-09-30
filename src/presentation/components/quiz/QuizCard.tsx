@@ -3,7 +3,6 @@ import { DifficultyRating, isStrongRating } from "@domain/entities/Learning";
 import { displayForm, resolveSentenceTranslation, resolveTranslations } from "@domain/entities/Word";
 import { QuizItem } from "@domain/services/QuizSession";
 import { useLanguage } from "@presentation/context/LanguageContext";
-import DifficultyRatingPicker from "@presentation/components/DifficultyRatingPicker";
 import Icon from "@presentation/components/ui/Icon";
 import { RATING_KEYS } from "@presentation/components/RatingPill";
 import { canSpeak } from "@presentation/speech";
@@ -20,22 +19,18 @@ interface Props {
   primaryLanguage: LanguageCode;
   hintOpen: boolean;
   onShowHint: () => void;
-  onRate: (rating: DifficultyRating) => void;
   onPronounce: () => void;
-  saving: boolean;
   feedback: CardFeedback | null;
   showShortcuts: boolean;
 }
 
-/** One quiz question: prompt, hint, rating buttons, and the revealed answer after rating. */
+/** One quiz question: prompt, hint, and the revealed answer after rating (the rating buttons sit below it). */
 export default function QuizCard({
   item,
   primaryLanguage,
   hintOpen,
   onShowHint,
-  onRate,
   onPronounce,
-  saving,
   feedback,
   showShortcuts,
 }: Props) {
@@ -101,8 +96,6 @@ export default function QuizCard({
           )}
         </>
       )}
-
-      {!feedback && <DifficultyRatingPicker value={null} onChange={onRate} disabled={saving} showShortcuts={showShortcuts} />}
 
       {feedback && (
         <div className="feedback">

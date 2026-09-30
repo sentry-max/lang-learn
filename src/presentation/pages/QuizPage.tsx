@@ -20,14 +20,18 @@ import { useLanguage } from "@presentation/context/LanguageContext";
 import { useProfile } from "@presentation/context/ProfileContext";
 import { useConfirm } from "@presentation/context/FeedbackContext";
 import { useErrorMessage } from "@presentation/hooks/useErrorMessage";
-import { useCountdown } from "@presentation/hooks/useCountdown";
+import { useDeadline } from "@presentation/hooks/useCountdown";
+import { useFocusMode } from "@presentation/hooks/useFocusMode";
+import { useSwipe } from "@presentation/hooks/useSwipe";
 import QuizSettingsPanel from "@presentation/components/QuizSettingsPanel";
 import QuizCard, { CardFeedback } from "@presentation/components/quiz/QuizCard";
 import QuizSummary from "@presentation/components/quiz/QuizSummary";
 import ErrorBanner from "@presentation/components/ErrorBanner";
-import CountdownBar from "@presentation/components/ui/CountdownBar";
+import CountdownBar, { AutoAdvanceBar } from "@presentation/components/ui/CountdownBar";
+import DifficultyRatingPicker from "@presentation/components/DifficultyRatingPicker";
 import Icon from "@presentation/components/ui/Icon";
 import { playCue } from "@presentation/sound";
+import { vibrate } from "@presentation/haptics";
 import { speak, stopSpeaking } from "@presentation/speech";
 import { PageLoader } from "@presentation/components/ui/Loader";
 
@@ -61,7 +65,11 @@ export default function QuizPage() {
   const errorMessage = useErrorMessage();
   // Quick mute in the quiz: sound effects only — pronunciation has its own setting.
   const [soundOn, setSoundOn] = useState(preferences.soundEffects);
-  const cue = (name: Parameters<typeof playCue>[0]) => soundOn && playCue(name, preferences.soundVolume);
+  // Answer feedback: a sound (unless muted) and, on phones, a short vibration.
+  const cue = (name: Parameters<typeof playCue>[0]) => {
+    if (soundOn) playCue(name, preferences.soundVolume);
+    if (preferences.haptics) vibrate(name);
+  };
   const say = (text: string, lang: QuizItem["sourceLanguage"]) => speak(text, lang, preferences.speechRate);
   const toggleSound = () => {
     const next = !soundOn;
@@ -119,7 +127,7 @@ export default function QuizPage() {
       cue(reason === "time_up" ? "timeout" : summary.successRate && summary.successRate >= 0.7 ? "complete" : "success");
       if (q.sessionId) completeQuizSession.execute(user.id, q.sessionId).catch(() => {});
     },
-    [completeQuizSession, soundOn, preferences.soundVolume, setQuiz, user.id] // eslint-disable-line react-hooks/exhaustive-deps
+    [completeQuizSession, soundOn, preferences.soundVolume, preferences.haptics, setQuiz, user.id] // eslint-disable-line react-hooks/exhaustive-deps
   );
 
   async function startQuiz(settings: QuizSettings) {
@@ -232,11 +240,15 @@ export default function QuizPage() {
 
   // ---------------------------------------------------------------- timers
 
-  const quizRemaining = useCountdown(quiz?.quizDeadline ?? null, stage === "running", () => finish("time_up"));
-  const wordRemaining = useCountdown(wordDeadline, stage === "running" && !paused && !shown && !saving, () =>
-    rate("very_bad", true)
-  );
-  const advanceRemaining = useCountdown(shown?.advanceAt ?? null, stage === "running" && !paused, () => next());
+  // Timers fire once at their deadline; only the bars that show the time tick.
+  const wordClockRunning = stage === "running" && !paused && !shown && !saving;
+  const advanceRunning = stage === "running" && !paused;
+  useDeadline(quiz?.quizDeadline ?? null, stage === "running", () => finish("time_up"));
+  useDeadline(wordDeadline, wordClockRunning, () => rate("very_bad", true));
+  useDeadline(shown?.advanceAt ?? null, advanceRunning, () => next());
+
+  useFocusMode(stage === "running");
+  const swipe = useSwipe<HTMLDivElement>(() => next(), shown !== null);
 
   async function requestExit() {
     // Pause the per-word clock while the user decides; the whole-quiz clock keeps running.
@@ -363,14 +375,17 @@ export default function QuizPage() {
 
       {timerMode === "quiz" && quiz.quizDeadline !== null && (
         <CountdownBar
-          remainingMs={quizRemaining}
+          deadline={quiz.quizDeadline}
+          running
           totalMs={quiz.settings.quizTimerSeconds * 1000}
           label={t("timeLeftQuiz")}
         />
       )}
       {timerMode === "word" && (
         <CountdownBar
-          remainingMs={shown?.timedOut ? 0 : wordRemaining}
+          deadline={wordDeadline}
+          running={wordClockRunning}
+          expired={shown?.timedOut}
           totalMs={wordLimitMs}
           label={t("timeLeftWord")}
         />
@@ -379,34 +394,44 @@ export default function QuizPage() {
       {error && <ErrorBanner message={error} />}
 
       <div className="quiz-stage" key={displayed.key}>
-        <QuizCard
-          item={displayed}
-          primaryLanguage={profile.primaryLanguage}
-          hintOpen={hintOpen}
-          onShowHint={() => setHintOpen(true)}
-          onRate={(r) => rate(r)}
-          onPronounce={() => say(displayed.word.headword, displayed.sourceLanguage)}
-          saving={saving}
-          feedback={shown}
-          showShortcuts={false}
-        />
+        <div
+          className="swipe-area"
+          ref={swipe.ref}
+          onPointerDown={swipe.onPointerDown}
+          onPointerMove={swipe.onPointerMove}
+          onPointerUp={swipe.onPointerUp}
+          onPointerCancel={swipe.onPointerCancel}
+        >
+          <QuizCard
+            item={displayed}
+            primaryLanguage={profile.primaryLanguage}
+            hintOpen={hintOpen}
+            onShowHint={() => setHintOpen(true)}
+            onPronounce={() => say(displayed.word.headword, displayed.sourceLanguage)}
+            feedback={shown}
+            showShortcuts={false}
+          />
+        </div>
       </div>
 
-      {shown ? (
-        <div className="next-row">
-          <button className="btn btn-block btn-large" onClick={next} autoFocus>
-            {t("next")}{" "}
-            <Icon name="arrowRight" size={18} className="flip-rtl" />
-          </button>
-          {shown.advanceAt !== null && shown.advanceTotalMs > 0 && (
-            <div className="auto-advance" aria-hidden="true">
-              <div style={{ transform: `scaleX(${advanceRemaining / shown.advanceTotalMs})` }} />
-            </div>
-          )}
-        </div>
-      ) : (
-        preferences.keyboardShortcuts && <p className="shortcut-tip muted small">{t("shortcutTip")}</p>
-      )}
+      {/* Answer buttons live at the bottom, in easy reach of the thumb on phones. */}
+      <div className="quiz-dock">
+        {shown ? (
+          <div className="next-row" key="next">
+            <button className="btn btn-block btn-large" onClick={next} autoFocus>
+              {t("next")} <Icon name="arrowRight" size={18} className="flip-rtl" />
+            </button>
+            {shown.advanceAt !== null && shown.advanceTotalMs > 0 && (
+              <AutoAdvanceBar deadline={shown.advanceAt} totalMs={shown.advanceTotalMs} running={advanceRunning} />
+            )}
+          </div>
+        ) : (
+          <>
+            <DifficultyRatingPicker value={null} onChange={(r) => rate(r)} disabled={saving} />
+            {preferences.keyboardShortcuts && <p className="shortcut-tip muted small">{t("shortcutTip")}</p>}
+          </>
+        )}
+      </div>
     </div>
   );
 }

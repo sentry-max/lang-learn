@@ -234,17 +234,6 @@ export default function QuizSettingsPanel({ initial, onStart }: Props) {
         )}
       </section>
 
-      <button
-        className="btn btn-block btn-large start-btn"
-        disabled={selectedIds.length === 0 || poolSize === 0 || poolWords.loading || !timerValid}
-        onClick={() => onStart({ ...settings, vocabularyIds: selectedIds, letters: validLetters })}
-      >
-        <Icon name={timed ? "timer" : "quiz"} />{" "}
-        {selectedIds.length === 0
-          ? t("chooseVocabularyToStart")
-          : t("startQuizCount", { count: formatNumber(effectiveCount, language) })}
-      </button>
-
       <button type="button" className="more-toggle" aria-expanded={moreOpen} onClick={() => setMoreOpen((o) => !o)}>
         <Icon name="chevronDown" size={16} className={moreOpen ? "rotated" : undefined} />
         {t("moreOptions")}
@@ -273,6 +262,20 @@ export default function QuizSettingsPanel({ initial, onStart }: Props) {
           />
         </div>
       )}
+
+      {/* Pinned to the bottom of the screen on phones, where the thumb is. */}
+      <div className="action-bar">
+        <button
+          className="btn btn-block btn-large start-btn"
+          disabled={selectedIds.length === 0 || poolSize === 0 || poolWords.loading || !timerValid}
+          onClick={() => onStart({ ...settings, vocabularyIds: selectedIds, letters: validLetters })}
+        >
+          <Icon name={timed ? "timer" : "quiz"} />{" "}
+          {selectedIds.length === 0
+            ? t("chooseVocabularyToStart")
+            : t("startQuizCount", { count: formatNumber(effectiveCount, language) })}
+        </button>
+      </div>
     </div>
   );
 }

@@ -38,10 +38,10 @@ export default function LoginPage() {
   };
 
   return (
-    <div className="app-main">
+    <div className="app-main login-page">
       <div className="card">
         <div className="login-brand">
-          <img src="/icons/logo-128.png" alt="" width={64} height={64} />
+          <img src="/icons/logo-128.png" alt="" width={64} height={64} decoding="async" />
           <h1>{t("appName")}</h1>
         </div>
         <p className="muted">{mode === "sign_in" ? t("signInTitle") : t("signUpTitle")}</p>
@@ -51,7 +51,12 @@ export default function LoginPage() {
             <input
               id="login-email"
               type="email"
+              inputMode="email"
               autoComplete="email"
+              autoCapitalize="none"
+              autoCorrect="off"
+              spellCheck={false}
+              enterKeyHint="next"
               dir="ltr"
               value={email}
               onChange={(e) => setEmail(e.target.value)}
@@ -64,6 +69,7 @@ export default function LoginPage() {
               id="login-password"
               type="password"
               dir="ltr"
+              enterKeyHint="go"
               autoComplete={mode === "sign_in" ? "current-password" : "new-password"}
               minLength={mode === "sign_up" ? MIN_PASSWORD_LENGTH : undefined}
               value={password}

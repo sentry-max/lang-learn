@@ -49,4 +49,10 @@ describe("preferences", () => {
     const p = normalizePreferences({ ratingBehavior: { good: { showAnswer: false, autoAdvance: true, delaySeconds: 3 } } });
     expect(afterRating(p, "good")).toEqual({ reveal: false, advanceAfterMs: 0 });
   });
+
+  it("vibrates by default and keeps a stored choice, ignoring junk", () => {
+    expect(normalizePreferences({}).haptics).toBe(true);
+    expect(normalizePreferences({ haptics: false }).haptics).toBe(false);
+    expect(normalizePreferences({ haptics: "no" }).haptics).toBe(true);
+  });
 });

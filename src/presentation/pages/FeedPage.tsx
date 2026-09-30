@@ -77,19 +77,22 @@ export default function FeedPage() {
     <div className="app-main wide">
       <div className="page-header">
         <h2>{t("navFeed")}</h2>
-        <Link className="btn" to="/vocabularies/new">
-          {t("newVocabulary")}
-        </Link>
+        <div className="page-actions">
+          <Link className="btn" to="/vocabularies/new">
+            <Icon name="plus" size={18} /> {t("newVocabulary")}
+          </Link>
+        </div>
       </div>
 
       <div className="toolbar">
         <input
           type="search"
+          className="toolbar-search"
+          enterKeyHint="search"
           placeholder={t("feedSearchPlaceholder")}
           value={searchInput}
           maxLength={100}
           onChange={(e) => setSearchInput(e.target.value)}
-          style={{ maxWidth: 260 }}
         />
         <select
           aria-label={t("wordsLanguageLabel")}

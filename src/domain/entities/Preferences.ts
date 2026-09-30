@@ -32,6 +32,8 @@ export interface Preferences {
   soundEffects: boolean;
   /** Sound-effect volume, 0..1 */
   soundVolume: number;
+  /** Short vibrations on answers and time-outs (phones that support it) */
+  haptics: boolean;
   /** Read each word aloud when it appears (browser speech synthesis) */
   autoPronounce: boolean;
   /** Pronunciation speed, 0.5 (slow) .. 1.5 (fast) */
@@ -58,6 +60,7 @@ export const DEFAULT_PREFERENCES: Preferences = {
   autoShowHint: false,
   soundEffects: true,
   soundVolume: 0.6,
+  haptics: true,
   autoPronounce: false,
   speechRate: 0.9,
   keyboardShortcuts: true,
@@ -108,6 +111,7 @@ export function normalizePreferences(value: unknown): Preferences {
     autoShowHint: bool("autoShowHint", d.autoShowHint),
     soundEffects: bool("soundEffects", d.soundEffects),
     soundVolume: clampNumber(raw.soundVolume, 0, 1, d.soundVolume),
+    haptics: bool("haptics", d.haptics),
     autoPronounce: bool("autoPronounce", d.autoPronounce),
     speechRate: clampNumber(raw.speechRate, 0.5, 1.5, d.speechRate),
     keyboardShortcuts: bool("keyboardShortcuts", d.keyboardShortcuts),
