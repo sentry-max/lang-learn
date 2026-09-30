@@ -25,6 +25,8 @@ export interface Preferences {
   fontSize: FontSizePreference;
   /** Turns off decorative animations */
   reduceMotion: boolean;
+  /** iPhone-style "Liquid Glass" look (translucent glass, iOS colors, icons and controls) in light and dark */
+  liquidGlass: boolean;
   ratingBehavior: Record<DifficultyRating, RatingBehavior>;
   /** Show the example sentence right away instead of behind "Show hint" */
   autoShowHint: boolean;
@@ -50,6 +52,7 @@ export const DEFAULT_PREFERENCES: Preferences = {
   theme: "system",
   fontSize: "medium",
   reduceMotion: false,
+  liquidGlass: false,
   ratingBehavior: {
     very_easy: { showAnswer: true, autoAdvance: true, delaySeconds: 2 },
     easy: { showAnswer: true, autoAdvance: true, delaySeconds: 2 },
@@ -107,6 +110,7 @@ export function normalizePreferences(value: unknown): Preferences {
       ? (raw.fontSize as FontSizePreference)
       : d.fontSize,
     reduceMotion: bool("reduceMotion", d.reduceMotion),
+    liquidGlass: bool("liquidGlass", d.liquidGlass),
     ratingBehavior,
     autoShowHint: bool("autoShowHint", d.autoShowHint),
     soundEffects: bool("soundEffects", d.soundEffects),

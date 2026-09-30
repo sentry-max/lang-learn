@@ -55,4 +55,10 @@ describe("preferences", () => {
     expect(normalizePreferences({ haptics: false }).haptics).toBe(false);
     expect(normalizePreferences({ haptics: "no" }).haptics).toBe(true);
   });
+
+  it("keeps the classic look unless Liquid Glass was switched on", () => {
+    expect(normalizePreferences({}).liquidGlass).toBe(false);
+    expect(normalizePreferences({ liquidGlass: true }).liquidGlass).toBe(true);
+    expect(normalizePreferences({ liquidGlass: 1 }).liquidGlass).toBe(false);
+  });
 });

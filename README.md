@@ -174,6 +174,25 @@ long lists skip rendering rows that are off screen, and countdowns re-render
 only their own bar. `public/_headers` lets Cloudflare cache the hashed build
 files for a year.
 
+## Liquid Glass style
+
+Settings → Appearance → **Liquid Glass style** switches the whole app to an
+iPhone look, in light and dark (it follows the Theme setting):
+
+- Frosted glass cards, bars, sheets and menus over a soft color wash, with a
+  bright rim and sheen; a floating glass tab bar with a "lens" behind the
+  current tab; sheets that float inset from the screen edges.
+- iOS system colors (blue, green, orange, red…) and San Francisco type on
+  Apple devices (Inter / Vazirmatn elsewhere).
+- iOS controls: green switches, segmented pickers, round checkmarks, capsule
+  buttons, filled text fields.
+- SF-Symbols-style icons (gear, bolt, clock, book, square-and-arrow…) and a
+  glass version of the app icon and loading mascot, with the same ring-and-dot mark.
+
+It's saved with the rest of your settings (the `liquidGlass` preference). With
+the system's "Reduce transparency" setting on, surfaces become solid and the
+blur is turned off.
+
 ## Vocabularies
 
 - **Create**: title (required) and description (optional), the words'

@@ -74,7 +74,7 @@ export default function SettingsPage() {
   // Appearance and app language take effect immediately.
   useEffect(() => {
     applyAppearance(draft.preferences);
-  }, [draft.preferences.theme, draft.preferences.fontSize, draft.preferences.reduceMotion]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [draft.preferences.theme, draft.preferences.fontSize, draft.preferences.reduceMotion, draft.preferences.liquidGlass]); // eslint-disable-line react-hooks/exhaustive-deps
   useEffect(() => {
     setLanguage(draft.uiLanguage);
   }, [draft.uiLanguage, setLanguage]);
@@ -238,6 +238,16 @@ export default function SettingsPage() {
             ]}
           />
         </div>
+        <Switch
+          checked={p.liquidGlass}
+          onChange={(v) => setPref("liquidGlass", v)}
+          label={
+            <span className="icon-text">
+              <Icon name="sparkles" size={18} /> {t("liquidGlassLabel")}
+            </span>
+          }
+          description={t("liquidGlassHint")}
+        />
         <Switch
           checked={p.reduceMotion}
           onChange={(v) => setPref("reduceMotion", v)}

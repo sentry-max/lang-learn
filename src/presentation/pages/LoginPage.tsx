@@ -1,6 +1,7 @@
 import { FormEvent, useState } from "react";
 import { useAuth } from "@presentation/context/AuthContext";
 import { useLanguage } from "@presentation/context/LanguageContext";
+import AppLogo from "@presentation/components/ui/AppLogo";
 
 const MIN_PASSWORD_LENGTH = 8;
 
@@ -41,7 +42,7 @@ export default function LoginPage() {
     <div className="app-main login-page">
       <div className="card">
         <div className="login-brand">
-          <img src="/icons/logo-128.png" alt="" width={64} height={64} decoding="async" />
+          <AppLogo size={64} />
           <h1>{t("appName")}</h1>
         </div>
         <p className="muted">{mode === "sign_in" ? t("signInTitle") : t("signUpTitle")}</p>

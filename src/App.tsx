@@ -12,6 +12,7 @@ import SyncIndicator from "@presentation/components/SyncIndicator";
 import SignOutButton from "@presentation/components/SignOutButton";
 import Icon, { IconName } from "@presentation/components/ui/Icon";
 import MenuSelect from "@presentation/components/ui/MenuSelect";
+import AppLogo from "@presentation/components/ui/AppLogo";
 import QuizPage from "@presentation/pages/QuizPage";
 import { UiStringKey } from "@presentation/i18n/translations";
 import { PageLoader } from "@presentation/components/ui/Loader";
@@ -111,7 +112,7 @@ function SignedInApp() {
         <div className="app-shell">
           <header className="topbar">
             <Link to="/quiz" className="brand">
-              <img className="brand-mark" src="/icons/logo-128.png" alt="" width={32} height={32} decoding="async" />
+              <AppLogo className="brand-mark" size={32} />
               <span className="brand-name">{t("appName")}</span>
             </Link>
             <nav className="nav-links" aria-label={t("mainNavigation")}>

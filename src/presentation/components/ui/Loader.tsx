@@ -1,5 +1,6 @@
 import { useId } from "react";
 import { useLanguage } from "@presentation/context/LanguageContext";
+import { useLiquidGlass } from "@presentation/hooks/useLiquidGlass";
 
 /**
  * The app logo (violet square, ring, dot) as a friendly character: the ring
@@ -8,15 +9,23 @@ import { useLanguage } from "@presentation/context/LanguageContext";
  */
 export function LogoMascot({ size = 76 }: { size?: number }) {
   const gradientId = useId();
+  // Liquid Glass: the same character in the glass app icon's blue, with a sheen.
+  const liquid = useLiquidGlass();
+  const [from, to] = liquid ? ["#1a8cff", "#5e5ce6"] : ["#5a44e5", "#7b3aeb"];
   return (
     <svg className="mascot" width={size} height={size} viewBox="0 0 100 100" aria-hidden="true">
       <defs>
         <linearGradient id={gradientId} x1="0" y1="0" x2="1" y2="1">
-          <stop offset="0" stopColor="#5a44e5" />
-          <stop offset="1" stopColor="#7b3aeb" />
+          <stop offset="0" stopColor={from} />
+          <stop offset="1" stopColor={to} />
+        </linearGradient>
+        <linearGradient id={`${gradientId}s`} x1="0" y1="0" x2="0" y2="1">
+          <stop offset="0" stopColor="#fff" stopOpacity="0.4" />
+          <stop offset="0.5" stopColor="#fff" stopOpacity="0" />
         </linearGradient>
       </defs>
       <rect width="100" height="100" rx="24" fill={`url(#${gradientId})`} />
+      {liquid && <rect width="100" height="100" rx="24" fill={`url(#${gradientId}s)`} />}
       <ellipse className="mascot-shadow" cx="25.4" cy="86" rx="7.5" ry="1.8" fill="rgba(20, 8, 60, 0.28)" />
       <g className="mascot-face">
         <circle cx="53.3" cy="44.3" r="21.7" fill="none" stroke="#fff" strokeWidth="8.5" />
