@@ -1,0 +1,14 @@
+{
+  "name": "Lang Learn",
+  "short_name": "Lang Learn",
+  "description": "Adaptive vocabulary trainer for German, English and Persian.",
+  "start_url": "/quiz",
+  "display": "standalone",
+  "background_color": "#0e1120",
+  "theme_color": "#5b3fe6",
+  "icons": [
+    { "src": "/icons/icon-192.png", "sizes": "192x192", "type": "image/png" },
+    { "src": "/icons/icon-512.png", "sizes": "512x512", "type": "image/png" },
+    { "src": "/icons/icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable" }
+  ]
+}

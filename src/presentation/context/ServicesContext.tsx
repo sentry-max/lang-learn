@@ -1,85 +1,109 @@
-import { ReactNode, createContext, useContext, useMemo } from "react";
+import { ReactNode, createContext, useContext, useEffect, useMemo, useSyncExternalStore } from "react";
 import { supabase } from "@infrastructure/supabase/client";
-import { getAppMode } from "@infrastructure/config/appMode";
 import { SupabaseVocabularyRepository } from "@infrastructure/supabase/SupabaseVocabularyRepository";
-import { SupabaseProgressRepository } from "@infrastructure/supabase/SupabaseProgressRepository";
-import { LocalStorageVocabularyRepository } from "@infrastructure/local/LocalStorageVocabularyRepository";
-import { LocalStorageProgressRepository } from "@infrastructure/local/LocalStorageProgressRepository";
-import { SyncingVocabularyRepository } from "@infrastructure/sync/SyncingVocabularyRepository";
-import { VocabularyRepository } from "@domain/repositories/VocabularyRepository";
-import { ProgressRepository } from "@domain/repositories/ProgressRepository";
-import { SyncCoordinator } from "@domain/repositories/SyncCoordinator";
+import { SupabaseWordRepository } from "@infrastructure/supabase/SupabaseWordRepository";
+import { SupabaseLearningRepository } from "@infrastructure/supabase/SupabaseLearningRepository";
+import { SupabaseVocabularyReviewRepository } from "@infrastructure/supabase/SupabaseVocabularyReviewRepository";
+import { SupabaseProfileRepository } from "@infrastructure/supabase/SupabaseProfileRepository";
+import { CachingWordRepository } from "@infrastructure/cache/CachingWordRepository";
+import { BrowserConnectivity } from "@infrastructure/offline/Connectivity";
+import { Outbox } from "@infrastructure/offline/Outbox";
+import { OfflineLearningRepository } from "@infrastructure/offline/OfflineLearningRepository";
+import { OfflineVocabularyRepository } from "@infrastructure/offline/OfflineVocabularyRepository";
+import { OfflineVocabularyReviewRepository } from "@infrastructure/offline/OfflineVocabularyReviewRepository";
+import { OfflineSyncManager } from "@infrastructure/offline/OfflineSyncManager";
+import { SyncGateway, SyncStatus } from "@application/ports/SyncGateway";
+import { VocabularyService } from "@application/services/VocabularyService";
+import { WordService } from "@application/services/WordService";
+import { LearningHistoryService } from "@application/services/LearningHistoryService";
+import { VocabularyReviewService } from "@application/services/VocabularyReviewService";
+import { ProfileService } from "@application/services/ProfileService";
 import { GenerateQuizUseCase } from "@application/usecases/GenerateQuizUseCase";
 import { SubmitAnswerUseCase } from "@application/usecases/SubmitAnswerUseCase";
+import { CompleteQuizSessionUseCase } from "@application/usecases/CompleteQuizSessionUseCase";
 import { GetStatsUseCase } from "@application/usecases/GetStatsUseCase";
-import { ImportVocabularyUseCase } from "@application/usecases/ImportVocabularyUseCase";
-import { ListVocabularyUseCase } from "@application/usecases/ListVocabularyUseCase";
-import { DeleteVocabularyEntryUseCase } from "@application/usecases/DeleteVocabularyEntryUseCase";
-import { DeleteAllVocabularyUseCase } from "@application/usecases/DeleteAllVocabularyUseCase";
-import { VocabularySyncUseCase } from "@application/usecases/VocabularySyncUseCase";
+import { PrepareOfflineUseCase } from "@application/usecases/PrepareOfflineUseCase";
+import { useCurrentUser } from "@presentation/context/AuthContext";
 
-/**
- * Composition root: the only place in the app that decides which backend
- * (Supabase, local-storage-only offline mode, or the merged offline-first
- * sync mode) is wired up. Everything downstream (pages, use cases)
- * depends on the repository interfaces only.
- *
- * Cloud mode (the default) uses SyncingVocabularyRepository: there is one
- * vocabulary dataset, cached locally for instant/offline reads and
- * mirrored to Supabase in the background — not two separate databases.
- * Standalone offline mode (VITE_APP_MODE=offline, no account at all)
- * skips Supabase entirely and just uses the local cache directly, so
- * `vocabularySync` is null there — nothing to sync to.
- */
-interface Services {
+export interface Services {
+  vocabularies: VocabularyService;
+  words: WordService;
+  history: LearningHistoryService;
+  reviews: VocabularyReviewService;
+  profiles: ProfileService;
   generateQuiz: GenerateQuizUseCase;
   submitAnswer: SubmitAnswerUseCase;
+  completeQuizSession: CompleteQuizSessionUseCase;
   getStats: GetStatsUseCase;
-  importVocabulary: ImportVocabularyUseCase;
-  listVocabulary: ListVocabularyUseCase;
-  deleteVocabularyEntry: DeleteVocabularyEntryUseCase;
-  deleteAllVocabulary: DeleteAllVocabularyUseCase;
-  vocabularySync: VocabularySyncUseCase | null;
+  prepareOffline: PrepareOfflineUseCase;
+  sync: SyncGateway;
+  /** Starts background syncing; returns the stop function */
+  startSync: () => () => void;
+}
+
+/**
+ * Composition root: the only place that decides which implementations back
+ * the repository ports. Supabase is the source of truth; offline decorators
+ * keep loaded data usable in memory for the life of the tab and queue
+ * learning writes (persisted per user) until the connection returns.
+ */
+export function createServices(userId: string): Services {
+  const connectivity = new BrowserConnectivity();
+
+  const vocabularyRepository = new OfflineVocabularyRepository(new SupabaseVocabularyRepository(supabase), connectivity);
+  const wordRepository = new CachingWordRepository(
+    new SupabaseWordRepository(supabase),
+    5 * 60 * 1000,
+    () => Date.now(),
+    connectivity
+  );
+  const learningRepository = new OfflineLearningRepository(
+    new SupabaseLearningRepository(supabase),
+    connectivity,
+    new Outbox(`lang-learn:outbox:${userId}`)
+  );
+  const sync = new OfflineSyncManager(connectivity, learningRepository, () => wordRepository.invalidate());
+
+  const vocabularies = new VocabularyService(vocabularyRepository);
+  return {
+    vocabularies,
+    words: new WordService(wordRepository, vocabularyRepository),
+    history: new LearningHistoryService(learningRepository, wordRepository),
+    reviews: new VocabularyReviewService(
+      new OfflineVocabularyReviewRepository(new SupabaseVocabularyReviewRepository(supabase), connectivity)
+    ),
+    profiles: new ProfileService(new SupabaseProfileRepository(supabase)),
+    generateQuiz: new GenerateQuizUseCase(vocabularies, wordRepository, learningRepository),
+    submitAnswer: new SubmitAnswerUseCase(learningRepository),
+    completeQuizSession: new CompleteQuizSessionUseCase(learningRepository),
+    getStats: new GetStatsUseCase(vocabularies, wordRepository, learningRepository),
+    prepareOffline: new PrepareOfflineUseCase(vocabularies, wordRepository, learningRepository),
+    sync,
+    startSync: () => sync.start(),
+  };
 }
 
 const ServicesContext = createContext<Services | null>(null);
 
-function isBrowserOnline(): boolean {
-  return typeof navigator === "undefined" ? true : navigator.onLine;
-}
-
 export function ServicesProvider({ children }: { children: ReactNode }) {
-  const services = useMemo<Services>(() => {
-    const isStandaloneOffline = getAppMode() === "offline";
+  const user = useCurrentUser();
+  const services = useMemo(() => createServices(user.id), [user.id]);
+  const { version } = useSyncExternalStore(services.sync.subscribe, services.sync.getStatus);
 
-    let vocabularyRepository: VocabularyRepository;
-    let syncCoordinator: SyncCoordinator | null = null;
+  // Watch connectivity, and send anything left from an earlier offline session.
+  useEffect(() => {
+    const stop = services.startSync();
+    void services.sync.syncNow();
+    return stop;
+  }, [services]);
 
-    if (isStandaloneOffline) {
-      vocabularyRepository = new LocalStorageVocabularyRepository();
-    } else {
-      const local = new LocalStorageVocabularyRepository();
-      const remote = new SupabaseVocabularyRepository(supabase);
-      const syncing = new SyncingVocabularyRepository(local, remote, isBrowserOnline);
-      vocabularyRepository = syncing;
-      syncCoordinator = syncing;
-    }
-
-    const progressRepository: ProgressRepository = isStandaloneOffline
-      ? new LocalStorageProgressRepository()
-      : new SupabaseProgressRepository(supabase);
-
-    return {
-      generateQuiz: new GenerateQuizUseCase(vocabularyRepository, progressRepository),
-      submitAnswer: new SubmitAnswerUseCase(progressRepository),
-      getStats: new GetStatsUseCase(vocabularyRepository, progressRepository),
-      importVocabulary: new ImportVocabularyUseCase(vocabularyRepository),
-      listVocabulary: new ListVocabularyUseCase(vocabularyRepository),
-      deleteVocabularyEntry: new DeleteVocabularyEntryUseCase(vocabularyRepository),
-      deleteAllVocabulary: new DeleteAllVocabularyUseCase(vocabularyRepository),
-      vocabularySync: syncCoordinator ? new VocabularySyncUseCase(syncCoordinator) : null,
-    };
-  }, []);
+  // Keep the quiz library, its words and progress in memory, so quizzes keep
+  // working if the connection drops. Re-done after every reconnect.
+  useEffect(() => {
+    services.prepareOffline.execute(user.id).catch(() => {
+      // Best effort: pages load (and report errors for) what they need themselves.
+    });
+  }, [services, user.id, version]);
 
   return <ServicesContext.Provider value={services}>{children}</ServicesContext.Provider>;
 }
@@ -88,4 +112,9 @@ export function useServices(): Services {
   const ctx = useContext(ServicesContext);
   if (!ctx) throw new Error("useServices must be used within a ServicesProvider");
   return ctx;
+}
+
+export function useSyncStatus(): SyncStatus {
+  const { sync } = useServices();
+  return useSyncExternalStore(sync.subscribe, sync.getStatus);
 }

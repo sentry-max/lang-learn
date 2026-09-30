@@ -1,294 +1,202 @@
-# B1 Vocab Trainer
+# Lang Learn
 
-A spaced-repetition German B1 vocabulary trainer. Import vocabulary as JSON,
-take daily quizzes (German↔target-language recall and free sentence
-composition), self-check your own knowledge with a 5-level rating instead
-of typing answers, and let the app automatically prioritize your weak
-words in future sessions.
+A spaced-repetition vocabulary trainer for any language (German, English and
+Persian are enabled today). Build vocabularies by hand or from JSON, publish
+them to a shared feed, download other people's vocabularies, rate and review
+them, and practice with an adaptive quiz that learns from every answer.
 
 ## Stack
 
-- React 18 + TypeScript + Vite
-- React Router for navigation
-- Supabase (Postgres + Auth) for vocabulary storage and per-user progress
-  in cloud mode — or entirely local `localStorage` in offline mode, no
-  backend required (see below)
+- React 18 + TypeScript + Vite, React Router
+- Supabase (Postgres, Auth, Row Level Security) — all user data lives there
 - Vitest for unit tests
 
 ## Architecture
 
-The code follows clean architecture, split into four layers with a strict
-dependency direction (outer layers depend on inner layers, never the
-reverse):
+Clean architecture, four layers, dependencies pointing inwards only:
 
 ```
 src/
-  domain/           entities, repository interfaces, pure business logic
-                     (spaced-repetition scheduling). No framework or I/O.
-  application/       use cases that orchestrate domain logic against
-                     repository interfaces (GenerateQuiz, SubmitAnswer,
-                     GetStats, ImportVocabulary).
-  infrastructure/    Supabase client, local-storage, and sync repository
-                     implementations — the only place that knows about
-                     the database or browser storage.
-  presentation/      React pages, components, and context providers
-                     (the composition root that wires everything together).
+  domain/          entities, repository ports, pure business rules
+                   (quiz selection, spaced repetition, placement, parsing)
+  application/     services & use cases orchestrating domain rules over ports
+  infrastructure/  Supabase repositories, in-memory word cache
+  presentation/    React pages, components, contexts (composition root:
+                   presentation/context/ServicesContext.tsx)
 ```
 
-This means:
-- The spaced-repetition algorithm and quiz-selection logic are pure
-  functions/classes with no dependency on React or Supabase — fully unit
-  tested in isolation (`npm test`).
-- Swapping Supabase for another backend later means writing new classes
-  that implement `VocabularyRepository` / `ProgressRepository` — nothing
-  in `domain/` or `application/` has to change. This is exactly how
-  offline mode works: it's a second, real implementation of the same two
-  interfaces, backed by `localStorage` instead of Supabase (see
-  `infrastructure/local/`).
-- Adding a new question mode, quiz strategy, or grading rule is a change
-  to `application/` and `domain/`, not scattered across UI components.
+The domain and application layers have no React or Supabase imports, so the
+quiz algorithm and all business rules are unit-tested in isolation
+(`src/test/inMemoryRepositories.ts` provides in-memory ports for tests).
 
-## Data model: one vocabulary, offline-first with sync
+## Data model
 
-There is a single vocabulary dataset — not separate online/offline copies.
-In cloud mode (the default), every read and write goes through a local
-cache first (instant, works offline), which mirrors itself to Supabase in
-the background:
+| Table | Purpose |
+|---|---|
+| `languages` | Supported languages (`de`, `en`, `fa`) |
+| `profiles` | One per user: display name, primary language, UI language, last quiz settings |
+| `vocabularies` | Named word collections: name, description, author, word language, translation languages, draft/published, word/download/rating counters, created/updated/published dates |
+| `words` | Every word belongs to exactly one vocabulary (`vocabulary_id`) |
+| `vocabulary_subscriptions` | Downloads of published vocabularies |
+| `vocabulary_reviews` | 1–5 star ratings with an optional written review |
+| `quiz_sessions` | One row per quiz started |
+| `word_progress` | What the app has learned per (user, word) |
+| `review_events` | Every answer: when shown, how long it took, direction, rating |
 
-- **Reads** always come from the local cache, so the app is fast and
-  works with no connection.
-- **Writes** (add, edit, delete, import) save locally immediately, then
-  push to Supabase right away if you're online. If you're offline, the
-  change is queued instead.
-- **Queued changes sync automatically** the moment the browser regains
-  connectivity, and also once on every app launch. There's also a manual
-  **Re-sync** button on the Vocabularies page, which shows how many
-  changes are pending and when it last synced.
-- **Resync** always pushes queued local changes *before* pulling fresh
-  data from Supabase, so nothing you changed offline gets silently
-  overwritten by an older remote copy.
+Rules enforced in the database (not just the UI):
 
-This is implemented as `infrastructure/sync/SyncingVocabularyRepository.ts`,
-a decorator that wraps the same local and Supabase repositories and adds
-the queue/push/pull logic — the domain and application layers still only
-know about the plain `VocabularyRepository` interface.
+- **Soft delete everywhere.** Deleting sets `deleted_at`. The API role has no
+  `DELETE` privilege, so nothing can be hard-deleted through the app.
+- **Publishing needs 50–5000 words.** Fewer words → it stays a private draft.
+  A published vocabulary that drops below 50 words becomes a draft again.
+  A vocabulary can never exceed 5000 words.
+- **Only published vocabularies are used in quizzes** — your own published
+  ones plus the ones you downloaded. Drafts are never quizzed, even for their
+  author.
+- Counters (`word_count`, `download_count`, `rating_avg`, `rating_count`)
+  are maintained by triggers and can't be written by clients.
+- Row Level Security: drafts and learning data are private; published
+  vocabularies, their words and reviews are readable by every signed-in user;
+  only the owner can change a vocabulary or its words; you can't download or
+  review your own vocabulary.
 
-This syncing behavior applies to **vocabulary only**. Quiz progress and
-review history (`progress_state`, `review_records`) are not part of this
-sync layer yet — they still follow the simpler mode switch below (fully
-local in standalone offline mode, Supabase-only in cloud mode).
+## How the quiz chooses words
 
-## Standalone offline mode (no account at all)
+Implemented in `src/domain/services/QuizSelectionService.ts`,
+`SpacedRepetitionService.ts` and `QuizSession.ts`.
 
-Separately, the app can also run **with no backend whatsoever** — no
-Supabase project, no sign-in, nothing pushed anywhere. Set in `.env`:
+Each word in the chosen pool (selected vocabularies, optionally narrowed to
+some starting letters) is in one bucket:
 
-```
-VITE_APP_MODE=offline
-```
+- **weak** – last rated *bad* or *very bad*. Always eligible and prioritized.
+- **fresh** – never shown, or not shown yet in the current round.
+- **parked** – rated *good*, *easy* or *very easy* this round. Not shown again
+  until every other word in the pool has been shown once.
 
-In this mode:
-- Vocabulary, progress, and review history are all stored in the
-  browser's `localStorage` (`infrastructure/local/LocalStorageVocabularyRepository.ts`
-  and `LocalStorageProgressRepository.ts`) instead of Supabase — and
-  nothing ever syncs, since there's no account to sync to.
-- There's no login screen — a stable random id is generated once and
-  stored locally to stand in for a "user", so per-user progress tracking
-  still works the same way (`infrastructure/local/localIdentity.ts`).
-- The nav bar shows an "Offline mode" badge and hides the sign-out button,
-  since there's no account to sign out of, and no sync status is shown.
-- The Supabase client is never called in this mode (it's still
-  constructed harmlessly, but no method on it ever runs), so there's no
-  missing-env-var warning either.
+When the pool runs out of fresh words, the round is complete: parked words
+are released and a new round starts (persisted per word as
+`word_progress.seen_in_cycle`). If fresh words run out part-way through a
+session, the new round starts immediately so the session is still full.
 
-Use this for a single-device, no-account setup where you never want any
-data to leave the browser. For everything else — including working
-offline sometimes but keeping data backed up and available on other
-devices — just use the default cloud mode described above.
+Within a bucket, words are drawn by **weighted random sampling across the
+whole pool** — never alphabetically, and also random within a single chosen
+letter. Weights are learned from the user's answers:
 
-`VITE_APP_MODE` is read at build time (same as the Supabase variables),
-so switching modes means updating `.env` and restarting `npm run dev` (or
-rebuilding for production) — it's not a runtime toggle in the UI.
+- weak words: severity, number of lapses, how overdue they are, hesitation,
+  and a short rest after being just answered;
+- words returning in a new round: how hard they've been for this user
+  (accuracy, ease, lapses, answer time) plus a boost when their
+  spaced-repetition review is due — hard words come back first.
 
-## Multi-language support
+It adapts to what the user does:
 
-The app UI and vocabulary translations support multiple languages. **Persian
-(فارسی) is the default**, with English as the fallback and second supported
-language. A language switcher in the top nav lets the user change it anytime
-(persisted in the browser). Persian mode automatically switches the whole
-app to right-to-left (RTL) layout with a Persian-friendly font.
+- The share of a session given to weak words grows when the user has been
+  struggling recently (up to ~75%) and shrinks when they're doing well (~25%).
+- In "mix" direction, the direction the user gets wrong more often for a
+  word is asked more often. Sentence-writing is only asked for words the user
+  already knows.
+- A word rated bad/very bad comes back once more a few questions later in
+  the same session.
+- The time to answer is recorded; a slow "easy" is scheduled more
+  cautiously (the user's own rating still decides parking).
 
-Under the hood (`domain/entities/Language.ts`):
-- `SUPPORTED_LANGUAGES` lists every language code the app knows
-- `DEFAULT_LANGUAGE` is `"fa"`
-- Adding a new language means: add its code there, add a matching UI-string
-  object to `presentation/i18n/translations.ts`, and add translations for
-  that language to your vocabulary JSON — no other code changes needed.
+## Quiz modes and settings
 
-Each vocabulary entry's `translations` and each example sentence's
-`translations` are now objects keyed by language code (e.g.
-`{ "fa": [...], "en": [...] }`) rather than a plain English array. A word
-only needs one language filled in; if the currently selected language is
-missing for a word, the app falls back to English, then to whatever
-language is present, so partially-translated data never breaks the UI.
+The quiz settings have three tabs, each with a short explanation:
+
+- **Classic** – no time limit.
+- **Quiz timer** – one countdown (1 second to 5 hours, picked as h/m/s) for
+  the whole quiz. When it runs out the quiz ends; words not reached are not
+  recorded and stay untouched for later.
+- **Word timer** – a countdown per word that restarts for each word. If it
+  runs out before an answer, the word is recorded as *very bad* and the quiz
+  moves on.
+
+Both show a countdown with a bar that shrinks as time runs out and turns red
+in the last 15%. The per-word clock pauses while the "exit quiz" dialog is
+open; the whole-quiz clock keeps running.
+
+**Settings** (saved automatically to `profiles.preferences` as you change them): theme (system/light/dark,
+applied instantly), text size, reduce motion; for each rating whether the
+answer is shown and whether the quiz moves on automatically after a delay
+(defaults: very easy/easy/good show the answer for 2 s then move on; bad/very
+bad wait for "Next"); always show the example sentence; sound effects with
+their own switch and volume (a mute button in the quiz toggles them too —
+pronunciation is separate); read words aloud with adjustable speed; keyboard
+shortcuts (1–5 rate, Enter next, H hint, P pronounce, Esc exit); keep the
+add-word dialog open after saving; default quiz vocabularies (pre-selected
+on the quiz screen — otherwise nothing is selected and you pick in the
+searchable vocabulary box: tap a name to pick just that one, or tick several). With reduce motion on, progress bars and
+countdowns move in plain one-second steps and nothing spins or pulses.
+
+Connection and sync status is a small cloud icon in the top bar (a badge
+shows answers waiting to sync); click it for details or "Sync now". It never
+shifts the page.
+
+
+The app keeps working when the connection drops, for as long as the browser
+tab stays open (`src/infrastructure/offline/`):
+
+- Everything already loaded stays usable from memory: your own and
+  downloaded vocabularies, their words, reviews, feed pages and your learned
+  progress. Right after sign-in, after every reconnect and after each
+  download, the whole quiz library (vocabularies, words, progress) is
+  preloaded so it's in memory before you need it.
+- Quizzes run fully offline with the same adaptive algorithm. Answers, new
+  rounds and quiz sessions are applied locally at once and queued in an
+  outbox. The outbox is also saved to localStorage, so answers aren't lost
+  even if the tab is reloaded while offline.
+- When the connection returns, the outbox is sent in order (each write is
+  idempotent on the server, so a retry never double-counts), the caches are
+  marked stale and open pages refetch. Writes the server can't accept yet are
+  retried every 15 seconds.
+- Creating, editing, publishing, downloading, reviewing and resetting history
+  need a connection and say so when you're offline.
+- A reload or a new visit starts with an empty memory cache, so it needs to
+  be online to load data again.
+
+## Vocabularies
+
+- **Create**: title (required) and description (optional), the words'
+  language and the translation languages. It starts as a draft; add words by
+  hand or import one or several JSON files at once, then publish.
+- **Add word from the Vocabularies page**: with *Automatic*, the word goes
+  into your best-matching vocabulary for its language (same level, shared
+  tags, covers its translation languages, prefers published ones), or a new
+  draft vocabulary is created (`VocabularyPlacementService`).
+- **Feed**: search, filter by language, sort by rating/downloads/newest;
+  download, open, rate and review.
+- JSON format: see `data/vocabulary.schema.json` and
+  `data/vocabulary.sample.json`. Re-importing a word with the same `id`
+  updates it; the same word type + headword under a different id is skipped
+  as a duplicate.
+
+## History
+
+The **History** tab lists the starting letters of every word you've seen.
+Pick a letter to see each word with its full answer history (when it was
+shown, how long you took, direction, your rating). You can reset one letter,
+all words whose last answer was a given rating, or everything. Resets are
+soft: history is archived, not deleted.
 
 ## Setup
 
-**Cloud mode** (Supabase-backed, multi-device):
+1. Create a Supabase project.
+2. In the SQL editor, run **`supabase/schema.sql`** (safe to re-run).
+3. **Upgrading from v1** (tables `vocabulary_entries`, `progress_state`,
+   `review_records`)? Then also run
+   **`supabase/migrations/20260930_001_migrate_v1_data.sql`** once. It moves
+   the old shared word list into a vocabulary owned by the earliest
+   registered user (published if it has 50–5000 words), gives it as a
+   download to everyone else who practiced it, copies progress and answer
+   history, and renames the v1 tables to `legacy_*` (nothing is dropped).
+4. `cp .env.example .env` and fill in `VITE_SUPABASE_URL` and
+   `VITE_SUPABASE_ANON_KEY`.
+5. `npm install && npm run dev`, sign up, create a vocabulary and import
+   `data/vocabulary.sample.json`.
 
-1. **Create a Supabase project** at https://supabase.com.
-2. **Run the schema**: open the SQL editor in your Supabase project and run
-   the contents of `supabase/schema.sql`. This creates the
-   `vocabulary_entries`, `progress_state`, and `review_records` tables with
-   row-level security so each user only sees their own progress.
-3. **Configure environment variables**:
-   ```
-   cp .env.example .env
-   ```
-   Fill in `VITE_SUPABASE_URL` and `VITE_SUPABASE_ANON_KEY` from your
-   Supabase project settings (Project Settings → API). Leave
-   `VITE_APP_MODE=cloud` (the default).
-4. **Install and run**:
-   ```
-   npm install
-   npm run dev
-   ```
-5. Open the app, sign up with an email/password, then go to the
-   **Vocabularies** tab and import `data/vocabulary.sample.json` (via the
-   **Import JSON** button) to load the starter word set (66 B1 words:
-   weekdays, months, times of day, and a batch of alphabetical entries
-   with full noun/verb forms, translations, and example sentences).
-
-**Offline mode** (no backend at all):
-
-1. `cp .env.example .env` and set `VITE_APP_MODE=offline` — the Supabase
-   variables can stay blank.
-2. `npm install && npm run dev` — the app opens straight into the quiz
-   settings screen, no sign-up needed.
-3. Go to **Vocabularies** and import `data/vocabulary.sample.json` as above.
-
-## Managing vocabulary
-
-The **Vocabularies** page is the full management view for your word list:
-
-- A live **count** of how many words you have, and a **search box** that
-  filters by headword or translation as you type.
-- Words are listed **alphabetically, grouped by starting letter**.
-- Hover a row to reveal **edit** and **delete** icons; tap the row itself
-  to open a **details dialog** with the word's full info and its own
-  Edit/Delete buttons. Dialogs close on **Escape**, on their **✕** button,
-  or by clicking outside them.
-- **Add word** opens the same dialog in "create" mode — a form covering
-  word type, headword, translations, noun/verb forms (shown only when
-  relevant), one example sentence with its translations, level, and tags.
-  It reuses the same validation and duplicate-detection as JSON import.
-- **Import JSON** works as before — upload a file matching
-  `data/vocabulary.schema.json`.
-- **Delete all** clears every word, locally and (if online) on Supabase
-  too, after a confirmation prompt.
-- Importing or adding a word that already exists (same word type +
-  headword, case-insensitive, under a *different* id) is skipped and
-  reported rather than creating a duplicate; re-importing a word under
-  its *own* existing id is treated as an edit, not a duplicate.
-
-## Extending the vocabulary
-
-Vocabulary is imported as JSON, validated against
-`data/vocabulary.schema.json`. Each entry needs:
-
-- a stable, unique `id` (never change this once imported — it's how
-  progress is tracked across re-imports)
-- `wordType`, `headword`, `sentences`
-- `translations`: an object keyed by language code, e.g.
-  `{ "fa": ["خانه"], "en": ["house"] }` — at least one language required
-- `nounForms` (article + plural) for nouns
-- `verbForms` (present/past/perfect/passive, separable, auxiliary) for verbs
-- each sentence needs `german` plus a `translations` object (same
-  per-language shape, e.g. `{ "fa": "...", "en": "..." }`)
-
-Importing a file with an `id` that already exists updates that entry in
-place rather than duplicating it, so you can safely re-import a growing
-vocabulary file over time. A different `id` with the same word type and
-headword is treated as a genuine duplicate and skipped instead — see
-"Managing vocabulary" above. See `data/vocabulary.sample.json` for real,
-filled-in examples of every field.
-
-## How the quiz picks questions
-
-Before each session, a **settings screen** lets you configure:
-
-- **Number of questions** (10–200). If the vocabulary — or the letter-filtered
-  subset of it — has fewer words than that, the whole set is used instead.
-- **Direction**: German → target language, target language → German, or a mix
-  of both.
-- **Starting-letter filter** (optional): enter a "from" letter to restrict the
-  session to words starting with it. Leave "to" empty and the checkbox
-  unchecked and it's a focused single-letter session — every matching word is
-  included, ignoring the question-count cap entirely. Fill in "to" (or check
-  "Through Z") and it becomes an inclusive letter *range* instead, which
-  respects the normal question-count cap. Letter inputs only accept a single
-  letter — typing more just keeps the last character typed.
-- **Sentence-writing toggle**: include or exclude "compose a sentence"
-  questions from the rotation.
-
-Word selection itself is priority-ordered (see
-`domain/services/VocabularySelectionService.ts`):
-1. Words you've previously rated **very bad, bad, or good** always come
-   first, so you keep practicing what you struggle with, every session.
-2. Words you've **never seen** fill the rest of the quota.
-3. Words you've rated **easy or very easy** are held back entirely — they
-   only get pulled in if there aren't enough unseen words left to fill the
-   quota, i.e. once you've worked through the rest of the vocabulary.
-
-Single-letter sessions bypass all of this and simply include everything
-matching that letter, since the point is focused review of one letter.
-
-## The 5-level difficulty rating
-
-There's no typed answer to check. For each question the word (or, for
-"compose a sentence" questions, a prompt) is shown, an optional hint is
-available — a German example sentence with its translation, hidden until
-you tap "Show hint" — and you rate yourself directly on a 5-level scale:
-**very easy, easy, good, bad, very bad**.
-
-- Rate it **good, easy, or very easy** and the app moves straight to the
-  next question — no interruption.
-- Rate it **bad or very bad** and the app reveals the correct answer (and
-  opens the hint automatically) before you continue, so you see what you
-  missed right away.
-
-This rating maps onto the SM-2 spaced-repetition algorithm's 0–5 quality
-scale, which determines how soon the word resurfaces: easier ratings push
-the next review further out; "bad"/"very bad" resets the word to be
-reviewed again the next day. Your rating is stored per-question in
-`review_records`, and the most recent rating per word is also cached on
-`progress_state.last_rating`, which is what the next-session word
-selection reads from.
-
-## Error handling
-
-Errors are normalized into a single typed shape (`domain/errors/AppError.ts`)
-so the UI never shows a raw stack trace or a cryptic Supabase message:
-
-- **Infrastructure layer** (`infrastructure/supabase/supabaseErrors.ts`)
-  translates raw Supabase/network failures into an `AppError` with a
-  `code` (`network`, `auth`, `validation`, `storage`, `unknown`) and a
-  plain-language `message` — e.g. a dropped connection becomes "Can't
-  reach the server. Check your internet connection and try again."
-  instead of a fetch exception. The local-storage repositories do the
-  same for things like a full browser storage quota.
-- **Pages** (Quiz, Dashboard, Vocabularies) catch errors from use-case
-  calls, show an inline `ErrorBanner` with the message, and offer a
-  **Retry** button that re-runs the exact action that failed — reloading
-  the quiz, reloading stats, or reloading the vocabulary list — without
-  losing your place (e.g. a failed rating during a quiz reverts to
-  unselected so you can just tap it again).
-- **`AppErrorBoundary`** wraps the whole app and catches any unexpected
-  render-time crash with a friendly "Something went wrong" screen and a
-  reload button, instead of a blank white page.
-- **`ConnectivityBanner`** shows a small warning banner when the browser
-  itself goes offline while running in cloud mode (not shown in offline
-  mode, where no connection is expected in the first place).
+Note: `profiles.id` references `auth.users` with `on delete restrict`, so a
+user who has data can't be removed from the Supabase dashboard by accident.
 
 ## Testing
 
@@ -296,18 +204,10 @@ so the UI never shows a raw stack trace or a cryptic Supabase message:
 npm test
 ```
 
-Covers the spaced-repetition scheduling math, quiz-question selection and
-prioritization (including the letter-range filter and rating-based
-priority ordering), JSON import validation and duplicate detection, the
-offline local-storage repositories, the offline-first sync repository
-(queuing, push-before-pull resync, failure handling), and the
-error-normalization logic — the core business logic, independent of the
-UI or database.
-
-## Project status
-
-This is a working base project, intentionally scoped to a solid starter
-vocabulary set rather than the full ~2,400-word Goethe B1 list, so the
-architecture and features could be verified end-to-end first. Extending
-the vocabulary set is just a matter of adding more entries to a JSON file
-matching the schema — no code changes required.
+Covers the quiz selection algorithm (randomness across letters, rounds,
+parking, weak-word priority, adaptive share, direction choice), spaced
+repetition and response-time learning, in-session retries, letter handling
+for Latin and Persian, placement, JSON parsing, import/update/duplicate
+rules, quiz generation end-to-end over in-memory repositories, the word
+cache, and offline operation (cache fallback, outbox ordering, persistence,
+retries, and a full offline quiz followed by reconnect and sync).

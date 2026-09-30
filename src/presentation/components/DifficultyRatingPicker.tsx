@@ -1,37 +1,34 @@
-import { DIFFICULTY_RATINGS, DifficultyRating } from "@domain/entities/Review";
+import { DIFFICULTY_RATINGS, DifficultyRating } from "@domain/entities/Learning";
 import { useLanguage } from "@presentation/context/LanguageContext";
-import { UiStringKey } from "@presentation/i18n/translations";
+import { RATING_KEYS } from "@presentation/components/RatingPill";
 
 interface Props {
   value: DifficultyRating | null;
   onChange: (rating: DifficultyRating) => void;
   disabled?: boolean;
+  /** Show the 1–5 keyboard shortcut on each button */
+  showShortcuts?: boolean;
 }
 
-const RATING_KEY: Record<DifficultyRating, UiStringKey> = {
-  very_easy: "ratingVeryEasy",
-  easy: "ratingEasy",
-  good: "ratingGood",
-  bad: "ratingBad",
-  very_bad: "ratingVeryBad",
-};
-
 /** The 5-level self-rating strip: very easy / easy / good / bad / very bad. */
-export default function DifficultyRatingPicker({ value, onChange, disabled }: Props) {
+export default function DifficultyRatingPicker({ value, onChange, disabled, showShortcuts }: Props) {
   const { t } = useLanguage();
   return (
-    <div>
-      <p className="muted" style={{ marginBottom: 4 }}>{t("ratingPrompt")}</p>
+    <div className="rating-picker">
+      <p className="muted rating-prompt">{t("ratingPrompt")}</p>
       <div className="rating-grid">
-        {DIFFICULTY_RATINGS.map((rating) => (
+        {DIFFICULTY_RATINGS.map((rating, index) => (
           <button
             key={rating}
             type="button"
             disabled={disabled}
+            aria-pressed={value === rating}
+            aria-keyshortcuts={showShortcuts ? String(index + 1) : undefined}
             className={`rating-btn ${rating}${value === rating ? " selected" : ""}`}
             onClick={() => onChange(rating)}
           >
-            {t(RATING_KEY[rating])}
+            <span>{t(RATING_KEYS[rating])}</span>
+            {showShortcuts && <kbd>{index + 1}</kbd>}
           </button>
         ))}
       </div>

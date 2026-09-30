@@ -1,95 +1,92 @@
-import { useCallback, useEffect, useState } from "react";
-import { useAuth } from "@presentation/context/AuthContext";
-import { useServices } from "@presentation/context/ServicesContext";
+import { DIFFICULTY_RATINGS } from "@domain/entities/Learning";
+import { displayForm } from "@domain/entities/Word";
+import { WordStat } from "@application/usecases/GetStatsUseCase";
+import { useCurrentUser } from "@presentation/context/AuthContext";
+import { useServices, useSyncStatus } from "@presentation/context/ServicesContext";
 import { useLanguage } from "@presentation/context/LanguageContext";
-import { StatsSummary, WordStat } from "@application/usecases/GetStatsUseCase";
-import { displayForm } from "@domain/entities/VocabularyEntry";
-import { toAppError } from "@domain/errors/AppError";
+import { useAsync } from "@presentation/hooks/useAsync";
+import { useErrorMessage } from "@presentation/hooks/useErrorMessage";
 import ErrorBanner from "@presentation/components/ErrorBanner";
+import { RATING_KEYS } from "@presentation/components/RatingPill";
+import { formatNumber } from "@presentation/format";
+import { PageLoader } from "@presentation/components/ui/Loader";
 
 export default function DashboardPage() {
-  const { session } = useAuth();
+  const user = useCurrentUser();
   const { getStats } = useServices();
-  const { t } = useLanguage();
-  const [stats, setStats] = useState<StatsSummary | null>(null);
-  const [error, setError] = useState<string | null>(null);
-  const [loading, setLoading] = useState(true);
+  const { t, language } = useLanguage();
+  const errorMessage = useErrorMessage();
+  const { version } = useSyncStatus();
+  const stats = useAsync(() => getStats.execute(user.id), [user.id, version]);
 
-  const load = useCallback(async () => {
-    setLoading(true);
-    setError(null);
-    try {
-      const result = await getStats.execute(session!.user.id);
-      setStats(result);
-    } catch (err) {
-      setError(toAppError(err, t("statsLoadError")).message);
-    } finally {
-      setLoading(false);
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
-
-  useEffect(() => {
-    load();
-  }, [load]);
-
-  if (loading) return <div className="app-main center-text muted">{t("loading")}</div>;
-
-  if (error && !stats) {
+  if (stats.loading && !stats.data) return <PageLoader />;
+  if (!stats.data) {
     return (
       <div className="app-main">
-        <ErrorBanner message={error} onRetry={load} />
+        <ErrorBanner message={errorMessage(stats.error, "statsLoadError")} onRetry={stats.reload} />
       </div>
     );
   }
-
-  if (!stats) return null;
+  const s = stats.data;
+  const roundPercent = s.totalWords === 0 ? 0 : Math.round((s.seenThisRound / s.totalWords) * 100);
 
   return (
     <div className="app-main">
-      {error && <ErrorBanner message={error} onRetry={load} />}
       <div className="stat-grid">
-        <div className="stat-box">
-          <div className="value">{stats.totalWords}</div>
-          <div className="label">{t("totalWords")}</div>
-        </div>
-        <div className="stat-box">
-          <div className="value">{stats.wordsStarted}</div>
-          <div className="label">{t("wordsPracticed")}</div>
-        </div>
-        <div className="stat-box">
-          <div className="value">{stats.dueToday}</div>
-          <div className="label">{t("dueToday")}</div>
-        </div>
-        <div className="stat-box">
-          <div className="value">
-            {stats.overallAccuracy === null ? "—" : `${Math.round(stats.overallAccuracy * 100)}%`}
-          </div>
-          <div className="label">{t("overallAccuracy")}</div>
-        </div>
+        <Stat value={formatNumber(s.totalWords, language)} label={t("totalWords")} />
+        <Stat value={formatNumber(s.wordsStarted, language)} label={t("wordsPracticed")} />
+        <Stat value={formatNumber(s.dueToday, language)} label={t("dueToday")} />
+        <Stat
+          value={s.overallAccuracy === null ? "—" : `${formatNumber(Math.round(s.overallAccuracy * 100), language)}%`}
+          label={t("overallAccuracy")}
+        />
       </div>
 
       <div className="card">
-        <h3 style={{ marginTop: 0 }}>{t("weakestWords")}</h3>
-        {stats.weakestWords.length === 0 && <p className="muted">{t("noDataYet")}</p>}
-        {stats.weakestWords.map((w: WordStat) => (
-          <div className="word-list-item" key={w.entry.id}>
-            <span>{displayForm(w.entry)}</span>
-            <span className="muted">{Math.round((w.accuracy ?? 0) * 100)}%</span>
-          </div>
-        ))}
+        <h3 style={{ marginTop: 0 }}>{t("roundProgress")}</h3>
+        <div className="progress-bar large" aria-hidden="true">
+          <div style={{ width: `${roundPercent}%` }} />
+        </div>
+        <p className="muted">{t("roundProgressBody", { seen: s.seenThisRound, total: s.totalWords })}</p>
+        <div className="summary-grid">
+          {DIFFICULTY_RATINGS.map((r) => (
+            <div key={r} className={`summary-cell rating-pill ${r}`}>
+              <strong>{formatNumber(s.byLastRating[r], language)}</strong>
+              <span>{t(RATING_KEYS[r])}</span>
+            </div>
+          ))}
+        </div>
       </div>
 
-      <div className="card">
-        <h3 style={{ marginTop: 0 }}>{t("strongestWords")}</h3>
-        {stats.strongestWords.length === 0 && <p className="muted">{t("noDataYet")}</p>}
-        {stats.strongestWords.map((w: WordStat) => (
-          <div className="word-list-item" key={w.entry.id}>
-            <span>{displayForm(w.entry)}</span>
-            <span className="muted">{Math.round((w.accuracy ?? 0) * 100)}%</span>
-          </div>
-        ))}
-      </div>
+      <WordList title={t("weakestWords")} words={s.weakestWords} />
+      <WordList title={t("strongestWords")} words={s.strongestWords} />
+    </div>
+  );
+}
+
+function Stat({ value, label }: { value: string; label: string }) {
+  return (
+    <div className="stat-box">
+      <div className="value">{value}</div>
+      <div className="label">{label}</div>
+    </div>
+  );
+}
+
+function WordList({ title, words }: { title: string; words: WordStat[] }) {
+  const { t, language } = useLanguage();
+  return (
+    <div className="card">
+      <h3 style={{ marginTop: 0 }}>{title}</h3>
+      {words.length === 0 && <p className="muted">{t("noDataYet")}</p>}
+      {words.map((w) => (
+        <div className="word-list-item" key={w.word.id}>
+          <span dir="auto">{displayForm(w.word)}</span>
+          <span className="muted">
+            {w.accuracy === null ? "—" : `${formatNumber(Math.round(w.accuracy * 100), language)}%`}
+          </span>
+        </div>
+      ))}
     </div>
   );
 }

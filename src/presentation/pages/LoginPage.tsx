@@ -1,58 +1,95 @@
-import { useState } from "react";
+import { FormEvent, useState } from "react";
 import { useAuth } from "@presentation/context/AuthContext";
 import { useLanguage } from "@presentation/context/LanguageContext";
 
+const MIN_PASSWORD_LENGTH = 8;
+
 export default function LoginPage() {
   const { signIn, signUp } = useAuth();
-  const { t } = useLanguage();
+  const { t, language } = useLanguage();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [mode, setMode] = useState<"sign_in" | "sign_up">("sign_in");
   const [error, setError] = useState<string | null>(null);
+  const [info, setInfo] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
 
-  const submit = async (e: React.FormEvent) => {
+  const submit = async (e: FormEvent) => {
     e.preventDefault();
-    setBusy(true);
     setError(null);
-    const result = mode === "sign_in" ? await signIn(email, password) : await signUp(email, password);
-    setBusy(false);
-    if (result) setError(result);
+    setInfo(null);
+    if (mode === "sign_up" && password.length < MIN_PASSWORD_LENGTH) {
+      setError(t("passwordTooShort", { count: MIN_PASSWORD_LENGTH }));
+      return;
+    }
+    setBusy(true);
+    try {
+      if (mode === "sign_in") {
+        const result = await signIn(email, password);
+        if (result) setError(result);
+      } else {
+        const result = await signUp(email, password, language);
+        if (result.error !== null) setError(result.error);
+        else if (result.needsConfirmation) setInfo(t("checkEmailToConfirm"));
+      }
+    } finally {
+      setBusy(false);
+    }
   };
 
   return (
     <div className="app-main">
       <div className="card">
-        <h1 style={{ marginTop: 0 }}>{t("appName")}</h1>
+        <div className="login-brand">
+          <img src="/icons/logo-128.png" alt="" width={64} height={64} />
+          <h1>{t("appName")}</h1>
+        </div>
         <p className="muted">{mode === "sign_in" ? t("signInTitle") : t("signUpTitle")}</p>
         <form onSubmit={submit}>
-          <div style={{ marginBottom: 12 }}>
+          <div className="form-field">
+            <label htmlFor="login-email">{t("email")}</label>
             <input
-              type="text"
-              placeholder={t("email")}
+              id="login-email"
+              type="email"
+              autoComplete="email"
+              dir="ltr"
               value={email}
               onChange={(e) => setEmail(e.target.value)}
               required
             />
           </div>
-          <div style={{ marginBottom: 12 }}>
+          <div className="form-field">
+            <label htmlFor="login-password">{t("password")}</label>
             <input
-              type="text"
-              placeholder={t("password")}
+              id="login-password"
+              type="password"
+              dir="ltr"
+              autoComplete={mode === "sign_in" ? "current-password" : "new-password"}
+              minLength={mode === "sign_up" ? MIN_PASSWORD_LENGTH : undefined}
               value={password}
               onChange={(e) => setPassword(e.target.value)}
               required
             />
           </div>
-          {error && <p style={{ color: "var(--color-danger)" }}>{error}</p>}
+          {error && (
+            <p className="feedback-incorrect" role="alert">
+              {error}
+            </p>
+          )}
+          {info && <p className="feedback-correct">{info}</p>}
           <button className="btn btn-block" type="submit" disabled={busy}>
             {mode === "sign_in" ? t("signInButton") : t("signUpButton")}
           </button>
         </form>
         <button
+          type="button"
           className="btn btn-secondary btn-block"
           style={{ marginTop: 8 }}
-          onClick={() => setMode(mode === "sign_in" ? "sign_up" : "sign_in")}
+          onClick={() => {
+            setMode(mode === "sign_in" ? "sign_up" : "sign_in");
+            setError(null);
+            setInfo(null);
+          }}
         >
           {mode === "sign_in" ? t("switchToSignUp") : t("switchToSignIn")}
         </button>

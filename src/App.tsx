@@ -1,117 +1,182 @@
-import { useEffect } from "react";
-import { BrowserRouter, NavLink, Route, Routes, Navigate } from "react-router-dom";
+import { Suspense, lazy } from "react";
+import { BrowserRouter, Link, NavLink, Navigate, Route, Routes, useLocation } from "react-router-dom";
+import { UiLanguage, languageLabel } from "@domain/entities/Language";
+import { isSupabaseConfigured } from "@infrastructure/supabase/client";
 import { AuthProvider, useAuth } from "@presentation/context/AuthContext";
-import { ServicesProvider, useServices } from "@presentation/context/ServicesContext";
+import { ServicesProvider } from "@presentation/context/ServicesContext";
 import { LanguageProvider, useLanguage } from "@presentation/context/LanguageContext";
-import { LANGUAGE_LABELS } from "@domain/entities/Language";
-import { getAppMode } from "@infrastructure/config/appMode";
+import { ProfileProvider } from "@presentation/context/ProfileContext";
+import { FeedbackProvider, useConfirm } from "@presentation/context/FeedbackContext";
 import AppErrorBoundary from "@presentation/components/AppErrorBoundary";
-import ConnectivityBanner from "@presentation/components/ConnectivityBanner";
+import SyncIndicator from "@presentation/components/SyncIndicator";
+import Icon, { IconName } from "@presentation/components/ui/Icon";
+import MenuSelect from "@presentation/components/ui/MenuSelect";
 import LoginPage from "@presentation/pages/LoginPage";
 import QuizPage from "@presentation/pages/QuizPage";
-import DashboardPage from "@presentation/pages/DashboardPage";
-import VocabulariesPage from "@presentation/pages/VocabulariesPage";
+import { UiStringKey } from "@presentation/i18n/translations";
+import { PageLoader } from "@presentation/components/ui/Loader";
+
+// The quiz is the landing page; everything else is loaded on demand.
+const HistoryPage = lazy(() => import("@presentation/pages/HistoryPage"));
+const DashboardPage = lazy(() => import("@presentation/pages/DashboardPage"));
+const VocabulariesPage = lazy(() => import("@presentation/pages/VocabulariesPage"));
+const VocabularyDetailPage = lazy(() => import("@presentation/pages/VocabularyDetailPage"));
+const VocabularyEditorPage = lazy(() => import("@presentation/pages/VocabularyEditorPage"));
+const FeedPage = lazy(() => import("@presentation/pages/FeedPage"));
+const SettingsPage = lazy(() => import("@presentation/pages/SettingsPage"));
+
+const NAV_ITEMS: { to: string; key: UiStringKey; icon: IconName; mobile: boolean }[] = [
+  { to: "/quiz", key: "navQuiz", icon: "quiz", mobile: true },
+  { to: "/history", key: "navHistory", icon: "history", mobile: true },
+  { to: "/vocabularies", key: "navVocabularies", icon: "book", mobile: true },
+  { to: "/feed", key: "navFeed", icon: "compass", mobile: true },
+  { to: "/dashboard", key: "navDashboard", icon: "chart", mobile: true },
+  { to: "/settings", key: "navSettings", icon: "settings", mobile: false },
+];
 
 function LanguageSwitcher() {
   const { language, setLanguage, supportedLanguages, t } = useLanguage();
   return (
-    <select
-      className="lang-select"
-      aria-label={t("languageLabel")}
+    <MenuSelect<UiLanguage>
+      icon="globe"
+      className="lang-menu"
+      ariaLabel={t("uiLanguageLabel")}
       value={language}
-      onChange={(e) => setLanguage(e.target.value as typeof language)}
-    >
-      {supportedLanguages.map((code) => (
-        <option key={code} value={code}>
-          {LANGUAGE_LABELS[code]}
-        </option>
-      ))}
-    </select>
+      onChange={setLanguage}
+      options={supportedLanguages.map((code) => ({ value: code, label: languageLabel(code) }))}
+    />
   );
 }
 
-/**
- * Fetches vocabulary from the remote once on first run, and again whenever
- * the browser regains connectivity — both silent/best-effort, since the
- * Vocabularies page's own "re-sync" button surfaces errors explicitly.
- */
-function VocabularySyncBootstrapper() {
-  const { vocabularySync } = useServices();
-
-  useEffect(() => {
-    if (!vocabularySync) return;
-    vocabularySync.resync().catch(() => {});
-
-    function handleOnline() {
-      vocabularySync?.resync().catch(() => {});
-    }
-    window.addEventListener("online", handleOnline);
-    return () => window.removeEventListener("online", handleOnline);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
-
-  return null;
+function SignOutButton() {
+  const { signOut } = useAuth();
+  const { t } = useLanguage();
+  const confirm = useConfirm();
+  return (
+    <button
+      type="button"
+      className="icon-btn"
+      title={t("signOut")}
+      aria-label={t("signOut")}
+      onClick={async () => {
+        const ok = await confirm({
+          title: t("signOutConfirmTitle"),
+          message: t("signOutConfirmBody"),
+          confirmLabel: t("signOut"),
+          danger: true,
+        });
+        if (ok) await signOut();
+      }}
+    >
+      <Icon name="logout" />
+    </button>
+  );
 }
 
-function AuthedApp() {
-  const { session, loading, signOut } = useAuth();
-  const { t } = useLanguage();
-  const isOffline = getAppMode() === "offline";
+function AnimatedRoutes() {
+  const location = useLocation();
+  return (
+    <div className="page" key={location.pathname}>
+      <Suspense fallback={<PageLoader />}>
+        <Routes location={location}>
+          <Route path="/quiz" element={<QuizPage />} />
+          <Route path="/history" element={<HistoryPage />} />
+          <Route path="/vocabularies" element={<VocabulariesPage />} />
+          <Route path="/vocabularies/new" element={<VocabularyEditorPage />} />
+          <Route path="/vocabularies/:id" element={<VocabularyDetailPage />} />
+          <Route path="/vocabularies/:id/edit" element={<VocabularyEditorPage />} />
+          <Route path="/feed" element={<FeedPage />} />
+          <Route path="/dashboard" element={<DashboardPage />} />
+          <Route path="/settings" element={<SettingsPage />} />
+          <Route path="*" element={<Navigate to="/quiz" replace />} />
+        </Routes>
+      </Suspense>
+    </div>
+  );
+}
 
-  if (loading) return <div className="app-main center-text muted">{t("loading")}</div>;
-  if (!session) return <LoginPage />;
+function SignedInApp() {
+  const { t } = useLanguage();
+  const linkClass = ({ isActive }: { isActive: boolean }) => `nav-link${isActive ? " active" : ""}`;
 
   return (
     <ServicesProvider>
-      <VocabularySyncBootstrapper />
-      <BrowserRouter>
+      <ProfileProvider>
         <div className="app-shell">
-          <ConnectivityBanner />
-          <nav className="nav-bar">
-            <NavLink to="/quiz" className={({ isActive }) => `nav-link${isActive ? " active" : ""}`}>
-              {t("navQuiz")}
-            </NavLink>
-            <NavLink to="/dashboard" className={({ isActive }) => `nav-link${isActive ? " active" : ""}`}>
-              {t("navDashboard")}
-            </NavLink>
-            <NavLink to="/vocabularies" className={({ isActive }) => `nav-link${isActive ? " active" : ""}`}>
-              {t("navVocabularies")}
-            </NavLink>
+          <header className="topbar">
+            <Link to="/quiz" className="brand">
+              <img className="brand-mark" src="/icons/logo-128.png" alt="" width={32} height={32} />
+              <span className="brand-name">{t("appName")}</span>
+            </Link>
+            <nav className="nav-links" aria-label={t("mainNavigation")}>
+              {NAV_ITEMS.map(({ to, key, icon }) => (
+                <NavLink key={to} to={to} className={linkClass}>
+                  <Icon name={icon} size={18} />
+                  <span>{t(key)}</span>
+                </NavLink>
+              ))}
+            </nav>
             <span className="nav-spacer" />
-            {isOffline && <span className="offline-badge">{t("offlineModeBadge")}</span>}
+            <NavLink
+              to="/settings"
+              className={({ isActive }) => `icon-btn mobile-only${isActive ? " active" : ""}`}
+              aria-label={t("navSettings")}
+            >
+              <Icon name="settings" />
+            </NavLink>
+            <SyncIndicator />
             <LanguageSwitcher />
-            {!isOffline && (
-              <button
-                className="nav-link"
-                style={{ border: "none", background: "none" }}
-                onClick={signOut}
-              >
-                {t("signOut")}
-              </button>
-            )}
-          </nav>
+            <SignOutButton />
+          </header>
           <AppErrorBoundary>
-            <Routes>
-              <Route path="/quiz" element={<QuizPage />} />
-              <Route path="/dashboard" element={<DashboardPage />} />
-              <Route path="/vocabularies" element={<VocabulariesPage />} />
-              <Route path="*" element={<Navigate to="/quiz" replace />} />
-            </Routes>
+            <AnimatedRoutes />
           </AppErrorBoundary>
+          <nav className="bottom-nav" aria-label={t("mainNavigation")}>
+            {NAV_ITEMS.filter((item) => item.mobile).map(({ to, key, icon }) => (
+              <NavLink key={to} to={to} className={linkClass}>
+                <Icon name={icon} size={22} />
+                <span>{t(key)}</span>
+              </NavLink>
+            ))}
+          </nav>
         </div>
-      </BrowserRouter>
+      </ProfileProvider>
     </ServicesProvider>
   );
+}
+
+function Root() {
+  const { user, loading } = useAuth();
+  const { t } = useLanguage();
+
+  if (!isSupabaseConfigured) {
+    return (
+      <div className="app-main">
+        <div className="card">
+          <h2 className="card-title">{t("setupRequiredTitle")}</h2>
+          <p className="muted">{t("setupRequiredBody")}</p>
+        </div>
+      </div>
+    );
+  }
+  if (loading) return <PageLoader />;
+  if (!user) return <LoginPage />;
+  // Keyed by user so nothing from a previous account survives a sign-in switch.
+  return <SignedInApp key={user.id} />;
 }
 
 export default function App() {
   return (
     <LanguageProvider>
-      <AppErrorBoundary>
-        <AuthProvider>
-          <AuthedApp />
-        </AuthProvider>
-      </AppErrorBoundary>
+      <FeedbackProvider>
+        <AppErrorBoundary>
+          <AuthProvider>
+            <BrowserRouter>
+              <Root />
+            </BrowserRouter>
+          </AuthProvider>
+        </AppErrorBoundary>
+      </FeedbackProvider>
     </LanguageProvider>
   );
 }

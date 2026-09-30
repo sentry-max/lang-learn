@@ -1,142 +1,95 @@
-import { describe, it, expect, vi } from "vitest";
+import { describe, it, expect } from "vitest";
 import { GenerateQuizUseCase } from "@application/usecases/GenerateQuizUseCase";
-import { VocabularyEntry } from "@domain/entities/VocabularyEntry";
-import { ProgressState, createInitialProgress } from "@domain/entities/Review";
-import { DEFAULT_QUIZ_SETTINGS } from "@domain/entities/QuizSettings";
-import { VocabularyRepository } from "@domain/repositories/VocabularyRepository";
-import { ProgressRepository } from "@domain/repositories/ProgressRepository";
+import { SubmitAnswerUseCase } from "@application/usecases/SubmitAnswerUseCase";
+import { VocabularyService } from "@application/services/VocabularyService";
+import { DEFAULT_QUIZ_SETTINGS, QuizSettings } from "@domain/entities/QuizSettings";
+import { createSeededRng } from "@domain/services/Random";
+import { NOW, alphabetWords, makeProgress, makeVocabulary, makeWord } from "../../test/fixtures";
+import {
+  InMemoryLearningRepository,
+  InMemoryVocabularyRepository,
+  InMemoryWordRepository,
+} from "../../test/inMemoryRepositories";
 
-function makeEntry(id: string): VocabularyEntry {
-  return {
-    id,
-    wordType: "noun",
-    headword: id,
-    translations: { en: ["x"] },
-    nounForms: { article: "das", plural: null },
-    sentences: [{ german: "x", translations: { en: "y" } }],
-    level: "B1",
-    tags: [],
-  };
+const USER = "u1";
+
+function setup() {
+  const mine = makeVocabulary("v1");
+  const draft = makeVocabulary("draft", { status: "draft" });
+  const downloaded = makeVocabulary("dl", { ownerId: "someone-else", sourceLanguage: "en", targetLanguages: ["fa"] });
+  const vocabularies = new InMemoryVocabularyRepository([mine, draft, downloaded]);
+  vocabularies.downloads.set(USER, new Set(["dl"]));
+
+  const words = new InMemoryWordRepository([
+    ...alphabetWords(2),
+    makeWord("Entwurf", { id: "draft-word", vocabularyId: "draft" }),
+    makeWord("apple", { id: "dl-apple", vocabularyId: "dl" }),
+  ]);
+  const learning = new InMemoryLearningRepository();
+  const useCase = new GenerateQuizUseCase(new VocabularyService(vocabularies), words, learning, createSeededRng(1), () => NOW);
+  return { useCase, learning, words };
 }
 
-function makeRepos(entries: VocabularyEntry[], progress: ProgressState[]) {
-  const vocabularyRepository: VocabularyRepository = {
-    getAll: vi.fn().mockResolvedValue(entries),
-    getById: vi.fn(),
-    saveMany: vi.fn(),
-    deleteById: vi.fn(),
-    deleteAll: vi.fn(),
-    count: vi.fn(),
-  };
-  const progressRepository: ProgressRepository = {
-    getAllProgress: vi.fn().mockResolvedValue(progress),
-    getProgress: vi.fn(),
-    saveProgress: vi.fn(),
-    addReviewRecord: vi.fn(),
-    getReviewHistory: vi.fn(),
-    getAllReviewHistory: vi.fn(),
-  };
-  return { vocabularyRepository, progressRepository };
-}
+const settings = (overrides: Partial<QuizSettings> = {}): QuizSettings => ({
+  ...DEFAULT_QUIZ_SETTINGS,
+  includeSentenceWriting: false,
+  ...overrides,
+});
 
 describe("GenerateQuizUseCase", () => {
-  it("returns an empty quiz when there is no vocabulary", async () => {
-    const { vocabularyRepository, progressRepository } = makeRepos([], []);
-    const useCase = new GenerateQuizUseCase(vocabularyRepository, progressRepository);
-    const result = await useCase.execute({ userId: "u1", ...DEFAULT_QUIZ_SETTINGS, questionCount: 5 });
-    expect(result).toEqual([]);
+  it("uses own published and downloaded vocabularies, never drafts", async () => {
+    const { useCase } = setup();
+    const quiz = await useCase.execute(USER, settings({ questionCount: 200 }));
+    const ids = quiz.items.map((i) => i.word.id);
+    expect(ids).toContain("dl-apple");
+    expect(ids).not.toContain("draft-word");
+    expect(quiz.poolSize).toBe(53);
+    expect(quiz.items.find((i) => i.word.id === "dl-apple")?.sourceLanguage).toBe("en");
   });
 
-  it("prioritizes previously-struggled words first", async () => {
-    const weak = makeEntry("weak");
-    const strong = makeEntry("strong");
-    const weakProgress = { ...createInitialProgress("weak"), lastRating: "bad" as const };
-    const strongProgress = { ...createInitialProgress("strong"), lastRating: "easy" as const };
-    const { vocabularyRepository, progressRepository } = makeRepos(
-      [strong, weak],
-      [weakProgress, strongProgress]
-    );
-    const useCase = new GenerateQuizUseCase(vocabularyRepository, progressRepository);
-    const result = await useCase.execute({ userId: "u1", ...DEFAULT_QUIZ_SETTINGS, questionCount: 2 });
-    expect(result[0].entry.id).toBe("weak");
+  it("restricts to chosen vocabularies and letters", async () => {
+    const { useCase } = setup();
+    const quiz = await useCase.execute(USER, settings({ vocabularyIds: ["v1"], letters: ["B", "Q"] }));
+    expect(quiz.poolSize).toBe(4);
+    expect(quiz.items.every((i) => /^[BQ]/.test(i.word.headword))).toBe(true);
   });
 
-  it("caps the number of questions at questionCount", async () => {
-    const entries = [makeEntry("a"), makeEntry("b"), makeEntry("c")];
-    const { vocabularyRepository, progressRepository } = makeRepos(entries, []);
-    const useCase = new GenerateQuizUseCase(vocabularyRepository, progressRepository);
-    const result = await useCase.execute({ userId: "u1", ...DEFAULT_QUIZ_SETTINGS, questionCount: 2 });
-    expect(result).toHaveLength(2);
+  it("ignores a drafted vocabulary even when explicitly selected", async () => {
+    const { useCase } = setup();
+    const quiz = await useCase.execute(USER, settings({ vocabularyIds: ["draft"] }));
+    expect(quiz.items).toEqual([]);
+    expect(quiz.sessionId).toBeNull();
   });
 
-  it("cycles through de_to_en and en_to_de for a mix direction", async () => {
-    const entries = [makeEntry("a"), makeEntry("b"), makeEntry("c"), makeEntry("d")];
-    const { vocabularyRepository, progressRepository } = makeRepos(entries, []);
-    const useCase = new GenerateQuizUseCase(vocabularyRepository, progressRepository);
-    const result = await useCase.execute({
-      userId: "u1",
-      questionCount: 4,
-      direction: "mix",
-      includeSentenceWriting: false,
-    });
-    expect(result.map((q) => q.mode)).toEqual(["de_to_en", "en_to_de", "de_to_en", "en_to_de"]);
+  it("records a session and persists a new round when every word was seen", async () => {
+    const { useCase, learning, words } = setup();
+    for (const word of words.words.values()) learning.progress.set(word.id, makeProgress(word.id));
+
+    const quiz = await useCase.execute(USER, settings({ vocabularyIds: ["v1"], letters: ["A"] }));
+    expect(quiz.cycleRestarted).toBe(true);
+    expect(learning.restartedCycles).toHaveLength(1);
+    expect(learning.sessions[0]).toMatchObject({ id: quiz.sessionId, plannedCount: 2, cycleRestarted: true });
+    expect(quiz.progressByWordId.get(quiz.items[0].word.id)?.seenInCycle).toBe(false);
   });
 
-  it("uses only de_to_en for the de_to_target direction", async () => {
-    const entries = [makeEntry("a"), makeEntry("b")];
-    const { vocabularyRepository, progressRepository } = makeRepos(entries, []);
-    const useCase = new GenerateQuizUseCase(vocabularyRepository, progressRepository);
-    const result = await useCase.execute({
-      userId: "u1",
-      questionCount: 2,
-      direction: "de_to_target",
-      includeSentenceWriting: false,
-    });
-    expect(result.every((q) => q.mode === "de_to_en")).toBe(true);
-  });
+  it("learns from answers: a word rated easy is not asked again until the round ends", async () => {
+    const { useCase, learning } = setup();
+    const submit = new SubmitAnswerUseCase(learning);
+    const scope = settings({ vocabularyIds: ["v1"], letters: ["C", "D", "E"], questionCount: 5 });
 
-  it("appends sentence_writing to the mode rotation when the toggle is on", async () => {
-    const entries = [makeEntry("a"), makeEntry("b"), makeEntry("c")];
-    const { vocabularyRepository, progressRepository } = makeRepos(entries, []);
-    const useCase = new GenerateQuizUseCase(vocabularyRepository, progressRepository);
-    const result = await useCase.execute({
-      userId: "u1",
-      questionCount: 3,
-      direction: "de_to_target",
-      includeSentenceWriting: true,
-    });
-    expect(result.map((q) => q.mode)).toEqual(["de_to_en", "sentence_writing", "de_to_en"]);
-  });
+    const first = await useCase.execute(USER, scope);
+    expect(first.items).toHaveLength(5);
+    const [easyItem, badItem] = first.items;
+    const answer = (item: typeof easyItem, rating: "easy" | "bad") =>
+      submit.execute({ userId: USER, sessionId: first.sessionId, wordId: item.word.id, mode: item.mode, rating, shownAt: NOW, answeredAt: NOW });
+    await answer(easyItem, "easy");
+    await answer(badItem, "bad");
 
-  it("filters by a single starting letter and includes every match, ignoring the question cap", async () => {
-    const entries = [
-      { ...makeEntry("apple"), headword: "Apfel" },
-      { ...makeEntry("auto"), headword: "Auto" },
-      { ...makeEntry("banane"), headword: "Banane" },
-    ];
-    const { vocabularyRepository, progressRepository } = makeRepos(entries, []);
-    const useCase = new GenerateQuizUseCase(vocabularyRepository, progressRepository);
-    const result = await useCase.execute({
-      userId: "u1",
-      questionCount: 1,
-      direction: "de_to_target",
-      includeSentenceWriting: false,
-      letterFilter: { from: "a" },
-    });
-    expect(result).toHaveLength(2);
-    expect(result.every((q) => q.entry.headword.toLowerCase().startsWith("a"))).toBe(true);
-  });
-
-  it("holds back easy/very_easy words until unseen words run short", async () => {
-    const unseen = makeEntry("unseen");
-    const mastered = makeEntry("mastered");
-    const masteredProgress = { ...createInitialProgress("mastered"), lastRating: "very_easy" as const };
-    const { vocabularyRepository, progressRepository } = makeRepos(
-      [mastered, unseen],
-      [masteredProgress]
-    );
-    const useCase = new GenerateQuizUseCase(vocabularyRepository, progressRepository);
-    const result = await useCase.execute({ userId: "u1", ...DEFAULT_QUIZ_SETTINGS, questionCount: 1 });
-    expect(result[0].entry.id).toBe("unseen");
+    const second = await useCase.execute(USER, scope);
+    const ids = second.items.map((i) => i.word.id);
+    expect(second.cycleRestarted).toBe(false);
+    expect(ids).not.toContain(easyItem.word.id);
+    expect(ids).toContain(badItem.word.id);
+    expect(ids).toHaveLength(5);
   });
 });

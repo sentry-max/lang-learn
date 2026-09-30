@@ -1,297 +1,231 @@
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { useServices } from "@presentation/context/ServicesContext";
+import { ReactNode, useState } from "react";
+import { Link, useNavigate } from "react-router-dom";
+import { Vocabulary, publishBlocker } from "@domain/entities/Vocabulary";
+import { useCurrentUser } from "@presentation/context/AuthContext";
+import { useServices, useSyncStatus } from "@presentation/context/ServicesContext";
 import { useLanguage } from "@presentation/context/LanguageContext";
-import { VocabularyEntry, displayForm, getTranslations } from "@domain/entities/VocabularyEntry";
-import { SyncStatus } from "@domain/repositories/SyncCoordinator";
-import { toAppError } from "@domain/errors/AppError";
-import { ImportResult } from "@application/usecases/ImportVocabularyUseCase";
+import { useAsync } from "@presentation/hooks/useAsync";
+import { useErrorMessage } from "@presentation/hooks/useErrorMessage";
+import { useConfirm } from "@presentation/context/FeedbackContext";
 import ErrorBanner from "@presentation/components/ErrorBanner";
-import VocabularyDetailsDialog from "@presentation/components/VocabularyDetailsDialog";
-import VocabularyFormDialog from "@presentation/components/VocabularyFormDialog";
+import Icon from "@presentation/components/ui/Icon";
+import WordFormDialog from "@presentation/components/WordFormDialog";
+import { LanguagePair, StatusPill } from "@presentation/components/VocabularyBadges";
+import { StarDisplay } from "@presentation/components/StarRating";
+import { formatDate, formatNumber } from "@presentation/format";
+import { InlineLoader } from "@presentation/components/ui/Loader";
 
-type DialogState =
-  | { kind: "none" }
-  | { kind: "details"; entry: VocabularyEntry }
-  | { kind: "form"; entry: VocabularyEntry | null };
+type Tab = "mine" | "downloaded";
 
-function formatTime(iso: string | null): string {
-  if (!iso) return "";
-  try {
-    return new Date(iso).toLocaleString();
-  } catch {
-    return iso;
-  }
-}
-
+/** Manage own vocabularies (drafts and published) and downloaded ones. */
 export default function VocabulariesPage() {
-  const { listVocabulary, deleteVocabularyEntry, deleteAllVocabulary, importVocabulary, vocabularySync } =
-    useServices();
-  const { language, t } = useLanguage();
+  const user = useCurrentUser();
+  const { vocabularies } = useServices();
+  const { t } = useLanguage();
+  const errorMessage = useErrorMessage();
+  const confirm = useConfirm();
+  const navigate = useNavigate();
 
-  const [entries, setEntries] = useState<VocabularyEntry[]>([]);
-  const [loading, setLoading] = useState(true);
+  const [tab, setTab] = useState<Tab>("mine");
+  const [addingWord, setAddingWord] = useState(false);
+  const [message, setMessage] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
-  const [search, setSearch] = useState("");
-  const [dialog, setDialog] = useState<DialogState>({ kind: "none" });
-  const [syncStatus, setSyncStatus] = useState<SyncStatus | null>(null);
-  const [syncing, setSyncing] = useState(false);
-  const [importResult, setImportResult] = useState<ImportResult | null>(null);
-  const fileInputRef = useRef<HTMLInputElement>(null);
+  const [busyId, setBusyId] = useState<string | null>(null);
 
-  const load = useCallback(async () => {
-    setLoading(true);
+  const { version } = useSyncStatus();
+  const data = useAsync(async () => {
+    const [owned, downloaded] = await Promise.all([
+      vocabularies.listOwned(user.id),
+      vocabularies.listDownloaded(user.id),
+    ]);
+    return { owned, downloaded };
+  }, [user.id, version]);
+
+  async function act(id: string, action: () => Promise<unknown>, fallback: Parameters<typeof errorMessage>[1]) {
+    setBusyId(id);
     setError(null);
+    setMessage(null);
     try {
-      const list = await listVocabulary.execute();
-      setEntries(list);
+      await action();
+      await data.reload();
     } catch (err) {
-      setError(toAppError(err, t("vocabLoadError")).message);
+      setError(errorMessage(err, fallback));
     } finally {
-      setLoading(false);
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
-
-  const loadSyncStatus = useCallback(async () => {
-    if (!vocabularySync) return;
-    try {
-      setSyncStatus(await vocabularySync.getStatus());
-    } catch {
-      // Status display is best-effort — a failed check just leaves it stale.
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
-
-  useEffect(() => {
-    load();
-    loadSyncStatus();
-  }, [load, loadSyncStatus]);
-
-  async function handleResync() {
-    if (!vocabularySync) return;
-    setSyncing(true);
-    setError(null);
-    try {
-      const status = await vocabularySync.resync();
-      setSyncStatus(status);
-      await load();
-    } catch (err) {
-      setError(toAppError(err, "Failed to sync vocabulary.").message);
-    } finally {
-      setSyncing(false);
+      setBusyId(null);
     }
   }
 
-  async function handleFile(file: File) {
-    setImportResult(null);
-    setError(null);
-    try {
-      const text = await file.text();
-      const parsed = JSON.parse(text);
-      const outcome = await importVocabulary.execute(parsed);
-      setImportResult(outcome);
-      await load();
-      await loadSyncStatus();
-    } catch (err) {
-      setImportResult({ importedCount: 0, errors: [toAppError(err, "Could not import that file.").message], duplicateHeadwords: [] });
-    }
-  }
-
-  async function handleDeleteAll() {
-    if (!window.confirm(t("confirmDeleteAll"))) return;
-    setError(null);
-    try {
-      await deleteAllVocabulary.execute();
-      await load();
-      await loadSyncStatus();
-    } catch (err) {
-      setError(toAppError(err, "Failed to delete vocabulary.").message);
-    }
-  }
-
-  async function handleDeleteOne(entry: VocabularyEntry) {
-    if (!window.confirm(t("confirmDelete", { word: displayForm(entry) }))) return;
-    setError(null);
-    try {
-      await deleteVocabularyEntry.execute(entry.id);
-      setDialog({ kind: "none" });
-      await load();
-      await loadSyncStatus();
-    } catch (err) {
-      setError(toAppError(err, "Failed to delete that word.").message);
-    }
-  }
-
-  const filteredGrouped = useMemo(() => {
-    const query = search.trim().toLocaleLowerCase("de");
-    const filtered = query
-      ? entries.filter((e) => {
-          const inHeadword = e.headword.toLocaleLowerCase("de").includes(query);
-          const inTranslations = getTranslations(e, language).some((v) =>
-            v.toLocaleLowerCase().includes(query)
-          );
-          return inHeadword || inTranslations;
-        })
-      : entries;
-
-    const sorted = [...filtered].sort((a, b) => a.headword.localeCompare(b.headword, "de"));
-
-    const groups: { letter: string; items: VocabularyEntry[] }[] = [];
-    for (const entry of sorted) {
-      const letter = entry.headword.charAt(0).toLocaleUpperCase("de");
-      const lastGroup = groups[groups.length - 1];
-      if (lastGroup && lastGroup.letter === letter) {
-        lastGroup.items.push(entry);
-      } else {
-        groups.push({ letter, items: [entry] });
-      }
-    }
-    return groups;
-  }, [entries, search, language]);
+  const owned = data.data?.owned ?? [];
+  const downloaded = data.data?.downloaded ?? [];
 
   return (
     <div className="app-main">
-      {error && <ErrorBanner message={error} onRetry={load} />}
-
-      <div className="vocab-list-header">
-        <h2 style={{ margin: 0 }}>{t("navVocabularies")}</h2>
-        <span className="pill">{t("vocabCountLabel", { count: entries.length })}</span>
-      </div>
-
-      <div className="toolbar">
-        <input
-          type="text"
-          placeholder={t("searchPlaceholder")}
-          value={search}
-          onChange={(e) => setSearch(e.target.value)}
-          style={{ maxWidth: 220 }}
-        />
-        <div className="toolbar-spacer" />
-        <button className="btn btn-secondary" onClick={() => setDialog({ kind: "form", entry: null })}>
-          {t("addWordButton")}
-        </button>
-        <button className="btn btn-secondary" onClick={() => fileInputRef.current?.click()}>
-          {t("importJsonButton")}
-        </button>
-        <input
-          ref={fileInputRef}
-          type="file"
-          accept="application/json"
-          style={{ display: "none" }}
-          onChange={(e) => {
-            const file = e.target.files?.[0];
-            if (file) handleFile(file);
-            e.target.value = "";
-          }}
-        />
-        <button
-          className="btn btn-secondary"
-          style={{ color: "var(--color-danger)" }}
-          onClick={handleDeleteAll}
-        >
-          {t("deleteAllButton")}
-        </button>
-        {vocabularySync && (
-          <button className="btn btn-secondary" onClick={handleResync} disabled={syncing}>
-            {syncing ? t("syncing") : t("resyncButton")}
+      <div className="page-header">
+        <h2>{t("navVocabularies")}</h2>
+        <div className="button-row">
+          <button className="btn btn-secondary" onClick={() => setAddingWord(true)}>
+            {t("addWordButton")}
           </button>
-        )}
+          <Link className="btn btn-secondary" to="/feed">
+            {t("browseFeed")}
+          </Link>
+          <Link className="btn" to="/vocabularies/new">
+            {t("newVocabulary")}
+          </Link>
+        </div>
       </div>
 
-      {vocabularySync && syncStatus && (
-        <p className="muted" style={{ marginTop: -8, marginBottom: 12 }}>
-          {syncStatus.pendingCount > 0
-            ? t("pendingChanges", { count: syncStatus.pendingCount })
-            : syncStatus.lastSyncedAt
-            ? t("lastSynced", { time: formatTime(syncStatus.lastSyncedAt) })
-            : t("neverSynced")}
-        </p>
-      )}
+      {error && <ErrorBanner message={error} />}
+      {data.error ? <ErrorBanner message={errorMessage(data.error, "vocabLoadError")} onRetry={data.reload} /> : null}
+      {message && <p className="feedback-correct">{message}</p>}
 
-      {importResult && (
-        <div style={{ marginBottom: 16 }}>
-          <p className={importResult.importedCount > 0 ? "feedback-correct" : "feedback-incorrect"}>
-            {t("importedCount", { count: importResult.importedCount })}
-          </p>
-          {importResult.duplicateHeadwords.length > 0 && (
-            <p className="muted">{t("duplicateSkipped", { words: importResult.duplicateHeadwords.join(", ") })}</p>
-          )}
-          {importResult.errors.length > 0 && (
-            <ul className="muted">
-              {importResult.errors.slice(0, 20).map((e, i) => (
-                <li key={i}>{e}</li>
-              ))}
-            </ul>
-          )}
-        </div>
-      )}
+      <div className="tabs" role="tablist">
+        <button
+          role="tab"
+          aria-selected={tab === "mine"}
+          className={`tab${tab === "mine" ? " active" : ""}`}
+          onClick={() => setTab("mine")}
+        >
+          {t("myVocabularies")} ({owned.length})
+        </button>
+        <button
+          role="tab"
+          aria-selected={tab === "downloaded"}
+          className={`tab${tab === "downloaded" ? " active" : ""}`}
+          onClick={() => setTab("downloaded")}
+        >
+          {t("downloadedVocabularies")} ({downloaded.length})
+        </button>
+      </div>
 
       <div className="card">
-        {loading && <p className="muted center-text">{t("loading")}</p>}
-        {!loading && filteredGrouped.length === 0 && <p className="muted center-text">{t("noWordsFound")}</p>}
-        {!loading &&
-          filteredGrouped.map((group) => (
-            <div key={group.letter}>
-              <div className="letter-group-label">{group.letter}</div>
-              {group.items.map((entry) => (
-                <div
-                  key={entry.id}
-                  className="vocab-row"
-                  onClick={() => setDialog({ kind: "details", entry })}
+        {data.loading && !data.data && <InlineLoader />}
+
+        {tab === "mine" && data.data && owned.length === 0 && (
+          <div className="center-text">
+            <p className="muted">{t("noOwnVocabularies")}</p>
+            <Link className="btn" to="/vocabularies/new">
+              {t("newVocabulary")}
+            </Link>
+          </div>
+        )}
+        {tab === "mine" &&
+          owned.map((v) => (
+            <VocabularyRow key={v.id} vocabulary={v} onOpen={() => navigate(`/vocabularies/${v.id}`)}>
+              <StatusPill vocabulary={v} />
+              {v.status === "draft" ? (
+                <button
+                  className="btn btn-small"
+                  disabled={busyId === v.id || publishBlocker(v.wordCount) !== null}
+                  title={publishBlocker(v.wordCount) ? t("publishRequirement") : undefined}
+                  onClick={() => act(v.id, () => vocabularies.publish(v), "publishError")}
                 >
-                  <div className="vocab-row-main">
-                    <div className="vocab-row-headword">{displayForm(entry)}</div>
-                    <div className="vocab-row-translation">{getTranslations(entry, language).join(", ")}</div>
-                  </div>
-                  <div className="vocab-row-actions">
-                    <button
-                      type="button"
-                      className="icon-btn"
-                      aria-label={t("edit")}
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        setDialog({ kind: "form", entry });
-                      }}
-                    >
-                      ✏️
-                    </button>
-                    <button
-                      type="button"
-                      className="icon-btn danger"
-                      aria-label={t("delete")}
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        handleDeleteOne(entry);
-                      }}
-                    >
-                      🗑️
-                    </button>
-                  </div>
-                </div>
-              ))}
-            </div>
+                  {t("publish")}
+                </button>
+              ) : (
+                <button
+                  className="btn btn-secondary btn-small"
+                  disabled={busyId === v.id}
+                  onClick={() =>
+                    confirm({ title: t("confirmUnpublish"), confirmLabel: t("unpublish") }).then((ok) => {
+                      if (ok) void act(v.id, () => vocabularies.unpublish(v.id), "publishError");
+                    })
+                  }
+                >
+                  {t("unpublish")}
+                </button>
+              )}
+              <button
+                className="icon-btn danger"
+                aria-label={t("delete")}
+                disabled={busyId === v.id}
+                onClick={() =>
+                  confirm({
+                    title: t("confirmDeleteVocabulary", { name: v.name }),
+                    confirmLabel: t("delete"),
+                    danger: true,
+                  }).then((ok) => {
+                    if (ok) void act(v.id, () => vocabularies.delete(v.id), "deleteError");
+                  })
+                }
+              >
+                <Icon name="trash" size={18} />
+              </button>
+            </VocabularyRow>
+          ))}
+
+        {tab === "downloaded" && data.data && downloaded.length === 0 && (
+          <div className="center-text">
+            <p className="muted">{t("noDownloads")}</p>
+            <Link className="btn" to="/feed">
+              {t("browseFeed")}
+            </Link>
+          </div>
+        )}
+        {tab === "downloaded" &&
+          downloaded.map((v) => (
+            <VocabularyRow key={v.id} vocabulary={v} onOpen={() => navigate(`/vocabularies/${v.id}`)} showAuthor>
+              <button
+                className="btn btn-secondary btn-small"
+                disabled={busyId === v.id}
+                onClick={() =>
+                  confirm({
+                    title: t("confirmRemoveDownload", { name: v.name }),
+                    confirmLabel: t("removeDownload"),
+                    danger: true,
+                  }).then((ok) => {
+                    if (ok) void act(v.id, () => vocabularies.removeDownload(user.id, v.id), "downloadError");
+                  })
+                }
+              >
+                {t("removeDownload")}
+              </button>
+            </VocabularyRow>
           ))}
       </div>
 
-      {dialog.kind === "details" && (
-        <VocabularyDetailsDialog
-          entry={dialog.entry}
-          onClose={() => setDialog({ kind: "none" })}
-          onEdit={() => setDialog({ kind: "form", entry: dialog.entry })}
-          onDelete={() => handleDeleteOne(dialog.entry)}
-        />
-      )}
-
-      {dialog.kind === "form" && (
-        <VocabularyFormDialog
-          existingEntry={dialog.entry}
-          onClose={() => setDialog({ kind: "none" })}
-          onSaved={() => {
-            load();
-            loadSyncStatus();
+      {addingWord && (
+        <WordFormDialog
+          vocabulary={null}
+          ownedVocabularies={owned}
+          onClose={() => setAddingWord(false)}
+          onSaved={(text) => {
+            setMessage(text);
+            data.reload();
           }}
         />
       )}
+    </div>
+  );
+}
+
+function VocabularyRow({
+  vocabulary: v,
+  onOpen,
+  showAuthor,
+  children,
+}: {
+  vocabulary: Vocabulary;
+  onOpen: () => void;
+  showAuthor?: boolean;
+  children: ReactNode;
+}) {
+  const { t, language } = useLanguage();
+  return (
+    <div className="vocab-card-row">
+      <button type="button" className="vocab-card-main" onClick={onOpen}>
+        <span className="vocab-row-headword" dir="auto">
+          {v.name}
+        </span>
+        <span className="meta-line">
+          <LanguagePair vocabulary={v} />
+          <span className="muted small">{t("wordCountLabel", { count: formatNumber(v.wordCount, language) })}</span>
+          {showAuthor && v.ownerName && <span className="muted small">{t("byAuthor", { name: v.ownerName })}</span>}
+          {v.status === "published" && <StarDisplay value={v.ratingAvg} count={v.ratingCount} />}
+          <span className="muted small">{t("updatedOn", { date: formatDate(v.updatedAt, language) })}</span>
+        </span>
+      </button>
+      <div className="row-actions">{children}</div>
     </div>
   );
 }

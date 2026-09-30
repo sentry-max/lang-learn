@@ -1,43 +1,56 @@
 import { randomId } from "@application/util/randomId";
-import { DifficultyRating, QuestionMode, ReviewRecord, createInitialProgress } from "@domain/entities/Review";
+import {
+  DifficultyRating,
+  QuestionMode,
+  ReviewEvent,
+  WordProgress,
+  createInitialProgress,
+} from "@domain/entities/Learning";
 import { scheduleNextReview } from "@domain/services/SpacedRepetitionService";
-import { ProgressRepository } from "@domain/repositories/ProgressRepository";
+import { LearningRepository } from "@domain/repositories/LearningRepository";
 
 export interface SubmitAnswerInput {
   userId: string;
-  vocabularyEntryId: string;
+  sessionId: string | null;
+  wordId: string;
   mode: QuestionMode;
-  userAnswer: string | null;
-  /** System-graded correctness for de_to_en / en_to_de; null for sentence_writing (self-rated only) */
-  wasCorrect: boolean | null;
-  difficultyRating: DifficultyRating;
+  rating: DifficultyRating;
+  shownAt: Date;
+  answeredAt: Date;
+  /**
+   * The word's latest known progress, if the caller already has it (the
+   * quiz does). `undefined` means "unknown — load it".
+   */
+  previous?: WordProgress | null;
 }
 
 /**
- * Records a single answered question: stores the review record and
- * advances the word's spaced-repetition schedule based on the user's
- * own difficulty rating.
+ * Records one answer: recalculates the word's learning state (including
+ * how long the user took) and stores it together with the answer event.
+ * Returns the new state so the caller can keep its copy current.
  */
 export class SubmitAnswerUseCase {
-  constructor(private readonly progressRepository: ProgressRepository) {}
+  constructor(private readonly learning: LearningRepository) {}
 
-  async execute(input: SubmitAnswerInput): Promise<void> {
-    const record: ReviewRecord = {
-      id: randomId(),
-      vocabularyEntryId: input.vocabularyEntryId,
-      mode: input.mode,
-      userAnswer: input.userAnswer,
-      wasCorrect: input.wasCorrect,
-      difficultyRating: input.difficultyRating,
-      answeredAt: new Date().toISOString(),
-    };
-    await this.progressRepository.addReviewRecord(input.userId, record);
-
+  async execute(input: SubmitAnswerInput): Promise<WordProgress> {
     const current =
-      (await this.progressRepository.getProgress(input.userId, input.vocabularyEntryId)) ??
-      createInitialProgress(input.vocabularyEntryId);
+      input.previous !== undefined ? input.previous : await this.learning.getProgress(input.userId, input.wordId);
+    const base = current ?? createInitialProgress(input.wordId, input.answeredAt);
 
-    const updated = scheduleNextReview(current, input.difficultyRating);
-    await this.progressRepository.saveProgress(input.userId, updated);
+    const responseMs = Math.max(0, input.answeredAt.getTime() - input.shownAt.getTime());
+    const updated = scheduleNextReview(base, { rating: input.rating, mode: input.mode, responseMs }, input.answeredAt);
+
+    const event: ReviewEvent = {
+      id: randomId(),
+      wordId: input.wordId,
+      sessionId: input.sessionId,
+      mode: input.mode,
+      rating: input.rating,
+      shownAt: input.shownAt.toISOString(),
+      answeredAt: input.answeredAt.toISOString(),
+      responseMs,
+    };
+    await this.learning.recordReview(input.userId, event, updated);
+    return updated;
   }
 }
