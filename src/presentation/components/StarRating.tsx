@@ -11,8 +11,8 @@ export function StarDisplay({ value, count }: { value: number; count?: number })
   return (
     <span className="stars" aria-label={t("ratingAria", { value: formatNumber(value, language, 1) })}>
       <span aria-hidden="true">
-        {STARS.map((s) => (
-          <span key={s} className={s <= rounded ? "star on" : "star"}>
+        {STARS.map((star) => (
+          <span key={star} className={star <= rounded ? "star on" : "star"}>
             ★
           </span>
         ))}
@@ -27,23 +27,23 @@ export function StarDisplay({ value, count }: { value: number; count?: number })
 }
 
 /** 1–5 star picker. */
-export function StarInput({ value, onChange, disabled }: { value: number; onChange: (v: number) => void; disabled?: boolean }) {
+export function StarInput({ value, onChange, disabled }: { value: number; onChange: (value: number) => void; disabled?: boolean }) {
   const { t } = useLanguage();
   const [hover, setHover] = useState(0);
   const shown = hover || value;
   return (
     <div className="stars stars-input" role="radiogroup" aria-label={t("yourRating")} onMouseLeave={() => setHover(0)}>
-      {STARS.map((s) => (
+      {STARS.map((star) => (
         <button
-          key={s}
+          key={star}
           type="button"
           role="radio"
-          aria-checked={value === s}
-          aria-label={t("starsLabel", { count: s })}
+          aria-checked={value === star}
+          aria-label={t("starsLabel", { count: star })}
           disabled={disabled}
-          className={s <= shown ? "star on" : "star"}
-          onMouseEnter={() => setHover(s)}
-          onClick={() => onChange(s)}
+          className={star <= shown ? "star on" : "star"}
+          onMouseEnter={() => setHover(star)}
+          onClick={() => onChange(star)}
         >
           ★
         </button>

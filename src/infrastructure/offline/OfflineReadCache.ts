@@ -18,8 +18,8 @@ export class OfflineReadCache {
         const value = await fetcher();
         this.store.set(key, value);
         return value;
-      } catch (err) {
-        if (!isNetworkError(err) || !this.store.has(key)) throw err;
+      } catch (error) {
+        if (!isNetworkError(error) || !this.store.has(key)) throw error;
       }
     }
     if (this.store.has(key)) return this.store.get(key) as T;

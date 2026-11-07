@@ -24,7 +24,7 @@ export function sortLetters(letters: Iterable<string>): string[] {
 /** Keeps items whose headword starts with one of `letters`; an empty list keeps everything. */
 export function filterByLetters<T>(items: readonly T[], headwordOf: (item: T) => string, letters: readonly string[]): T[] {
   if (letters.length === 0) return [...items];
-  const wanted = new Set(letters.map((l) => l.toLocaleUpperCase()));
+  const wanted = new Set(letters.map((letter) => letter.toLocaleUpperCase()));
   return items.filter((item) => wanted.has(firstLetter(headwordOf(item))));
 }
 

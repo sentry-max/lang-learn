@@ -18,6 +18,6 @@ export class PrepareOfflineUseCase {
       this.vocabularyService.listQuizLibrary(userId),
       this.learning.getAllProgress(userId),
     ]);
-    if (library.length > 0) await this.words.listByVocabularies(library.map((v) => v.id));
+    if (library.length > 0) await this.words.listByVocabularies(library.map((vocabulary) => vocabulary.id));
   }
 }

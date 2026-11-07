@@ -109,9 +109,9 @@ export function ServicesProvider({ children }: { children: ReactNode }) {
 }
 
 export function useServices(): Services {
-  const ctx = useContext(ServicesContext);
-  if (!ctx) throw new Error("useServices must be used within a ServicesProvider");
-  return ctx;
+  const context = useContext(ServicesContext);
+  if (!context) throw new Error("useServices must be used within a ServicesProvider");
+  return context;
 }
 
 export function useSyncStatus(): SyncStatus {

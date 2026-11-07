@@ -27,17 +27,17 @@ export class LearningHistoryService {
   ) {}
 
   async getOverview(userId: string): Promise<HistoryOverview> {
-    const progress = (await this.learning.getAllProgress(userId)).filter((p) => p.timesSeen > 0);
-    const words = await this.words.getByIds(progress.map((p) => p.wordId));
-    const wordById = new Map(words.map((w) => [w.id, w]));
+    const progress = (await this.learning.getAllProgress(userId)).filter((progress) => progress.timesSeen > 0);
+    const words = await this.words.getByIds(progress.map((progress) => progress.wordId));
+    const wordById = new Map(words.map((word) => [word.id, word]));
 
-    const entries: HistoryWord[] = progress.map((p) => {
-      const word = wordById.get(p.wordId) ?? null;
-      return { wordId: p.wordId, word, letter: word ? firstLetter(word.headword) : UNAVAILABLE_LETTER, progress: p };
+    const entries: HistoryWord[] = progress.map((progress) => {
+      const word = wordById.get(progress.wordId) ?? null;
+      return { wordId: progress.wordId, word, letter: word ? firstLetter(word.headword) : UNAVAILABLE_LETTER, progress: progress };
     });
     entries.sort((a, b) => (a.word?.headword ?? "").localeCompare(b.word?.headword ?? ""));
 
-    return { words: entries, letters: countByLetter(entries, (e) => (e.word ? e.word.headword : UNAVAILABLE_LETTER)) };
+    return { words: entries, letters: countByLetter(entries, (entry) => (entry.word ? entry.word.headword : UNAVAILABLE_LETTER)) };
   }
 
   /** Answer history per word, newest first. */
@@ -64,12 +64,12 @@ export class LearningHistoryService {
 }
 
 export function wordIdsForLetter(overview: HistoryOverview, letter: string): string[] {
-  return overview.words.filter((w) => w.letter === letter).map((w) => w.wordId);
+  return overview.words.filter((entry) => entry.letter === letter).map((entry) => entry.wordId);
 }
 
 /** Words whose most recent answer was `rating`, optionally only under one letter. */
 export function wordIdsForRating(overview: HistoryOverview, rating: DifficultyRating, letter?: string): string[] {
   return overview.words
-    .filter((w) => w.progress.lastRating === rating && (letter === undefined || w.letter === letter))
-    .map((w) => w.wordId);
+    .filter((entry) => entry.progress.lastRating === rating && (letter === undefined || entry.letter === letter))
+    .map((entry) => entry.wordId);
 }

@@ -1,9 +1,22 @@
 import { FormEvent, useState } from "react";
 import { useAuth } from "@presentation/context/AuthContext";
 import { useLanguage } from "@presentation/context/LanguageContext";
+import { AuthFailure } from "@application/ports/AuthGateway";
+import { UiStringKey } from "@presentation/i18n/translations";
 import AppLogo from "@presentation/components/ui/AppLogo";
+import { Spinner } from "@presentation/components/ui/Loader";
 
 const MIN_PASSWORD_LENGTH = 8;
+
+const AUTH_FAILURE_KEYS: Record<AuthFailure, UiStringKey> = {
+  invalid_credentials: "authInvalidCredentials",
+  email_not_confirmed: "authEmailNotConfirmed",
+  email_taken: "authEmailTaken",
+  weak_password: "authWeakPassword",
+  rate_limited: "authRateLimited",
+  network: "errorNetwork",
+  unknown: "authFailed",
+};
 
 export default function LoginPage() {
   const { signIn, signUp } = useAuth();
@@ -12,13 +25,13 @@ export default function LoginPage() {
   const [password, setPassword] = useState("");
   const [mode, setMode] = useState<"sign_in" | "sign_up">("sign_in");
   const [error, setError] = useState<string | null>(null);
-  const [info, setInfo] = useState<string | null>(null);
+  const [information, setInformation] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
 
-  const submit = async (e: FormEvent) => {
-    e.preventDefault();
+  const submit = async (event: FormEvent) => {
+    event.preventDefault();
     setError(null);
-    setInfo(null);
+    setInformation(null);
     if (mode === "sign_up" && password.length < MIN_PASSWORD_LENGTH) {
       setError(t("passwordTooShort", { count: MIN_PASSWORD_LENGTH }));
       return;
@@ -26,12 +39,12 @@ export default function LoginPage() {
     setBusy(true);
     try {
       if (mode === "sign_in") {
-        const result = await signIn(email, password);
-        if (result) setError(result);
+        const failure = await signIn(email, password);
+        if (failure) setError(t(AUTH_FAILURE_KEYS[failure]));
       } else {
         const result = await signUp(email, password, language);
-        if (result.error !== null) setError(result.error);
-        else if (result.needsConfirmation) setInfo(t("checkEmailToConfirm"));
+        if (result.failure) setError(t(AUTH_FAILURE_KEYS[result.failure]));
+        else if (result.needsConfirmation) setInformation(t("checkEmailToConfirm"));
       }
     } finally {
       setBusy(false);
@@ -60,7 +73,7 @@ export default function LoginPage() {
               enterKeyHint="next"
               dir="ltr"
               value={email}
-              onChange={(e) => setEmail(e.target.value)}
+              onChange={(event) => setEmail(event.target.value)}
               required
             />
           </div>
@@ -74,7 +87,7 @@ export default function LoginPage() {
               autoComplete={mode === "sign_in" ? "current-password" : "new-password"}
               minLength={mode === "sign_up" ? MIN_PASSWORD_LENGTH : undefined}
               value={password}
-              onChange={(e) => setPassword(e.target.value)}
+              onChange={(event) => setPassword(event.target.value)}
               required
             />
           </div>
@@ -83,19 +96,20 @@ export default function LoginPage() {
               {error}
             </p>
           )}
-          {info && <p className="feedback-correct">{info}</p>}
+          {information && <p className="feedback-correct">{information}</p>}
           <button className="btn btn-block" type="submit" disabled={busy}>
-            {mode === "sign_in" ? t("signInButton") : t("signUpButton")}
+            {busy && <Spinner />} {mode === "sign_in" ? t("signInButton") : t("signUpButton")}
           </button>
         </form>
         <button
           type="button"
           className="btn btn-secondary btn-block"
           style={{ marginTop: 8 }}
+          disabled={busy}
           onClick={() => {
             setMode(mode === "sign_in" ? "sign_up" : "sign_in");
             setError(null);
-            setInfo(null);
+            setInformation(null);
           }}
         >
           {mode === "sign_in" ? t("switchToSignUp") : t("switchToSignIn")}

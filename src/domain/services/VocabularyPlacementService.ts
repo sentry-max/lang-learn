@@ -30,13 +30,13 @@ export function decidePlacement(
   sourceLanguage: LanguageCode,
   candidates: readonly PlacementCandidate[]
 ): PlacementDecision {
-  const sameLanguage = candidates.filter((c) => c.vocabulary.sourceLanguage === sourceLanguage);
+  const sameLanguage = candidates.filter((candidate) => candidate.vocabulary.sourceLanguage === sourceLanguage);
   const key = headwordKey(word);
 
-  const duplicate = sameLanguage.find((c) => c.words.some((w) => headwordKey(w) === key));
+  const duplicate = sameLanguage.find((candidate) => candidate.words.some((word) => headwordKey(word) === key));
   if (duplicate) return { kind: "duplicate", vocabularyId: duplicate.vocabulary.id };
 
-  const withRoom = sameLanguage.filter((c) => !isFull(c.vocabulary));
+  const withRoom = sameLanguage.filter((candidate) => !isFull(candidate.vocabulary));
   if (withRoom.length === 0) {
     return { kind: "create", input: suggestNewVocabulary(word, sourceLanguage, candidates) };
   }
@@ -53,17 +53,17 @@ export function decidePlacement(
 export function placementScore(word: WordDraft, candidate: PlacementCandidate): number {
   let score = 0;
 
-  const dominantLevel = mostCommon(candidate.words.map((w) => w.level).filter((l): l is NonNullable<typeof l> => !!l));
+  const dominantLevel = mostCommon(candidate.words.map((word) => word.level).filter((level): level is NonNullable<typeof level> => !!level));
   if (word.level && dominantLevel === word.level) score += 3;
 
   if (word.tags.length > 0) {
-    const vocabularyTags = new Set(candidate.words.flatMap((w) => w.tags.map((t) => t.toLocaleLowerCase())));
-    const shared = word.tags.filter((t) => vocabularyTags.has(t.toLocaleLowerCase())).length;
+    const vocabularyTags = new Set(candidate.words.flatMap((word) => word.tags.map((tag) => tag.toLocaleLowerCase())));
+    const shared = word.tags.filter((tag) => vocabularyTags.has(tag.toLocaleLowerCase())).length;
     score += 2 * (shared / word.tags.length);
   }
 
   const wordLanguages = translationLanguages(word);
-  if (wordLanguages.length > 0 && wordLanguages.every((l) => candidate.vocabulary.targetLanguages.includes(l))) {
+  if (wordLanguages.length > 0 && wordLanguages.every((language) => candidate.vocabulary.targetLanguages.includes(language))) {
     score += 1;
   }
 
@@ -77,15 +77,15 @@ function suggestNewVocabulary(
   existing: readonly PlacementCandidate[]
 ): VocabularyInput {
   const base = [LANGUAGES[sourceLanguage].englishName, word.level ?? "", "words"].filter(Boolean).join(" ");
-  const taken = new Set(existing.map((c) => c.vocabulary.name.toLocaleLowerCase()));
+  const taken = new Set(existing.map((candidate) => candidate.vocabulary.name.toLocaleLowerCase()));
   let name = base;
-  for (let n = 2; taken.has(name.toLocaleLowerCase()); n++) name = `${base} (${n})`;
+  for (let suffix = 2; taken.has(name.toLocaleLowerCase()); suffix++) name = `${base} (${suffix})`;
 
   return {
     name,
     description: "",
     sourceLanguage,
-    targetLanguages: translationLanguages(word).filter((l) => l !== sourceLanguage),
+    targetLanguages: translationLanguages(word).filter((language) => language !== sourceLanguage),
   };
 }
 

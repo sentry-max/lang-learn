@@ -52,12 +52,12 @@ export class OfflineLearningRepository implements LearningRepository {
       this.madeDuringFetch = madeDuringFetch;
       try {
         const list = await this.remote.getAllProgress(userId);
-        const map = new Map(list.map((p) => [p.wordId, p]));
+        const map = new Map(list.map((progress) => [progress.wordId, progress]));
         for (const operation of [...this.outbox.operations(), ...madeDuringFetch]) applyLocally(map, operation);
         this.progress = map;
         return Array.from(map.values());
-      } catch (err) {
-        if (!isNetworkError(err)) throw err;
+      } catch (error) {
+        if (!isNetworkError(error)) throw error;
       } finally {
         if (this.madeDuringFetch === madeDuringFetch) this.madeDuringFetch = null;
       }
@@ -69,7 +69,7 @@ export class OfflineLearningRepository implements LearningRepository {
   async getProgress(userId: string, wordId: string): Promise<WordProgress | null> {
     if (this.progress) return this.progress.get(wordId) ?? null;
     const all = await this.getAllProgress(userId);
-    return all.find((p) => p.wordId === wordId) ?? null;
+    return all.find((progress) => progress.wordId === wordId) ?? null;
   }
 
   async getEvents(userId: string, wordIds: string[]): Promise<ReviewEvent[]> {
@@ -80,8 +80,8 @@ export class OfflineLearningRepository implements LearningRepository {
         for (const id of wordIds) this.eventsByWord.set(id, []);
         for (const event of events) this.eventsByWord.get(event.wordId)?.push(event);
         return [...events, ...this.pendingEvents(wordIds)];
-      } catch (err) {
-        if (!isNetworkError(err)) throw err;
+      } catch (error) {
+        if (!isNetworkError(error)) throw error;
       }
     }
     const cached = wordIds.flatMap((id) => this.eventsByWord.get(id) ?? []);
@@ -160,15 +160,15 @@ export class OfflineLearningRepository implements LearningRepository {
         this.outbox.shift();
         this.lastSyncedAt = new Date().toISOString();
         this.notify();
-      } catch (err) {
-        const error = toAppError(err);
+      } catch (caughtError) {
+        const error = toAppError(caughtError);
         if (error.code === "network" || error.code === "auth") {
           // Offline, server unreachable or session being refreshed: keep everything and try later.
           this.scheduleRetry();
           return;
         }
         if (this.outbox.recordFailure() >= MAX_REJECTED_ATTEMPTS) {
-          // eslint-disable-next-line no-console
+           
           console.warn("Dropping a learning change the server keeps rejecting:", entry.operation, error);
           this.outbox.shift();
         } else {
@@ -206,7 +206,7 @@ export class OfflineLearningRepository implements LearningRepository {
     const wanted = new Set(wordIds);
     return this.outbox
       .operations()
-      .flatMap((op) => (op.kind === "recordReview" && wanted.has(op.event.wordId) ? [op.event] : []));
+      .flatMap((operation) => (operation.kind === "recordReview" && wanted.has(operation.event.wordId) ? [operation.event] : []));
   }
 
   private scheduleRetry(): void {

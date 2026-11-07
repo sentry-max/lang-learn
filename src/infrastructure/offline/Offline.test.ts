@@ -2,7 +2,7 @@ import { describe, it, expect, vi } from "vitest";
 import { AppError } from "@domain/errors/AppError";
 import { DEFAULT_QUIZ_SETTINGS } from "@domain/entities/QuizSettings";
 import { ReviewEvent, WordProgress } from "@domain/entities/Learning";
-import { createSeededRng } from "@domain/services/Random";
+import { createSeededRandomSource } from "@domain/services/Random";
 import { VocabularyService } from "@application/services/VocabularyService";
 import { GenerateQuizUseCase } from "@application/usecases/GenerateQuizUseCase";
 import { SubmitAnswerUseCase } from "@application/usecases/SubmitAnswerUseCase";
@@ -107,27 +107,27 @@ describe("OfflineLearningRepository", () => {
     await learning.restartCycle(USER, ["w1"]);
 
     const local = await learning.getAllProgress(USER);
-    expect(local.find((p) => p.wordId === "w2")?.lastRating).toBe("bad");
-    expect(local.find((p) => p.wordId === "w1")?.seenInCycle).toBe(false);
+    expect(local.find((progress) => progress.wordId === "w2")?.lastRating).toBe("bad");
+    expect(local.find((progress) => progress.wordId === "w1")?.seenInCycle).toBe(false);
     expect(remote.events).toHaveLength(0);
     expect(learning.getSyncState().pending).toBe(2);
 
     // A reload while offline must not lose anything.
     const reloaded = new Outbox("outbox", storage);
-    expect(reloaded.operations().map((op) => op.kind)).toEqual(["recordReview", "restartCycle"]);
+    expect(reloaded.operations().map((operation) => operation.kind)).toEqual(["recordReview", "restartCycle"]);
   });
 
   it("sends queued changes in order once back online", async () => {
     const { connectivity, remote, learning } = setupLearning(false);
     const calls: string[] = [];
     const original = { start: remote.startSession.bind(remote), record: remote.recordReview.bind(remote) };
-    remote.startSession = async (u, s) => {
+    remote.startSession = async (userId, session) => {
       calls.push("startSession");
-      return original.start(u, s);
+      return original.start(userId, session);
     };
-    remote.recordReview = async (u, e, p) => {
+    remote.recordReview = async (userId, reviewEvent, progress) => {
       calls.push("recordReview");
-      return original.record(u, e, p);
+      return original.record(userId, reviewEvent, progress);
     };
 
     await learning.startSession(USER, {
@@ -153,9 +153,9 @@ describe("OfflineLearningRepository", () => {
       expect(learning.getSyncState().pending).toBe(1);
 
       const progress = await learning.getAllProgress(USER);
-      expect(progress.find((p) => p.wordId === "w1")?.lastRating).toBe("very_bad");
+      expect(progress.find((progress) => progress.wordId === "w1")?.lastRating).toBe("very_bad");
       const events = await learning.getEvents(USER, ["w1"]);
-      expect(events.map((e) => e.id)).toContain("e-w1");
+      expect(events.map((reviewEvent) => reviewEvent.id)).toContain("e-w1");
     } finally {
       vi.useRealTimers();
     }
@@ -165,16 +165,16 @@ describe("OfflineLearningRepository", () => {
     const { remote, learning } = setupLearning(true);
     let rejectFirst = true;
     const original = remote.recordReview.bind(remote);
-    remote.recordReview = async (u, e, p) => {
-      if (rejectFirst && e.id === "bad") throw new AppError("validation", "rejected");
-      return original(u, e, p);
+    remote.recordReview = async (userId, reviewEvent, progress) => {
+      if (rejectFirst && reviewEvent.id === "bad") throw new AppError("validation", "rejected");
+      return original(userId, reviewEvent, progress);
     };
     await learning.recordReview(USER, event("w1", "bad"), makeProgress("w1"));
     await learning.recordReview(USER, event("w2", "good"), makeProgress("w2"));
-    for (let i = 0; i < 5; i++) await learning.flush();
+    for (let index = 0; index < 5; index++) await learning.flush();
     rejectFirst = false;
     expect(learning.getSyncState().pending).toBe(0);
-    expect(remote.events.map((e) => e.id)).toEqual(["good"]);
+    expect(remote.events.map((reviewEvent) => reviewEvent.id)).toEqual(["good"]);
   });
 
   it("requires a connection to reset history", async () => {
@@ -194,7 +194,7 @@ describe("offline quiz, end to end", () => {
     const remoteLearning = new InMemoryLearningRepository();
     const learning = new OfflineLearningRepository(remoteLearning, connectivity, new Outbox("o", new MemoryStorage() as unknown as Storage));
     const vocabularyService = new VocabularyService(vocabularies);
-    const generate = new GenerateQuizUseCase(vocabularyService, words, learning, createSeededRng(3), () => NOW);
+    const generate = new GenerateQuizUseCase(vocabularyService, words, learning, createSeededRandomSource(3), () => NOW);
     const submit = new SubmitAnswerUseCase(learning);
     const invalidate = vi.fn(() => words.invalidate());
     const sync = new OfflineSyncManager(connectivity, learning, invalidate);
@@ -218,10 +218,10 @@ describe("offline quiz, end to end", () => {
 
     // Still offline: a new quiz knows those 5 words are parked for this round.
     const second = await generate.execute(USER, { ...scope, questionCount: 5 });
-    const answered = new Set(first.items.map((i) => i.word.id));
+    const answered = new Set(first.items.map((item) => item.word.id));
     expect(second.items).toHaveLength(5);
     expect(second.cycleRestarted).toBe(false);
-    expect(second.items.every((i) => !answered.has(i.word.id))).toBe(true);
+    expect(second.items.every((item) => !answered.has(item.word.id))).toBe(true);
     expect(remoteLearning.events).toHaveLength(0);
     expect(sync.getStatus().pending).toBe(7); // 2 sessions + 5 answers
 
@@ -234,7 +234,7 @@ describe("offline quiz, end to end", () => {
     expect(invalidate).toHaveBeenCalled();
 
     const progressAfter: WordProgress[] = await learning.getAllProgress(USER);
-    expect(progressAfter.filter((p) => p.lastRating === "easy")).toHaveLength(5);
+    expect(progressAfter.filter((progress) => progress.lastRating === "easy")).toHaveLength(5);
     stop();
   });
 });

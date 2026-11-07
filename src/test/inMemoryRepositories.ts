@@ -12,24 +12,24 @@ export class InMemoryWordRepository implements WordRepository {
   listCalls = 0;
 
   constructor(words: Word[] = []) {
-    for (const w of words) this.words.set(w.id, w);
+    for (const word of words) this.words.set(word.id, word);
   }
 
   async listByVocabularies(ids: string[]): Promise<Word[]> {
     this.listCalls += 1;
-    return Array.from(this.words.values()).filter((w) => ids.includes(w.vocabularyId));
+    return Array.from(this.words.values()).filter((word) => ids.includes(word.vocabularyId));
   }
 
   async getByIds(ids: string[]): Promise<Word[]> {
-    return ids.map((id) => this.words.get(id)).filter((w): w is Word => !!w);
+    return ids.map((id) => this.words.get(id)).filter((word): word is Word => !!word);
   }
 
   async saveMany(words: Word[]): Promise<void> {
-    for (const w of words) this.words.set(w.id, w);
+    for (const word of words) this.words.set(word.id, word);
   }
 
   async softDelete(words: Pick<Word, "id">[]): Promise<void> {
-    for (const w of words) this.words.delete(w.id);
+    for (const word of words) this.words.delete(word.id);
   }
 }
 
@@ -38,20 +38,20 @@ export class InMemoryVocabularyRepository implements VocabularyRepository {
   readonly downloads = new Map<string, Set<string>>();
 
   constructor(vocabularies: Vocabulary[] = []) {
-    for (const v of vocabularies) this.vocabularies.set(v.id, v);
+    for (const vocabulary of vocabularies) this.vocabularies.set(vocabulary.id, vocabulary);
   }
 
   async listOwned(userId: string): Promise<Vocabulary[]> {
-    return Array.from(this.vocabularies.values()).filter((v) => v.ownerId === userId);
+    return Array.from(this.vocabularies.values()).filter((vocabulary) => vocabulary.ownerId === userId);
   }
 
   async listDownloaded(userId: string): Promise<Vocabulary[]> {
     const ids = this.downloads.get(userId) ?? new Set();
-    return Array.from(this.vocabularies.values()).filter((v) => ids.has(v.id) && v.status === "published");
+    return Array.from(this.vocabularies.values()).filter((vocabulary) => ids.has(vocabulary.id) && vocabulary.status === "published");
   }
 
   async listPublished(query: FeedQuery): Promise<Page<Vocabulary>> {
-    const items = Array.from(this.vocabularies.values()).filter((v) => v.status === "published");
+    const items = Array.from(this.vocabularies.values()).filter((vocabulary) => vocabulary.status === "published");
     return { items: items.slice(query.page * query.pageSize, (query.page + 1) * query.pageSize), total: items.length };
   }
 
@@ -116,7 +116,7 @@ export class InMemoryLearningRepository implements LearningRepository {
   restartedCycles: string[][] = [];
 
   constructor(progress: WordProgress[] = []) {
-    for (const p of progress) this.progress.set(p.wordId, p);
+    for (const currentProgress of progress) this.progress.set(currentProgress.wordId, currentProgress);
   }
 
   async getAllProgress(): Promise<WordProgress[]> {
@@ -133,7 +133,7 @@ export class InMemoryLearningRepository implements LearningRepository {
   }
 
   async getEvents(_userId: string, wordIds: string[]): Promise<ReviewEvent[]> {
-    return this.events.filter((e) => wordIds.includes(e.wordId));
+    return this.events.filter((reviewEvent) => wordIds.includes(reviewEvent.wordId));
   }
 
   async resetProgress(_userId: string, wordIds: string[] | null): Promise<number> {
@@ -146,8 +146,8 @@ export class InMemoryLearningRepository implements LearningRepository {
   async restartCycle(_userId: string, wordIds: string[]): Promise<void> {
     this.restartedCycles.push(wordIds);
     for (const id of wordIds) {
-      const p = this.progress.get(id);
-      if (p) this.progress.set(id, { ...p, seenInCycle: false });
+      const progress = this.progress.get(id);
+      if (progress) this.progress.set(id, { ...progress, seenInCycle: false });
     }
   }
 

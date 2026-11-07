@@ -33,11 +33,11 @@ describe("durations", () => {
 
 describe("preferences", () => {
   it("fills missing values with defaults and clamps delays", () => {
-    const p = normalizePreferences({ theme: "dark", ratingBehavior: { bad: { autoAdvance: true, delaySeconds: 999 } } });
-    expect(p.theme).toBe("dark");
-    expect(p.fontSize).toBe("medium");
-    expect(p.ratingBehavior.bad).toEqual({ showAnswer: true, autoAdvance: true, delaySeconds: 60 });
-    expect(p.ratingBehavior.good).toEqual(DEFAULT_PREFERENCES.ratingBehavior.good);
+    const preferences = normalizePreferences({ theme: "dark", ratingBehavior: { bad: { autoAdvance: true, delaySeconds: 999 } } });
+    expect(preferences.theme).toBe("dark");
+    expect(preferences.fontSize).toBe("medium");
+    expect(preferences.ratingBehavior.bad).toEqual({ showAnswer: true, autoAdvance: true, delaySeconds: 60 });
+    expect(preferences.ratingBehavior.good).toEqual(DEFAULT_PREFERENCES.ratingBehavior.good);
   });
 
   it("shows known words for 2 seconds by default and waits after mistakes", () => {
@@ -46,8 +46,8 @@ describe("preferences", () => {
   });
 
   it("moves on at once when auto-advancing without showing the answer", () => {
-    const p = normalizePreferences({ ratingBehavior: { good: { showAnswer: false, autoAdvance: true, delaySeconds: 3 } } });
-    expect(afterRating(p, "good")).toEqual({ reveal: false, advanceAfterMs: 0 });
+    const preferences = normalizePreferences({ ratingBehavior: { good: { showAnswer: false, autoAdvance: true, delaySeconds: 3 } } });
+    expect(afterRating(preferences, "good")).toEqual({ reveal: false, advanceAfterMs: 0 });
   });
 
   it("vibrates by default and keeps a stored choice, ignoring junk", () => {

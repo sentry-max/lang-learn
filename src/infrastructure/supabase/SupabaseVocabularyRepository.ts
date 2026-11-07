@@ -97,8 +97,8 @@ export class SupabaseVocabularyRepository implements VocabularyRepository {
       );
       // RLS hides vocabularies that were unpublished; skip those and deleted ones.
       return rows
-        .map((r) => r.vocabulary)
-        .filter((v): v is VocabularyRow => v !== null && v.status === "published" && v.deleted_at === null)
+        .map((row) => row.vocabulary)
+        .filter((row): row is VocabularyRow => row !== null && row.status === "published" && row.deleted_at === null)
         .map(rowToVocabulary);
     });
   }
@@ -188,7 +188,7 @@ export class SupabaseVocabularyRepository implements VocabularyRepository {
             .range(from, to),
         "Failed to load your downloads."
       );
-      return new Set(rows.map((r) => r.vocabulary_id));
+      return new Set(rows.map((row) => row.vocabulary_id));
     });
   }
 

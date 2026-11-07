@@ -25,7 +25,7 @@ export class ErrorBoundary extends Component<Props, State> {
   }
 
   componentDidCatch(error: unknown, info: { componentStack: string }): void {
-    // eslint-disable-next-line no-console
+     
     console.error("Unhandled UI error:", error, info.componentStack);
   }
 

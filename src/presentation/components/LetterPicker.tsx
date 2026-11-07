@@ -12,7 +12,7 @@ export default function LetterPicker({ letters, selected, onChange }: Props) {
   const selectedSet = new Set(selected);
 
   function toggle(letter: string) {
-    onChange(selectedSet.has(letter) ? selected.filter((l) => l !== letter) : [...selected, letter]);
+    onChange(selectedSet.has(letter) ? selected.filter((currentLetter) => currentLetter !== letter) : [...selected, letter]);
   }
 
   return (

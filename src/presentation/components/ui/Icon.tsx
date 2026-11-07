@@ -149,13 +149,13 @@ export default function Icon({ name, size = 20, className, label }: Props) {
       aria-label={label}
       aria-hidden={label ? undefined : true}
     >
-      {shapes.map((shape, i) => {
-        if (typeof shape === "string") return <path key={i} d={shape} />;
+      {shapes.map((shape, index) => {
+        if (typeof shape === "string") return <path key={index} d={shape} />;
         const filled = shape.fill === undefined ? {} : { fill: "currentColor", fillOpacity: shape.fill, stroke: "none" };
         return "d" in shape ? (
-          <path key={i} d={shape.d} {...filled} />
+          <path key={index} d={shape.d} {...filled} />
         ) : (
-          <circle key={i} cx={shape.circle[0]} cy={shape.circle[1]} r={shape.circle[2]} {...filled} />
+          <circle key={index} cx={shape.circle[0]} cy={shape.circle[1]} r={shape.circle[2]} {...filled} />
         );
       })}
     </svg>

@@ -57,7 +57,7 @@ export function throwIfSupabaseError(error: SupabaseLikeError | null | undefined
 export async function guard<T>(fallbackMessage: string, operation: () => Promise<T>): Promise<T> {
   try {
     return await operation();
-  } catch (err) {
-    throw toAppError(err, fallbackMessage);
+  } catch (error) {
+    throw toAppError(error, fallbackMessage);
   }
 }

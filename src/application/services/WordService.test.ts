@@ -38,7 +38,7 @@ describe("WordService.importWords", () => {
     expect(result.importedCount).toBe(1);
     expect(result.updatedCount).toBe(1);
     expect(result.duplicateHeadwords).toEqual(["Heute", "morgen"]);
-    expect(result.errors.every((e) => e.startsWith("Entry 5"))).toBe(true);
+    expect(result.errors.every((problem) => problem.entryNumber === 5)).toBe(true);
     expect(words.words.get("existing")?.tags).toEqual(["updated"]);
     expect(words.words.size).toBe(2);
   });
@@ -46,7 +46,7 @@ describe("WordService.importWords", () => {
   it("rejects a non-array file", async () => {
     const { service, vocabulary } = setup();
     const result = await service.importWords(USER, vocabulary, { words: [] });
-    expect(result.errors[0]).toMatch(/JSON array/);
+    expect(result.errors[0].code).toBe("fileNotAnArray");
   });
 
   it("refuses to change someone else's vocabulary", async () => {
@@ -78,8 +78,8 @@ describe("WordService.addWord", () => {
 
   it("rejects duplicates in an explicitly chosen vocabulary", async () => {
     const { service, vocabulary } = setup();
-    const dup = { ...draft("Heute"), wordType: "adverb" as const };
-    await expect(service.addWord(USER, dup, { kind: "vocabulary", vocabulary })).rejects.toMatchObject({
+    const duplicate = { ...draft("Heute"), wordType: "adverb" as const };
+    await expect(service.addWord(USER, duplicate, { kind: "vocabulary", vocabulary })).rejects.toMatchObject({
       reason: "duplicate_word",
     });
   });

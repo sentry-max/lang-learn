@@ -5,7 +5,7 @@ import { QuizSettings, clampQuestionCount } from "@domain/entities/QuizSettings"
 import { filterByLetters } from "@domain/services/LetterService";
 import { QuizCandidate, chooseMode, selectQuizWords } from "@domain/services/QuizSelectionService";
 import { QuizItem } from "@domain/services/QuizSession";
-import { Rng, defaultRng } from "@domain/services/Random";
+import { RandomSource, defaultRandomSource } from "@domain/services/Random";
 import { LearningRepository } from "@domain/repositories/LearningRepository";
 import { WordRepository } from "@domain/repositories/WordRepository";
 
@@ -30,25 +30,25 @@ export class GenerateQuizUseCase {
     private readonly vocabularyService: VocabularyService,
     private readonly words: WordRepository,
     private readonly learning: LearningRepository,
-    private readonly rng: Rng = defaultRng,
+    private readonly randomSource: RandomSource = defaultRandomSource,
     private readonly clock: () => Date = () => new Date()
   ) {}
 
   async execute(userId: string, settings: QuizSettings): Promise<GeneratedQuiz> {
     const library = await this.vocabularyService.listQuizLibrary(userId);
     const wanted = new Set(settings.vocabularyIds);
-    const chosen = wanted.size > 0 ? library.filter((v) => wanted.has(v.id)) : library;
+    const chosen = wanted.size > 0 ? library.filter((vocabulary) => wanted.has(vocabulary.id)) : library;
     if (chosen.length === 0) return emptyQuiz();
 
     const [words, progressList] = await Promise.all([
-      this.words.listByVocabularies(chosen.map((v) => v.id)),
+      this.words.listByVocabularies(chosen.map((vocabulary) => vocabulary.id)),
       this.learning.getAllProgress(userId),
     ]);
 
-    const pool = filterByLetters(words, (w) => w.headword, settings.letters);
+    const pool = filterByLetters(words, (word) => word.headword, settings.letters);
     if (pool.length === 0) return emptyQuiz();
 
-    const progressById = new Map(progressList.map((p) => [p.wordId, p]));
+    const progressById = new Map(progressList.map((progress) => [progress.wordId, progress]));
     const candidates: QuizCandidate[] = pool.map((word) => ({ word, progress: progressById.get(word.id) ?? null }));
 
     const now = this.clock();
@@ -56,7 +56,7 @@ export class GenerateQuizUseCase {
       candidates,
       quota: clampQuestionCount(settings.questionCount),
       now,
-      rng: this.rng,
+      rng: this.randomSource,
     });
 
     if (selection.releasedWordIds.length > 0) {
@@ -67,12 +67,12 @@ export class GenerateQuizUseCase {
       }
     }
 
-    const languageByVocabulary = new Map(chosen.map((v) => [v.id, v.sourceLanguage]));
+    const languageByVocabulary = new Map(chosen.map((vocabulary) => [vocabulary.id, vocabulary.sourceLanguage]));
     const items: QuizItem[] = selection.selected.map((candidate, index) => ({
       key: `${candidate.word.id}:${index}`,
       word: candidate.word,
       sourceLanguage: languageByVocabulary.get(candidate.word.vocabularyId)!,
-      mode: chooseMode(candidate, settings, this.rng),
+      mode: chooseMode(candidate, settings, this.randomSource),
       attempt: 0,
     }));
 
@@ -80,7 +80,7 @@ export class GenerateQuizUseCase {
     await this.learning.startSession(userId, {
       id: sessionId,
       settings,
-      vocabularyIds: chosen.map((v) => v.id),
+      vocabularyIds: chosen.map((vocabulary) => vocabulary.id),
       plannedCount: items.length,
       cycleRestarted: selection.cycleRestarted,
       startedAt: now.toISOString(),

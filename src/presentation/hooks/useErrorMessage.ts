@@ -18,8 +18,8 @@ const REASON_KEYS: Record<AppErrorReason, UiStringKey> = {
 export function useErrorMessage() {
   const { t } = useLanguage();
   return useCallback(
-    (err: unknown, fallbackKey: UiStringKey): string => {
-      const error = toAppError(err, t(fallbackKey));
+    (caughtError: unknown, fallbackKey: UiStringKey): string => {
+      const error = toAppError(caughtError, t(fallbackKey));
       if (error.reason) return t(REASON_KEYS[error.reason]);
       switch (error.code) {
         case "network":
@@ -30,10 +30,9 @@ export function useErrorMessage() {
           return t("errorForbidden");
         case "not_found":
           return t("errorNotFound");
-        case "unknown":
-          return t(fallbackKey);
         default:
-          return error.message;
+          // error.message is English or raw server text, so it never reaches the screen.
+          return t(fallbackKey);
       }
     },
     [t]

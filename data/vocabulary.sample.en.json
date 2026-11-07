@@ -1,0 +1,1359 @@
+[
+  {
+    "id": "en-verb-be",
+    "wordType": "verb",
+    "headword": "be",
+    "translations": {
+      "de": [
+        "sein"
+      ],
+      "fa": [
+        "بودن"
+      ]
+    },
+    "sentences": [
+      {
+        "text": "She is my sister.",
+        "translations": {
+          "de": "Sie ist meine Schwester.",
+          "fa": "او خواهر من است."
+        }
+      }
+    ],
+    "level": "A1",
+    "tags": [
+      "irregular"
+    ]
+  },
+  {
+    "id": "en-verb-have",
+    "wordType": "verb",
+    "headword": "have",
+    "translations": {
+      "de": [
+        "haben"
+      ],
+      "fa": [
+        "داشتن"
+      ]
+    },
+    "sentences": [
+      {
+        "text": "We have two cats.",
+        "translations": {
+          "de": "Wir haben zwei Katzen.",
+          "fa": "ما دو گربه داریم."
+        }
+      }
+    ],
+    "level": "A1",
+    "tags": [
+      "irregular"
+    ]
+  },
+  {
+    "id": "en-verb-do",
+    "wordType": "verb",
+    "headword": "do",
+    "translations": {
+      "de": [
+        "tun"
+      ],
+      "fa": [
+        "انجام دادن"
+      ]
+    },
+    "sentences": [
+      {
+        "text": "What did you do yesterday?",
+        "translations": {
+          "de": "Was hast du gestern gemacht?",
+          "fa": "دیروز چه کار کردی؟"
+        }
+      }
+    ],
+    "level": "A1",
+    "tags": [
+      "irregular"
+    ]
+  },
+  {
+    "id": "en-verb-go",
+    "wordType": "verb",
+    "headword": "go",
+    "translations": {
+      "de": [
+        "gehen"
+      ],
+      "fa": [
+        "رفتن"
+      ]
+    },
+    "sentences": [
+      {
+        "text": "I go to school by bus.",
+        "translations": {
+          "de": "Ich fahre mit dem Bus zur Schule.",
+          "fa": "من با اتوبوس به مدرسه می‌روم."
+        }
+      }
+    ],
+    "level": "A1",
+    "tags": [
+      "irregular"
+    ]
+  },
+  {
+    "id": "en-verb-come",
+    "wordType": "verb",
+    "headword": "come",
+    "translations": {
+      "de": [
+        "kommen"
+      ],
+      "fa": [
+        "آمدن"
+      ]
+    },
+    "sentences": [
+      {
+        "text": "They came home late.",
+        "translations": {
+          "de": "Sie kamen spät nach Hause.",
+          "fa": "آن‌ها دیر به خانه آمدند."
+        }
+      }
+    ],
+    "level": "A1",
+    "tags": [
+      "irregular"
+    ]
+  },
+  {
+    "id": "en-verb-make",
+    "wordType": "verb",
+    "headword": "make",
+    "translations": {
+      "de": [
+        "machen"
+      ],
+      "fa": [
+        "ساختن"
+      ]
+    },
+    "sentences": [
+      {
+        "text": "He made a cake.",
+        "translations": {
+          "de": "Er hat einen Kuchen gemacht.",
+          "fa": "او یک کیک درست کرد."
+        }
+      }
+    ],
+    "level": "A1",
+    "tags": [
+      "irregular"
+    ]
+  },
+  {
+    "id": "en-verb-take",
+    "wordType": "verb",
+    "headword": "take",
+    "translations": {
+      "de": [
+        "nehmen"
+      ],
+      "fa": [
+        "گرفتن"
+      ]
+    },
+    "sentences": [
+      {
+        "text": "Take an umbrella with you.",
+        "translations": {
+          "de": "Nimm einen Regenschirm mit.",
+          "fa": "یک چتر با خودت ببر."
+        }
+      }
+    ],
+    "level": "A1",
+    "tags": [
+      "irregular"
+    ]
+  },
+  {
+    "id": "en-verb-see",
+    "wordType": "verb",
+    "headword": "see",
+    "translations": {
+      "de": [
+        "sehen"
+      ],
+      "fa": [
+        "دیدن"
+      ]
+    },
+    "sentences": [
+      {
+        "text": "I saw your brother today.",
+        "translations": {
+          "de": "Ich habe heute deinen Bruder gesehen.",
+          "fa": "امروز برادرت را دیدم."
+        }
+      }
+    ],
+    "level": "A1",
+    "tags": [
+      "irregular"
+    ]
+  },
+  {
+    "id": "en-verb-know",
+    "wordType": "verb",
+    "headword": "know",
+    "translations": {
+      "de": [
+        "wissen"
+      ],
+      "fa": [
+        "دانستن"
+      ]
+    },
+    "sentences": [
+      {
+        "text": "Do you know the answer?",
+        "translations": {
+          "de": "Weißt du die Antwort?",
+          "fa": "جواب را می‌دانی؟"
+        }
+      }
+    ],
+    "level": "A1",
+    "tags": [
+      "irregular"
+    ]
+  },
+  {
+    "id": "en-verb-think",
+    "wordType": "verb",
+    "headword": "think",
+    "translations": {
+      "de": [
+        "denken"
+      ],
+      "fa": [
+        "فکر کردن"
+      ]
+    },
+    "sentences": [
+      {
+        "text": "I think it is a good idea.",
+        "translations": {
+          "de": "Ich denke, das ist eine gute Idee.",
+          "fa": "فکر می‌کنم ایدهٔ خوبی است."
+        }
+      }
+    ],
+    "level": "A1",
+    "tags": [
+      "irregular"
+    ]
+  },
+  {
+    "id": "en-verb-eat",
+    "wordType": "verb",
+    "headword": "eat",
+    "translations": {
+      "de": [
+        "essen"
+      ],
+      "fa": [
+        "خوردن"
+      ]
+    },
+    "sentences": [
+      {
+        "text": "We ate dinner at seven.",
+        "translations": {
+          "de": "Wir haben um sieben zu Abend gegessen.",
+          "fa": "ما ساعت هفت شام خوردیم."
+        }
+      }
+    ],
+    "level": "A1",
+    "tags": [
+      "irregular"
+    ]
+  },
+  {
+    "id": "en-verb-speak",
+    "wordType": "verb",
+    "headword": "speak",
+    "translations": {
+      "de": [
+        "sprechen"
+      ],
+      "fa": [
+        "صحبت کردن"
+      ]
+    },
+    "sentences": [
+      {
+        "text": "She speaks three languages.",
+        "translations": {
+          "de": "Sie spricht drei Sprachen.",
+          "fa": "او به سه زبان صحبت می‌کند."
+        }
+      }
+    ],
+    "level": "A1",
+    "tags": [
+      "irregular"
+    ]
+  },
+  {
+    "id": "en-verb-write",
+    "wordType": "verb",
+    "headword": "write",
+    "translations": {
+      "de": [
+        "schreiben"
+      ],
+      "fa": [
+        "نوشتن"
+      ]
+    },
+    "verbForms": {
+      "passive": "is written"
+    },
+    "sentences": [
+      {
+        "text": "This book was written in 1990.",
+        "translations": {
+          "de": "Dieses Buch wurde 1990 geschrieben.",
+          "fa": "این کتاب در سال ۱۹۹۰ نوشته شد."
+        }
+      }
+    ],
+    "level": "A1",
+    "tags": [
+      "irregular"
+    ]
+  },
+  {
+    "id": "en-verb-understand",
+    "wordType": "verb",
+    "headword": "understand",
+    "translations": {
+      "de": [
+        "verstehen"
+      ],
+      "fa": [
+        "فهمیدن"
+      ]
+    },
+    "sentences": [
+      {
+        "text": "I understand the question now.",
+        "translations": {
+          "de": "Jetzt verstehe ich die Frage.",
+          "fa": "حالا سؤال را می‌فهمم."
+        }
+      }
+    ],
+    "level": "A2",
+    "tags": [
+      "irregular",
+      "prefix"
+    ]
+  },
+  {
+    "id": "en-verb-give-up",
+    "wordType": "verb",
+    "headword": "give up",
+    "translations": {
+      "de": [
+        "aufgeben"
+      ],
+      "fa": [
+        "دست کشیدن"
+      ]
+    },
+    "sentences": [
+      {
+        "text": "Never give up on your dreams.",
+        "translations": {
+          "de": "Gib deine Träume niemals auf.",
+          "fa": "هرگز از رؤیاهایت دست نکش."
+        }
+      }
+    ],
+    "level": "B1",
+    "tags": [
+      "irregular",
+      "phrasal"
+    ]
+  },
+  {
+    "id": "en-verb-work",
+    "wordType": "verb",
+    "headword": "work",
+    "translations": {
+      "de": [
+        "arbeiten"
+      ],
+      "fa": [
+        "کار کردن"
+      ]
+    },
+    "sentences": [
+      {
+        "text": "He works in a hospital.",
+        "translations": {
+          "de": "Er arbeitet in einem Krankenhaus.",
+          "fa": "او در یک بیمارستان کار می‌کند."
+        }
+      }
+    ],
+    "level": "A1",
+    "tags": [
+      "regular"
+    ]
+  },
+  {
+    "id": "en-verb-live",
+    "wordType": "verb",
+    "headword": "live",
+    "translations": {
+      "de": [
+        "wohnen"
+      ],
+      "fa": [
+        "زندگی کردن"
+      ]
+    },
+    "sentences": [
+      {
+        "text": "They live in Tehran.",
+        "translations": {
+          "de": "Sie wohnen in Teheran.",
+          "fa": "آن‌ها در تهران زندگی می‌کنند."
+        }
+      }
+    ],
+    "level": "A1",
+    "tags": [
+      "regular"
+    ]
+  },
+  {
+    "id": "en-verb-study",
+    "wordType": "verb",
+    "headword": "study",
+    "translations": {
+      "de": [
+        "lernen"
+      ],
+      "fa": [
+        "درس خواندن"
+      ]
+    },
+    "sentences": [
+      {
+        "text": "She is studying for an exam.",
+        "translations": {
+          "de": "Sie lernt für eine Prüfung.",
+          "fa": "او برای امتحان درس می‌خواند."
+        }
+      }
+    ],
+    "level": "A1",
+    "tags": [
+      "regular"
+    ]
+  },
+  {
+    "id": "en-verb-stop",
+    "wordType": "verb",
+    "headword": "stop",
+    "translations": {
+      "de": [
+        "anhalten"
+      ],
+      "fa": [
+        "ایستادن"
+      ]
+    },
+    "sentences": [
+      {
+        "text": "The bus stopped at the corner.",
+        "translations": {
+          "de": "Der Bus hielt an der Ecke.",
+          "fa": "اتوبوس سر پیچ ایستاد."
+        }
+      }
+    ],
+    "level": "A1",
+    "tags": [
+      "regular"
+    ]
+  },
+  {
+    "id": "en-verb-try",
+    "wordType": "verb",
+    "headword": "try",
+    "translations": {
+      "de": [
+        "versuchen"
+      ],
+      "fa": [
+        "تلاش کردن"
+      ]
+    },
+    "sentences": [
+      {
+        "text": "I will try again tomorrow.",
+        "translations": {
+          "de": "Ich versuche es morgen noch einmal.",
+          "fa": "فردا دوباره تلاش می‌کنم."
+        }
+      }
+    ],
+    "level": "A2",
+    "tags": [
+      "regular"
+    ]
+  },
+  {
+    "id": "en-verb-prefer",
+    "wordType": "verb",
+    "headword": "prefer",
+    "translations": {
+      "de": [
+        "bevorzugen"
+      ],
+      "fa": [
+        "ترجیح دادن"
+      ]
+    },
+    "sentences": [
+      {
+        "text": "I prefer tea to coffee.",
+        "translations": {
+          "de": "Ich trinke lieber Tee als Kaffee.",
+          "fa": "من چای را به قهوه ترجیح می‌دهم."
+        }
+      }
+    ],
+    "level": "B1",
+    "tags": [
+      "regular"
+    ]
+  },
+  {
+    "id": "en-verb-can",
+    "wordType": "verb",
+    "headword": "can",
+    "translations": {
+      "de": [
+        "können"
+      ],
+      "fa": [
+        "توانستن"
+      ]
+    },
+    "sentences": [
+      {
+        "text": "Can you help me?",
+        "translations": {
+          "de": "Kannst du mir helfen?",
+          "fa": "می‌توانی به من کمک کنی؟"
+        }
+      }
+    ],
+    "level": "A1",
+    "tags": [
+      "modal"
+    ]
+  },
+  {
+    "id": "en-verb-dream",
+    "wordType": "verb",
+    "headword": "dream",
+    "translations": {
+      "de": [
+        "träumen"
+      ],
+      "fa": [
+        "خواب دیدن"
+      ]
+    },
+    "verbForms": {
+      "simplePast": "dreamt",
+      "perfect": "dreamt"
+    },
+    "sentences": [
+      {
+        "text": "I dreamt about the sea last night.",
+        "translations": {
+          "de": "Letzte Nacht habe ich vom Meer geträumt.",
+          "fa": "دیشب خواب دریا را دیدم."
+        }
+      }
+    ],
+    "level": "B1",
+    "tags": [
+      "stored-forms"
+    ]
+  },
+  {
+    "id": "en-noun-book",
+    "wordType": "noun",
+    "headword": "book",
+    "translations": {
+      "de": [
+        "Buch"
+      ],
+      "fa": [
+        "کتاب"
+      ]
+    },
+    "sentences": [
+      {
+        "text": "These books are very old.",
+        "translations": {
+          "de": "Diese Bücher sind sehr alt.",
+          "fa": "این کتاب‌ها خیلی قدیمی‌اند."
+        }
+      }
+    ],
+    "level": "A1",
+    "tags": [
+      "regular-plural"
+    ]
+  },
+  {
+    "id": "en-noun-day",
+    "wordType": "noun",
+    "headword": "day",
+    "translations": {
+      "de": [
+        "Tag"
+      ],
+      "fa": [
+        "روز"
+      ]
+    },
+    "sentences": [
+      {
+        "text": "It rained for three days.",
+        "translations": {
+          "de": "Es hat drei Tage lang geregnet.",
+          "fa": "سه روز باران بارید."
+        }
+      }
+    ],
+    "level": "A1",
+    "tags": [
+      "regular-plural"
+    ]
+  },
+  {
+    "id": "en-noun-house",
+    "wordType": "noun",
+    "headword": "house",
+    "translations": {
+      "de": [
+        "Haus"
+      ],
+      "fa": [
+        "خانه"
+      ]
+    },
+    "sentences": [
+      {
+        "text": "The houses on this street are new.",
+        "translations": {
+          "de": "Die Häuser in dieser Straße sind neu.",
+          "fa": "خانه‌های این خیابان نو هستند."
+        }
+      }
+    ],
+    "level": "A1",
+    "tags": [
+      "regular-plural"
+    ]
+  },
+  {
+    "id": "en-noun-friend",
+    "wordType": "noun",
+    "headword": "friend",
+    "translations": {
+      "de": [
+        "Freund"
+      ],
+      "fa": [
+        "دوست"
+      ]
+    },
+    "sentences": [
+      {
+        "text": "My friends are coming tonight.",
+        "translations": {
+          "de": "Meine Freunde kommen heute Abend.",
+          "fa": "دوستانم امشب می‌آیند."
+        }
+      }
+    ],
+    "level": "A1",
+    "tags": [
+      "regular-plural"
+    ]
+  },
+  {
+    "id": "en-noun-post-office",
+    "wordType": "noun",
+    "headword": "post office",
+    "translations": {
+      "de": [
+        "Post"
+      ],
+      "fa": [
+        "اداره پست"
+      ]
+    },
+    "sentences": [
+      {
+        "text": "There are two post offices in town.",
+        "translations": {
+          "de": "In der Stadt gibt es zwei Postämter.",
+          "fa": "در شهر دو ادارهٔ پست هست."
+        }
+      }
+    ],
+    "level": "A2",
+    "tags": [
+      "regular-plural"
+    ]
+  },
+  {
+    "id": "en-noun-bus",
+    "wordType": "noun",
+    "headword": "bus",
+    "translations": {
+      "de": [
+        "Bus"
+      ],
+      "fa": [
+        "اتوبوس"
+      ]
+    },
+    "sentences": [
+      {
+        "text": "The buses are late today.",
+        "translations": {
+          "de": "Die Busse haben heute Verspätung.",
+          "fa": "اتوبوس‌ها امروز تأخیر دارند."
+        }
+      }
+    ],
+    "level": "A1",
+    "tags": [
+      "spelling-plural"
+    ]
+  },
+  {
+    "id": "en-noun-box",
+    "wordType": "noun",
+    "headword": "box",
+    "translations": {
+      "de": [
+        "Kiste"
+      ],
+      "fa": [
+        "جعبه"
+      ]
+    },
+    "sentences": [
+      {
+        "text": "Put the boxes in the car.",
+        "translations": {
+          "de": "Stell die Kisten ins Auto.",
+          "fa": "جعبه‌ها را در ماشین بگذار."
+        }
+      }
+    ],
+    "level": "A1",
+    "tags": [
+      "spelling-plural"
+    ]
+  },
+  {
+    "id": "en-noun-watch",
+    "wordType": "noun",
+    "headword": "watch",
+    "translations": {
+      "de": [
+        "Armbanduhr"
+      ],
+      "fa": [
+        "ساعت مچی"
+      ]
+    },
+    "sentences": [
+      {
+        "text": "He collects old watches.",
+        "translations": {
+          "de": "Er sammelt alte Armbanduhren.",
+          "fa": "او ساعت‌های مچی قدیمی جمع می‌کند."
+        }
+      }
+    ],
+    "level": "A2",
+    "tags": [
+      "spelling-plural"
+    ]
+  },
+  {
+    "id": "en-noun-city",
+    "wordType": "noun",
+    "headword": "city",
+    "translations": {
+      "de": [
+        "Stadt"
+      ],
+      "fa": [
+        "شهر"
+      ]
+    },
+    "sentences": [
+      {
+        "text": "Big cities can be noisy.",
+        "translations": {
+          "de": "Großstädte können laut sein.",
+          "fa": "شهرهای بزرگ می‌توانند پرسروصدا باشند."
+        }
+      }
+    ],
+    "level": "A1",
+    "tags": [
+      "spelling-plural"
+    ]
+  },
+  {
+    "id": "en-noun-family",
+    "wordType": "noun",
+    "headword": "family",
+    "translations": {
+      "de": [
+        "Familie"
+      ],
+      "fa": [
+        "خانواده"
+      ]
+    },
+    "sentences": [
+      {
+        "text": "Many families live here.",
+        "translations": {
+          "de": "Hier wohnen viele Familien.",
+          "fa": "خانواده‌های زیادی اینجا زندگی می‌کنند."
+        }
+      }
+    ],
+    "level": "A1",
+    "tags": [
+      "spelling-plural"
+    ]
+  },
+  {
+    "id": "en-noun-potato",
+    "wordType": "noun",
+    "headword": "potato",
+    "translations": {
+      "de": [
+        "Kartoffel"
+      ],
+      "fa": [
+        "سیب‌زمینی"
+      ]
+    },
+    "sentences": [
+      {
+        "text": "I bought some potatoes.",
+        "translations": {
+          "de": "Ich habe Kartoffeln gekauft.",
+          "fa": "مقداری سیب‌زمینی خریدم."
+        }
+      }
+    ],
+    "level": "A1",
+    "tags": [
+      "spelling-plural"
+    ]
+  },
+  {
+    "id": "en-noun-child",
+    "wordType": "noun",
+    "headword": "child",
+    "translations": {
+      "de": [
+        "Kind"
+      ],
+      "fa": [
+        "کودک"
+      ]
+    },
+    "sentences": [
+      {
+        "text": "The children are playing outside.",
+        "translations": {
+          "de": "Die Kinder spielen draußen.",
+          "fa": "بچه‌ها بیرون بازی می‌کنند."
+        }
+      }
+    ],
+    "level": "A1",
+    "tags": [
+      "irregular-plural"
+    ]
+  },
+  {
+    "id": "en-noun-man",
+    "wordType": "noun",
+    "headword": "man",
+    "translations": {
+      "de": [
+        "Mann"
+      ],
+      "fa": [
+        "مرد"
+      ]
+    },
+    "sentences": [
+      {
+        "text": "Two men are waiting at the door.",
+        "translations": {
+          "de": "Zwei Männer warten an der Tür.",
+          "fa": "دو مرد دم در منتظرند."
+        }
+      }
+    ],
+    "level": "A1",
+    "tags": [
+      "irregular-plural"
+    ]
+  },
+  {
+    "id": "en-noun-woman",
+    "wordType": "noun",
+    "headword": "woman",
+    "translations": {
+      "de": [
+        "Frau"
+      ],
+      "fa": [
+        "زن"
+      ]
+    },
+    "sentences": [
+      {
+        "text": "Three women work in this office.",
+        "translations": {
+          "de": "In diesem Büro arbeiten drei Frauen.",
+          "fa": "سه زن در این دفتر کار می‌کنند."
+        }
+      }
+    ],
+    "level": "A1",
+    "tags": [
+      "irregular-plural"
+    ]
+  },
+  {
+    "id": "en-noun-policeman",
+    "wordType": "noun",
+    "headword": "policeman",
+    "translations": {
+      "de": [
+        "Polizist"
+      ],
+      "fa": [
+        "پلیس"
+      ]
+    },
+    "sentences": [
+      {
+        "text": "The policemen stopped the car.",
+        "translations": {
+          "de": "Die Polizisten hielten das Auto an.",
+          "fa": "پلیس‌ها ماشین را متوقف کردند."
+        }
+      }
+    ],
+    "level": "A2",
+    "tags": [
+      "irregular-plural"
+    ]
+  },
+  {
+    "id": "en-noun-person",
+    "wordType": "noun",
+    "headword": "person",
+    "translations": {
+      "de": [
+        "Person"
+      ],
+      "fa": [
+        "شخص"
+      ]
+    },
+    "sentences": [
+      {
+        "text": "Five people are in the room.",
+        "translations": {
+          "de": "Fünf Personen sind im Zimmer.",
+          "fa": "پنج نفر در اتاق هستند."
+        }
+      }
+    ],
+    "level": "A1",
+    "tags": [
+      "irregular-plural"
+    ]
+  },
+  {
+    "id": "en-noun-foot",
+    "wordType": "noun",
+    "headword": "foot",
+    "translations": {
+      "de": [
+        "Fuß"
+      ],
+      "fa": [
+        "پا"
+      ]
+    },
+    "sentences": [
+      {
+        "text": "My feet hurt.",
+        "translations": {
+          "de": "Meine Füße tun weh.",
+          "fa": "پاهایم درد می‌کنند."
+        }
+      }
+    ],
+    "level": "A1",
+    "tags": [
+      "irregular-plural"
+    ]
+  },
+  {
+    "id": "en-noun-tooth",
+    "wordType": "noun",
+    "headword": "tooth",
+    "translations": {
+      "de": [
+        "Zahn"
+      ],
+      "fa": [
+        "دندان"
+      ]
+    },
+    "sentences": [
+      {
+        "text": "Brush your teeth before bed.",
+        "translations": {
+          "de": "Putz dir vor dem Schlafen die Zähne.",
+          "fa": "پیش از خواب دندان‌هایت را مسواک بزن."
+        }
+      }
+    ],
+    "level": "A1",
+    "tags": [
+      "irregular-plural"
+    ]
+  },
+  {
+    "id": "en-noun-mouse",
+    "wordType": "noun",
+    "headword": "mouse",
+    "translations": {
+      "de": [
+        "Maus"
+      ],
+      "fa": [
+        "موش"
+      ]
+    },
+    "sentences": [
+      {
+        "text": "Cats catch mice.",
+        "translations": {
+          "de": "Katzen fangen Mäuse.",
+          "fa": "گربه‌ها موش می‌گیرند."
+        }
+      }
+    ],
+    "level": "A2",
+    "tags": [
+      "irregular-plural"
+    ]
+  },
+  {
+    "id": "en-noun-knife",
+    "wordType": "noun",
+    "headword": "knife",
+    "translations": {
+      "de": [
+        "Messer"
+      ],
+      "fa": [
+        "چاقو"
+      ]
+    },
+    "sentences": [
+      {
+        "text": "These knives are sharp.",
+        "translations": {
+          "de": "Diese Messer sind scharf.",
+          "fa": "این چاقوها تیزند."
+        }
+      }
+    ],
+    "level": "A2",
+    "tags": [
+      "irregular-plural"
+    ]
+  },
+  {
+    "id": "en-noun-leaf",
+    "wordType": "noun",
+    "headword": "leaf",
+    "translations": {
+      "de": [
+        "Blatt"
+      ],
+      "fa": [
+        "برگ"
+      ]
+    },
+    "sentences": [
+      {
+        "text": "The leaves turn red in autumn.",
+        "translations": {
+          "de": "Im Herbst werden die Blätter rot.",
+          "fa": "برگ‌ها در پاییز قرمز می‌شوند."
+        }
+      }
+    ],
+    "level": "A2",
+    "tags": [
+      "irregular-plural"
+    ]
+  },
+  {
+    "id": "en-noun-sheep",
+    "wordType": "noun",
+    "headword": "sheep",
+    "translations": {
+      "de": [
+        "Schaf"
+      ],
+      "fa": [
+        "گوسفند"
+      ]
+    },
+    "sentences": [
+      {
+        "text": "The sheep are in the field.",
+        "translations": {
+          "de": "Die Schafe sind auf dem Feld.",
+          "fa": "گوسفندها در مزرعه‌اند."
+        }
+      }
+    ],
+    "level": "A2",
+    "tags": [
+      "irregular-plural"
+    ]
+  },
+  {
+    "id": "en-noun-cactus",
+    "wordType": "noun",
+    "headword": "cactus",
+    "translations": {
+      "de": [
+        "Kaktus"
+      ],
+      "fa": [
+        "کاکتوس"
+      ]
+    },
+    "nounForms": {
+      "article": null,
+      "plural": "cacti"
+    },
+    "sentences": [
+      {
+        "text": "She grows cacti at home.",
+        "translations": {
+          "de": "Sie züchtet zu Hause Kakteen.",
+          "fa": "او در خانه کاکتوس پرورش می‌دهد."
+        }
+      }
+    ],
+    "level": "B1",
+    "tags": [
+      "stored-forms"
+    ]
+  },
+  {
+    "id": "en-noun-information",
+    "wordType": "noun",
+    "headword": "information",
+    "translations": {
+      "de": [
+        "Information"
+      ],
+      "fa": [
+        "اطلاعات"
+      ]
+    },
+    "sentences": [
+      {
+        "text": "This information is useful.",
+        "translations": {
+          "de": "Diese Information ist nützlich.",
+          "fa": "این اطلاعات مفید است."
+        }
+      }
+    ],
+    "level": "A2",
+    "tags": [
+      "uncountable"
+    ]
+  },
+  {
+    "id": "en-noun-advice",
+    "wordType": "noun",
+    "headword": "advice",
+    "translations": {
+      "de": [
+        "Rat"
+      ],
+      "fa": [
+        "نصیحت"
+      ]
+    },
+    "sentences": [
+      {
+        "text": "She gave me good advice.",
+        "translations": {
+          "de": "Sie hat mir einen guten Rat gegeben.",
+          "fa": "او نصیحت خوبی به من کرد."
+        }
+      }
+    ],
+    "level": "B1",
+    "tags": [
+      "uncountable"
+    ]
+  },
+  {
+    "id": "en-adjective-happy",
+    "wordType": "adjective",
+    "headword": "happy",
+    "translations": {
+      "de": [
+        "glücklich"
+      ],
+      "fa": [
+        "خوشحال"
+      ]
+    },
+    "sentences": [
+      {
+        "text": "The children look happy.",
+        "translations": {
+          "de": "Die Kinder sehen glücklich aus.",
+          "fa": "بچه‌ها خوشحال به نظر می‌رسند."
+        }
+      }
+    ],
+    "level": "A1",
+    "tags": []
+  },
+  {
+    "id": "en-adverb-always",
+    "wordType": "adverb",
+    "headword": "always",
+    "translations": {
+      "de": [
+        "immer"
+      ],
+      "fa": [
+        "همیشه"
+      ]
+    },
+    "sentences": [
+      {
+        "text": "He is always on time.",
+        "translations": {
+          "de": "Er ist immer pünktlich.",
+          "fa": "او همیشه سر وقت است."
+        }
+      }
+    ],
+    "level": "A1",
+    "tags": []
+  },
+  {
+    "id": "en-preposition-between",
+    "wordType": "preposition",
+    "headword": "between",
+    "translations": {
+      "de": [
+        "zwischen"
+      ],
+      "fa": [
+        "بین"
+      ]
+    },
+    "sentences": [
+      {
+        "text": "The bank is between the shops.",
+        "translations": {
+          "de": "Die Bank liegt zwischen den Geschäften.",
+          "fa": "بانک بین مغازه‌هاست."
+        }
+      }
+    ],
+    "level": "A2",
+    "tags": []
+  },
+  {
+    "id": "en-conjunction-because",
+    "wordType": "conjunction",
+    "headword": "because",
+    "translations": {
+      "de": [
+        "weil"
+      ],
+      "fa": [
+        "چون"
+      ]
+    },
+    "sentences": [
+      {
+        "text": "I stayed home because it rained.",
+        "translations": {
+          "de": "Ich blieb zu Hause, weil es regnete.",
+          "fa": "چون باران می‌آمد در خانه ماندم."
+        }
+      }
+    ],
+    "level": "A1",
+    "tags": []
+  }
+]

@@ -35,10 +35,10 @@ export class GetStatsUseCase {
   async execute(userId: string, now: Date = new Date()): Promise<StatsSummary> {
     const library = await this.vocabularyService.listQuizLibrary(userId);
     const [words, progressList] = await Promise.all([
-      this.words.listByVocabularies(library.map((v) => v.id)),
+      this.words.listByVocabularies(library.map((vocabulary) => vocabulary.id)),
       this.learning.getAllProgress(userId),
     ]);
-    const progressById = new Map(progressList.map((p) => [p.wordId, p]));
+    const progressById = new Map(progressList.map((progress) => [progress.wordId, progress]));
 
     const byLastRating: Record<DifficultyRating, number> = { very_easy: 0, easy: 0, good: 0, bad: 0, very_bad: 0 };
     const attempted: WordStat[] = [];

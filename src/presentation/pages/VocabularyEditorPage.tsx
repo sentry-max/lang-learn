@@ -50,32 +50,32 @@ export default function VocabularyEditorPage() {
     if (!id) return;
     vocabularies
       .get(id)
-      .then((v) => {
-        if (v.ownerId !== user.id) {
-          navigate(`/vocabularies/${v.id}`, { replace: true });
+      .then((vocabulary) => {
+        if (vocabulary.ownerId !== user.id) {
+          navigate(`/vocabularies/${vocabulary.id}`, { replace: true });
           return;
         }
-        setExisting(v);
-        setName(v.name);
-        setDescription(v.description);
-        setSourceLanguage(v.sourceLanguage);
-        setTargetLanguages(v.targetLanguages);
+        setExisting(vocabulary);
+        setName(vocabulary.name);
+        setDescription(vocabulary.description);
+        setSourceLanguage(vocabulary.sourceLanguage);
+        setTargetLanguages(vocabulary.targetLanguages);
       })
-      .catch((err) => setErrors([errorMessage(err, "vocabLoadError")]))
+      .catch((error) => setErrors([errorMessage(error, "vocabLoadError")]))
       .finally(() => setLoading(false));
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [id]);
 
   function toggleTarget(code: LanguageCode) {
-    setTargetLanguages((current) => (current.includes(code) ? current.filter((c) => c !== code) : [...current, code]));
+    setTargetLanguages((current) => (current.includes(code) ? current.filter((languageCode) => languageCode !== code) : [...current, code]));
   }
 
-  async function submit(e: FormEvent) {
-    e.preventDefault();
+  async function submit(event: FormEvent) {
+    event.preventDefault();
     const input = normalizeVocabularyInput({ name, description, sourceLanguage, targetLanguages });
     const problems = validateVocabularyInput(input);
     if (problems.length > 0) {
-      setErrors(Array.from(new Set(problems.map((p) => t(VALIDATION_KEYS[p])))));
+      setErrors(Array.from(new Set(problems.map((problem) => t(VALIDATION_KEYS[problem])))));
       return;
     }
     setSaving(true);
@@ -83,8 +83,8 @@ export default function VocabularyEditorPage() {
     try {
       const saved = existing ? await vocabularies.update(existing.id, input) : await vocabularies.create(user.id, input);
       navigate(`/vocabularies/${saved.id}`);
-    } catch (err) {
-      setErrors([errorMessage(err, "vocabSaveError")]);
+    } catch (error) {
+      setErrors([errorMessage(error, "vocabSaveError")]);
     } finally {
       setSaving(false);
     }
@@ -99,8 +99,8 @@ export default function VocabularyEditorPage() {
         <h2 style={{ marginTop: 0 }}>{isEdit ? t("editVocabulary") : t("newVocabulary")}</h2>
         {errors.length > 0 && (
           <div role="alert">
-            {errors.map((err) => (
-              <ErrorBanner key={err} message={err} />
+            {errors.map((error) => (
+              <ErrorBanner key={error} message={error} />
             ))}
           </div>
         )}
@@ -116,7 +116,7 @@ export default function VocabularyEditorPage() {
             required
             maxLength={VOCABULARY_NAME_MAX}
             value={name}
-            onChange={(e) => setName(e.target.value)}
+            onChange={(event) => setName(event.target.value)}
             autoFocus
           />
         </div>
@@ -131,7 +131,7 @@ export default function VocabularyEditorPage() {
             dir="auto"
             maxLength={VOCABULARY_DESCRIPTION_MAX}
             value={description}
-            onChange={(e) => setDescription(e.target.value)}
+            onChange={(event) => setDescription(event.target.value)}
           />
         </div>
 
@@ -141,10 +141,10 @@ export default function VocabularyEditorPage() {
             id="ve-source"
             value={sourceLanguage}
             disabled={languageLocked}
-            onChange={(e) => {
-              const code = e.target.value as LanguageCode;
+            onChange={(event) => {
+              const code = event.target.value as LanguageCode;
               setSourceLanguage(code);
-              setTargetLanguages((current) => current.filter((c) => c !== code));
+              setTargetLanguages((current) => current.filter((languageCode) => languageCode !== code));
             }}
           >
             {SUPPORTED_LANGUAGES.map((code) => (
@@ -171,7 +171,7 @@ export default function VocabularyEditorPage() {
         {!isEdit && <p className="muted form-hint">{t("newVocabularyHint")}</p>}
 
         <div className="button-row action-bar">
-          <button className="btn btn-secondary" type="button" onClick={() => navigate(-1)}>
+          <button className="btn btn-secondary" type="button" disabled={saving} onClick={() => navigate(-1)}>
             {t("cancelButton")}
           </button>
           <button className="btn" type="submit" disabled={saving}>

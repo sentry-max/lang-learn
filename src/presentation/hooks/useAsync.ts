@@ -19,7 +19,6 @@ export function useAsync<T>(load: () => Promise<T>, deps: DependencyList): Async
   const [loading, setLoading] = useState(true);
   const runId = useRef(0);
 
-  // eslint-disable-next-line react-hooks/exhaustive-deps
   const reload = useCallback(async () => {
     const id = ++runId.current;
     setLoading(true);
@@ -27,11 +26,13 @@ export function useAsync<T>(load: () => Promise<T>, deps: DependencyList): Async
     try {
       const result = await load();
       if (id === runId.current) setDataState(result);
-    } catch (err) {
-      if (id === runId.current) setError(err);
+    } catch (error) {
+      if (id === runId.current) setError(error);
     } finally {
       if (id === runId.current) setLoading(false);
     }
+    // The caller's deps decide when to reload.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, deps);
 
   useEffect(() => {
@@ -47,7 +48,7 @@ export function useAsync<T>(load: () => Promise<T>, deps: DependencyList): Async
 
   const setData = useCallback((update: T | ((previous: T | undefined) => T)) => {
     setDataState((previous) =>
-      typeof update === "function" ? (update as (p: T | undefined) => T)(previous) : update
+      typeof update === "function" ? (update as (previous: T | undefined) => T)(previous) : update
     );
   }, []);
 

@@ -2,7 +2,7 @@ import { QuestionMode, WordProgress, isWeakRating } from "@domain/entities/Learn
 import { QuizDirection } from "@domain/entities/QuizSettings";
 import { Word, translationLanguages } from "@domain/entities/Word";
 import { difficultyScore, isDue, isSlowAnswer, modeErrorRate, overdueDays } from "@domain/services/SpacedRepetitionService";
-import { Rng, shuffle, weightedSample } from "@domain/services/Random";
+import { RandomSource, shuffle, weightedSample } from "@domain/services/Random";
 
 /**
  * Adaptive quiz word selection.
@@ -38,7 +38,7 @@ export interface SelectionInput {
   candidates: readonly QuizCandidate[];
   quota: number;
   now: Date;
-  rng: Rng;
+  rng: RandomSource;
 }
 
 export interface SelectionResult {
@@ -86,13 +86,13 @@ export function selectQuizWords({ candidates, quota, now, rng }: SelectionInput)
   const weakTarget = weak.length === 0 ? 0 : Math.min(weak.length, Math.max(1, Math.round(target * weakShare)));
 
   const selected = new Set<QuizCandidate>();
-  const take = (pool: QuizCandidate[], count: number, weight: (c: QuizCandidate) => number) => {
-    const available = pool.filter((c) => !selected.has(c));
-    for (const c of weightedSample(available, count, weight, rng)) selected.add(c);
+  const take = (pool: QuizCandidate[], count: number, weight: (candidate: QuizCandidate) => number) => {
+    const available = pool.filter((candidate) => !selected.has(candidate));
+    for (const candidate of weightedSample(available, count, weight, rng)) selected.add(candidate);
   };
 
-  const weakWeightAt = (c: QuizCandidate) => weakWeight(c.progress!, now);
-  const freshWeightAt = (c: QuizCandidate) => freshWeight(c.progress, now);
+  const weakWeightAt = (candidate: QuizCandidate) => weakWeight(candidate.progress!, now);
+  const freshWeightAt = (candidate: QuizCandidate) => freshWeight(candidate.progress, now);
 
   take(weak, weakTarget, weakWeightAt);
   take(fresh, target - selected.size, freshWeightAt);
@@ -106,7 +106,7 @@ export function selectQuizWords({ candidates, quota, now, rng }: SelectionInput)
   }
 
   const releasedWordIds = cycleRestarted
-    ? candidates.filter((c) => c.progress?.seenInCycle).map((c) => c.word.id)
+    ? candidates.filter((candidate) => candidate.progress?.seenInCycle).map((candidate) => candidate.word.id)
     : [];
 
   return { selected: shuffle(Array.from(selected), rng), cycleRestarted, releasedWordIds };
@@ -177,11 +177,11 @@ export interface ModeOptions {
  * user gets wrong more often for this word is asked more often. Writing a
  * sentence is only asked for words the user already knows at least a bit.
  */
-export function chooseMode(candidate: QuizCandidate, options: ModeOptions, rng: Rng): QuestionMode {
+export function chooseMode(candidate: QuizCandidate, options: ModeOptions, randomSource: RandomSource): QuestionMode {
   const { word, progress } = candidate;
   if (translationLanguages(word).length === 0) return "source_to_target";
 
-  if (options.includeSentenceWriting && canWriteSentence(progress) && rng() < SENTENCE_WRITING_PROBABILITY) {
+  if (options.includeSentenceWriting && canWriteSentence(progress) && randomSource() < SENTENCE_WRITING_PROBABILITY) {
     return "sentence_writing";
   }
   if (options.direction !== "mix") return options.direction;
@@ -190,7 +190,7 @@ export function chooseMode(candidate: QuizCandidate, options: ModeOptions, rng: 
   const forwardError = modeErrorRate(stats, "source_to_target");
   const reverseError = modeErrorRate(stats, "target_to_source");
   const reverseProbability = reverseError / (forwardError + reverseError);
-  return rng() < reverseProbability ? "target_to_source" : "source_to_target";
+  return randomSource() < reverseProbability ? "target_to_source" : "source_to_target";
 }
 
 function canWriteSentence(progress: WordProgress | null): boolean {

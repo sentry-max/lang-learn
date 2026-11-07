@@ -109,7 +109,7 @@ export function resolveTranslations(
   if (byLanguage[FALLBACK_LANGUAGE]?.length) {
     return { language: FALLBACK_LANGUAGE, values: byLanguage[FALLBACK_LANGUAGE]! };
   }
-  const first = (Object.entries(byLanguage) as [LanguageCode, string[]][]).find(([, v]) => v.length > 0);
+  const first = (Object.entries(byLanguage) as [LanguageCode, string[]][]).find(([, values]) => values.length > 0);
   if (first) return { language: first[0], values: first[1] };
   return { language, values: [] };
 }
@@ -127,7 +127,7 @@ export function resolveSentenceTranslation(
   if (byLanguage[FALLBACK_LANGUAGE]) {
     return { language: FALLBACK_LANGUAGE, value: byLanguage[FALLBACK_LANGUAGE]! };
   }
-  const first = (Object.entries(byLanguage) as [LanguageCode, string][]).find(([, v]) => v.length > 0);
+  const first = (Object.entries(byLanguage) as [LanguageCode, string][]).find(([, values]) => values.length > 0);
   if (first) return { language: first[0], value: first[1] };
   return { language, value: "" };
 }
@@ -194,13 +194,13 @@ export function normalizeSentences(value: unknown): ExampleSentence[] {
   const sentences: ExampleSentence[] = [];
   for (const raw of value) {
     if (typeof raw !== "object" || raw === null) continue;
-    const s = raw as Record<string, unknown>;
-    const text = typeof s.text === "string" ? s.text : typeof s.german === "string" ? s.german : "";
+    const sentenceFields = raw as Record<string, unknown>;
+    const text = typeof sentenceFields.text === "string" ? sentenceFields.text : typeof sentenceFields.german === "string" ? sentenceFields.german : "";
     if (!text.trim()) continue;
     const translations =
-      "translations" in s
-        ? normalizeSentenceTranslationsMap(s.translations)
-        : normalizeSentenceTranslationsMap(s.english);
+      "translations" in sentenceFields
+        ? normalizeSentenceTranslationsMap(sentenceFields.translations)
+        : normalizeSentenceTranslationsMap(sentenceFields.english);
     sentences.push({ text: text.trim(), translations });
   }
   return sentences;
@@ -208,7 +208,7 @@ export function normalizeSentences(value: unknown): ExampleSentence[] {
 
 function cleanStrings(values: unknown[]): string[] {
   return values
-    .filter((v): v is string => typeof v === "string")
-    .map((v) => v.trim())
-    .filter((v) => v.length > 0);
+    .filter((value): value is string => typeof value === "string")
+    .map((value) => value.trim())
+    .filter((value) => value.length > 0);
 }

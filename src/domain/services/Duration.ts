@@ -12,14 +12,14 @@ export function splitDuration(totalSeconds: number): DurationParts {
 }
 
 export function joinDuration(parts: DurationParts): number {
-  const n = (v: number) => (Number.isFinite(v) ? Math.max(0, Math.floor(v)) : 0);
-  return n(parts.hours) * 3600 + n(parts.minutes) * 60 + n(parts.seconds);
+  const wholeNumber = (value: number) => (Number.isFinite(value) ? Math.max(0, Math.floor(value)) : 0);
+  return wholeNumber(parts.hours) * 3600 + wholeNumber(parts.minutes) * 60 + wholeNumber(parts.seconds);
 }
 
 /** "1:05:09", "5:09", "0:07" — rounds up so a countdown never shows 0 before it ends. */
 export function formatCountdown(remainingMs: number): string {
   const { hours, minutes, seconds } = splitDuration(Math.ceil(Math.max(0, remainingMs) / 1000));
-  const pad = (v: number) => String(v).padStart(2, "0");
+  const pad = (value: number) => String(value).padStart(2, "0");
   return hours > 0 ? `${hours}:${pad(minutes)}:${pad(seconds)}` : `${minutes}:${pad(seconds)}`;
 }
 

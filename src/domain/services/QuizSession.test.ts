@@ -12,9 +12,9 @@ import {
 import { makeWord } from "../../test/fixtures";
 
 function items(count: number): QuizItem[] {
-  return Array.from({ length: count }, (_, i) => ({
-    key: `k${i}`,
-    word: makeWord(`W${i}`),
+  return Array.from({ length: count }, (_, index) => ({
+    key: `k${index}`,
+    word: makeWord(`W${index}`),
     sourceLanguage: "de" as const,
     mode: "source_to_target" as const,
     attempt: 0,
@@ -35,18 +35,18 @@ describe("QuizSession", () => {
     let state = createQuizSession(items(6));
     state = answerCurrent(state, "very_bad");
     expect(state.items).toHaveLength(7);
-    const retryIndex = state.items.findIndex((i) => i.key === "k0#retry1");
+    const retryIndex = state.items.findIndex((item) => item.key === "k0#retry1");
     expect(retryIndex).toBe(1 + RETRY_GAP);
     expect(state.items[retryIndex].attempt).toBe(1);
 
     // Fail the retry too: it does not come back a third time.
     while (currentItem(state)?.key !== "k0#retry1") state = answerCurrent(state, "good");
     state = answerCurrent(state, "bad");
-    expect(state.items.filter((i) => i.word.id === "w-W0")).toHaveLength(2);
+    expect(state.items.filter((item) => item.word.id === "w-W0")).toHaveLength(2);
   });
 
   it("appends the retry at the end near the finish and retries sentences as translations", () => {
-    const list = items(2).map((i) => ({ ...i, mode: "sentence_writing" as const }));
+    const list = items(2).map((item) => ({ ...item, mode: "sentence_writing" as const }));
     let state = createQuizSession(list);
     state = answerCurrent(state, "good");
     state = answerCurrent(state, "bad");

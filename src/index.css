@@ -1292,6 +1292,26 @@ input[type="checkbox"] { width: 1.05rem; height: 1.05rem; accent-color: var(--pr
 .answer-box strong { font-size: 1.2rem; }
 .answer-example { font-size: 0.9rem; }
 
+.word-details { text-align: start; margin-top: 0.5rem; }
+.word-details-sentence { margin: 4px 0; }
+.inflection { margin: 0.6rem 0; font-size: 0.9rem; }
+.inflection-title { font-weight: 600; margin: 0.6rem 0 0.25rem; }
+.inflection-parts { display: grid; grid-template-columns: auto 1fr; gap: 0.15rem 0.75rem; margin: 0; }
+.inflection-parts dt { color: var(--muted); }
+.inflection-parts dd { margin: 0; font-weight: 600; }
+.inflection-cases { margin: 0; }
+.inflection-cases > div { padding: 0.3rem 0; border-bottom: 1px solid var(--border); }
+.inflection-cases dt { color: var(--muted); font-size: 0.8rem; }
+.inflection-cases dd { margin: 0; display: flex; flex-wrap: wrap; gap: 0 0.9rem; font-weight: 600; }
+.inflection-table { width: 100%; border-collapse: collapse; table-layout: fixed; }
+.inflection-table :is(th, td) { padding: 0.25rem 0.35rem; border-bottom: 1px solid var(--border); text-align: start; overflow-wrap: anywhere; vertical-align: top; }
+.inflection-table th { color: var(--muted); font-weight: 500; font-size: 0.8rem; }
+.inflection-tense { border-bottom: 1px solid var(--border); }
+.inflection-tense summary { cursor: pointer; padding: 0.45rem 0; font-weight: 600; min-height: 44px; display: flex; align-items: center; gap: 0.4rem; }
+.inflection-tense summary::before { content: "▸"; color: var(--muted); }
+.inflection-tense[open] summary::before { content: "▾"; }
+[dir="rtl"] .inflection-tense:not([open]) summary::before { content: "◂"; }
+
 .next-row { display: flex; flex-direction: column; gap: 0.4rem; animation: fade-in var(--normal) var(--ease); }
 .next-row kbd { color: inherit; }
 

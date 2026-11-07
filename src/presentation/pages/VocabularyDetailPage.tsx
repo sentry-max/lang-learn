@@ -17,6 +17,7 @@ import Modal from "@presentation/components/Modal";
 import ReviewsSection from "@presentation/components/ReviewsSection";
 import WordFormDialog from "@presentation/components/WordFormDialog";
 import WordFormsDetail from "@presentation/components/WordFormsDetail";
+import { describeWordProblem } from "@presentation/i18n/describeWordProblem";
 import { LanguagePair, StatusPill } from "@presentation/components/VocabularyBadges";
 import { StarDisplay } from "@presentation/components/StarRating";
 import { formatDate, formatNumber } from "@presentation/format";
@@ -28,6 +29,8 @@ const WORDS_PAGE = 200;
 interface FileImport {
   fileName: string;
   result: ImportResult;
+  /** Set when the whole file could not be read */
+  failureMessage?: string;
 }
 
 type Dialog = { kind: "none" } | { kind: "details"; word: Word } | { kind: "form"; word?: Word };
@@ -56,17 +59,17 @@ export default function VocabularyDetailPage() {
   const [error, setError] = useState<string | null>(null);
   const [message, setMessage] = useState<string | null>(null);
 
-  const v = vocabulary.data;
-  const isOwner = v?.ownerId === user.id;
-  const isDownloaded = v ? (downloadedIds.data?.has(v.id) ?? false) : false;
+  const currentVocabulary = vocabulary.data;
+  const isOwner = currentVocabulary?.ownerId === user.id;
+  const isDownloaded = currentVocabulary ? (downloadedIds.data?.has(currentVocabulary.id) ?? false) : false;
 
   const filtered = useMemo(() => {
     const query = search.trim().toLocaleLowerCase();
     const list = (words.data ?? []).filter(
-      (w) =>
+      (word) =>
         !query ||
-        w.headword.toLocaleLowerCase().includes(query) ||
-        getTranslations(w, profile.primaryLanguage).some((tr) => tr.toLocaleLowerCase().includes(query))
+        word.headword.toLocaleLowerCase().includes(query) ||
+        getTranslations(word, profile.primaryLanguage).some((translation) => translation.toLocaleLowerCase().includes(query))
     );
     return list.sort((a, b) => a.headword.localeCompare(b.headword));
   }, [words.data, search, profile.primaryLanguage]);
@@ -82,29 +85,29 @@ export default function VocabularyDetailPage() {
     try {
       await action();
       after?.();
-    } catch (err) {
-      setError(errorMessage(err, fallback));
+    } catch (error) {
+      setError(errorMessage(error, fallback));
     } finally {
       setBusy(false);
     }
   }
 
   async function handleFiles(files: FileList) {
-    if (!v) return;
+    if (!currentVocabulary) return;
     setBusy(true);
     setError(null);
     const results: FileImport[] = [];
     for (const file of Array.from(files)) {
       if (file.size > MAX_IMPORT_FILE_BYTES) {
-        results.push({ fileName: file.name, result: failed(t("importFileTooLarge")) });
+        results.push({ fileName: file.name, result: EMPTY_IMPORT, failureMessage: t("importFileTooLarge") });
         continue;
       }
       try {
         const parsed: unknown = JSON.parse(await file.text());
-        results.push({ fileName: file.name, result: await wordService.importWords(user.id, v, parsed) });
-      } catch (err) {
-        const text = err instanceof SyntaxError ? t("importInvalidJson") : errorMessage(err, "importError");
-        results.push({ fileName: file.name, result: failed(text) });
+        results.push({ fileName: file.name, result: await wordService.importWords(user.id, currentVocabulary, parsed) });
+      } catch (error) {
+        const failureMessage = error instanceof SyntaxError ? t("importInvalidJson") : errorMessage(error, "importError");
+        results.push({ fileName: file.name, result: EMPTY_IMPORT, failureMessage });
       }
     }
     setImports(results);
@@ -112,8 +115,8 @@ export default function VocabularyDetailPage() {
     setBusy(false);
   }
 
-  if (vocabulary.loading && !v) return <PageLoader />;
-  if (!v) {
+  if (vocabulary.loading && !currentVocabulary) return <PageLoader />;
+  if (!currentVocabulary) {
     return (
       <div className="app-main">
         <ErrorBanner message={errorMessage(vocabulary.error, "vocabLoadError")} onRetry={vocabulary.reload} />
@@ -122,24 +125,24 @@ export default function VocabularyDetailPage() {
     );
   }
 
-  const blocker = publishBlocker(v.wordCount);
+  const blocker = publishBlocker(currentVocabulary.wordCount);
   let lastLetter = "";
 
   const downloadButton = isDownloaded ? (
     <button
       className="btn btn-secondary"
       disabled={busy}
-      onClick={() => act(() => vocabularies.removeDownload(user.id, v.id), "downloadError", downloadedIds.reload)}
+      onClick={() => act(() => vocabularies.removeDownload(user.id, currentVocabulary.id), "downloadError", downloadedIds.reload)}
     >
       <Icon name="check" size={16} /> {t("removeDownload")}
     </button>
   ) : (
     <button
       className="btn"
-      disabled={busy || v.status !== "published"}
+      disabled={busy || currentVocabulary.status !== "published"}
       onClick={() =>
         act(
-          () => vocabularies.download(user.id, v),
+          () => vocabularies.download(user.id, currentVocabulary),
           "downloadError",
           () => {
             prepareOffline.execute(user.id).catch(() => {});
@@ -174,29 +177,29 @@ export default function VocabularyDetailPage() {
       <div className="card">
         <div className="section-header">
           <h2 dir="auto" style={{ margin: 0 }}>
-            {v.name}
+            {currentVocabulary.name}
           </h2>
-          {isOwner && <StatusPill vocabulary={v} />}
+          {isOwner && <StatusPill vocabulary={currentVocabulary} />}
         </div>
-        {v.description && (
+        {currentVocabulary.description && (
           <p className="description" dir="auto">
-            {v.description}
+            {currentVocabulary.description}
           </p>
         )}
         <div className="meta-line">
-          <LanguagePair vocabulary={v} />
-          <span className="muted small">{t("wordCountLabel", { count: formatNumber(v.wordCount, language) })}</span>
-          {v.ownerName && <span className="muted small">{t("byAuthor", { name: v.ownerName })}</span>}
-          {v.status === "published" && (
+          <LanguagePair vocabulary={currentVocabulary} />
+          <span className="muted small">{t("wordCountLabel", { count: formatNumber(currentVocabulary.wordCount, language) })}</span>
+          {currentVocabulary.ownerName && <span className="muted small">{t("byAuthor", { name: currentVocabulary.ownerName })}</span>}
+          {currentVocabulary.status === "published" && (
             <span className="muted small">
-              {t("downloadsCount", { count: formatNumber(v.downloadCount, language) })}
+              {t("downloadsCount", { count: formatNumber(currentVocabulary.downloadCount, language) })}
             </span>
           )}
-          {v.status === "published" && <StarDisplay value={v.ratingAvg} count={v.ratingCount} />}
+          {currentVocabulary.status === "published" && <StarDisplay value={currentVocabulary.ratingAvg} count={currentVocabulary.ratingCount} />}
         </div>
         <p className="muted small">
-          {t("createdOn", { date: formatDate(v.createdAt, language) })} ·{" "}
-          {t("updatedOn", { date: formatDate(v.updatedAt, language) })}
+          {t("createdOn", { date: formatDate(currentVocabulary.createdAt, language) })} ·{" "}
+          {t("updatedOn", { date: formatDate(currentVocabulary.updatedAt, language) })}
         </p>
 
         {error && <ErrorBanner message={error} />}
@@ -205,14 +208,14 @@ export default function VocabularyDetailPage() {
         <div className="button-row">
           {isOwner ? (
             <>
-              <Link className="btn btn-secondary" to={`/vocabularies/${v.id}/edit`}>
+              <Link className="btn btn-secondary" to={`/vocabularies/${currentVocabulary.id}/edit`}>
                 {t("edit")}
               </Link>
-              {v.status === "draft" ? (
+              {currentVocabulary.status === "draft" ? (
                 <button
                   className="btn"
                   disabled={busy || blocker !== null}
-                  onClick={() => act(() => vocabularies.publish(v), "publishError", refreshAll)}
+                  onClick={() => act(() => vocabularies.publish(currentVocabulary), "publishError", refreshAll)}
                 >
                   {t("publish")}
                 </button>
@@ -222,7 +225,7 @@ export default function VocabularyDetailPage() {
                   disabled={busy}
                   onClick={() =>
                     confirm({ title: t("confirmUnpublish"), confirmLabel: t("unpublish") }).then((ok) => {
-                      if (ok) void act(() => vocabularies.unpublish(v.id), "publishError", refreshAll);
+                      if (ok) void act(() => vocabularies.unpublish(currentVocabulary.id), "publishError", refreshAll);
                     })
                   }
                 >
@@ -234,13 +237,13 @@ export default function VocabularyDetailPage() {
                 disabled={busy}
                 onClick={() =>
                   confirm({
-                    title: t("confirmDeleteVocabulary", { name: v.name }),
+                    title: t("confirmDeleteVocabulary", { name: currentVocabulary.name }),
                     confirmLabel: t("delete"),
                     danger: true,
                   }).then((ok) => {
                     if (ok)
                       void act(
-                        () => vocabularies.delete(v.id),
+                        () => vocabularies.delete(currentVocabulary.id),
                         "deleteError",
                         () => navigate("/vocabularies")
                       );
@@ -254,9 +257,9 @@ export default function VocabularyDetailPage() {
             <div className="hide-mobile">{downloadButton}</div>
           )}
         </div>
-        {isOwner && v.status === "draft" && (
+        {isOwner && currentVocabulary.status === "draft" && (
           <p className="muted form-hint">
-            {blocker ? t("publishRequirement") : t("readyToPublish")} ({formatNumber(v.wordCount, language)} /{" "}
+            {blocker ? t("publishRequirement") : t("readyToPublish")} ({formatNumber(currentVocabulary.wordCount, language)} /{" "}
             {formatNumber(MIN_PUBLISH_WORDS, language)}–{formatNumber(MAX_VOCABULARY_WORDS, language)})
           </p>
         )}
@@ -270,8 +273,8 @@ export default function VocabularyDetailPage() {
             enterKeyHint="search"
             placeholder={t("searchPlaceholder")}
             value={search}
-            onChange={(e) => {
-              setSearch(e.target.value);
+            onChange={(event) => {
+              setSearch(event.target.value);
               setLimit(WORDS_PAGE);
             }}
           />
@@ -285,9 +288,9 @@ export default function VocabularyDetailPage() {
                 accept="application/json,.json"
                 multiple
                 hidden
-                onChange={(e) => {
-                  if (e.target.files?.length) handleFiles(e.target.files);
-                  e.target.value = "";
+                onChange={(event) => {
+                  if (event.target.files?.length) handleFiles(event.target.files);
+                  event.target.value = "";
                 }}
               />
             </>
@@ -295,7 +298,7 @@ export default function VocabularyDetailPage() {
         </div>
         {isOwner && <p className="muted form-hint">{t("importHint")}</p>}
 
-        {imports.map(({ fileName, result }) => (
+        {imports.map(({ fileName, result, failureMessage }) => (
           <div key={fileName} className="import-result">
             <strong dir="auto">{fileName}</strong>
             <p className={result.importedCount + result.updatedCount > 0 ? "feedback-correct" : "feedback-incorrect"}>
@@ -306,10 +309,11 @@ export default function VocabularyDetailPage() {
                 {t("duplicateSkipped", { words: result.duplicateHeadwords.slice(0, 50).join(", ") })}
               </p>
             )}
+            {failureMessage && <p className="feedback-incorrect">{failureMessage}</p>}
             {result.errors.length > 0 && (
               <ul className="muted small">
-                {result.errors.slice(0, 20).map((e, i) => (
-                  <li key={i}>{e}</li>
+                {result.errors.slice(0, 20).map((problem, index) => (
+                  <li key={index}>{describeWordProblem(t, problem)}</li>
                 ))}
                 {result.errors.length > 20 && <li>{t("moreErrors", { count: result.errors.length - 20 })}</li>}
               </ul>
@@ -323,20 +327,20 @@ export default function VocabularyDetailPage() {
         {words.loading && !words.data && <InlineLoader />}
         {words.data && filtered.length === 0 && <p className="muted center-text">{t("noWordsFound")}</p>}
 
-        {filtered.slice(0, limit).map((w) => {
-          const letter = firstLetter(w.headword);
+        {filtered.slice(0, limit).map((word) => {
+          const letter = firstLetter(word.headword);
           const header = letter !== lastLetter ? <div className="letter-group-label">{letter}</div> : null;
           lastLetter = letter;
           return (
-            <div key={w.id}>
+            <div key={word.id}>
               {header}
-              <div className="vocab-row" onClick={() => setDialog({ kind: "details", word: w })}>
+              <div className="vocab-row" onClick={() => setDialog({ kind: "details", word: word })}>
                 <div className="vocab-row-main">
                   <div className="vocab-row-headword" dir="auto">
-                    {displayForm(w)}
+                    {displayForm(word)}
                   </div>
                   <div className="vocab-row-translation" dir="auto">
-                    {getTranslations(w, profile.primaryLanguage).join("، ")}
+                    {getTranslations(word, profile.primaryLanguage).join("، ")}
                   </div>
                 </div>
                 {isOwner && (
@@ -345,9 +349,9 @@ export default function VocabularyDetailPage() {
                       type="button"
                       className="icon-btn"
                       aria-label={t("edit")}
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        setDialog({ kind: "form", word: w });
+                      onClick={(event) => {
+                        event.stopPropagation();
+                        setDialog({ kind: "form", word: word });
                       }}
                     >
                       <Icon name="edit" size={18} />
@@ -356,14 +360,14 @@ export default function VocabularyDetailPage() {
                       type="button"
                       className="icon-btn danger"
                       aria-label={t("delete")}
-                      onClick={(e) => {
-                        e.stopPropagation();
+                      onClick={(event) => {
+                        event.stopPropagation();
                         confirm({
-                          title: t("confirmDelete", { word: displayForm(w) }),
+                          title: t("confirmDelete", { word: displayForm(word) }),
                           confirmLabel: t("delete"),
                           danger: true,
                         }).then((ok) => {
-                          if (ok) void act(() => wordService.deleteWords(user.id, v, [w]), "deleteError", refreshAll);
+                          if (ok) void act(() => wordService.deleteWords(user.id, currentVocabulary, [word]), "deleteError", refreshAll);
                         });
                       }}
                     >
@@ -376,22 +380,22 @@ export default function VocabularyDetailPage() {
           );
         })}
         {filtered.length > limit && (
-          <button className="btn btn-secondary btn-block" onClick={() => setLimit((l) => l + WORDS_PAGE)}>
+          <button className="btn btn-secondary btn-block" onClick={() => setLimit((limit) => limit + WORDS_PAGE)}>
             {t("showMore", { count: filtered.length - limit })}
           </button>
         )}
       </div>
 
-      {v.status === "published" && <ReviewsSection vocabulary={v} onChanged={vocabulary.reload} />}
+      {currentVocabulary.status === "published" && <ReviewsSection vocabulary={currentVocabulary} onChanged={vocabulary.reload} />}
 
       {/* Phones: the main actions float at the bottom, within thumb reach. */}
-      {(isOwner || v.status === "published") && (
+      {(isOwner || currentVocabulary.status === "published") && (
         <div className="page-actions mobile-only">{isOwner ? wordButtons : downloadButton}</div>
       )}
 
       {dialog.kind === "details" && (
         <Modal title={displayForm(dialog.word)} onClose={() => setDialog({ kind: "none" })}>
-          <WordFormsDetail word={dialog.word} />
+          <WordFormsDetail word={dialog.word} sourceLanguage={currentVocabulary.sourceLanguage} />
           {isOwner && (
             <div className="button-row">
               <button className="btn" onClick={() => setDialog({ kind: "form", word: dialog.word })}>
@@ -404,7 +408,7 @@ export default function VocabularyDetailPage() {
 
       {dialog.kind === "form" && (
         <WordFormDialog
-          vocabulary={v}
+          vocabulary={currentVocabulary}
           word={dialog.word}
           onClose={() => setDialog({ kind: "none" })}
           onSaved={(text) => {
@@ -417,6 +421,4 @@ export default function VocabularyDetailPage() {
   );
 }
 
-function failed(message: string): ImportResult {
-  return { importedCount: 0, updatedCount: 0, errors: [message], duplicateHeadwords: [] };
-}
+const EMPTY_IMPORT: ImportResult = { importedCount: 0, updatedCount: 0, errors: [], duplicateHeadwords: [] };

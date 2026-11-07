@@ -3,7 +3,7 @@ import { AppError } from "@domain/errors/AppError";
 import { LanguageCode } from "@domain/entities/Language";
 import { MAX_VOCABULARY_WORDS, Vocabulary } from "@domain/entities/Vocabulary";
 import { Word, WordDraft, headwordKey } from "@domain/entities/Word";
-import { ParseResult, parseWordInput } from "@domain/services/WordParser";
+import { ParseResult, WordProblem, parseWordInput } from "@domain/services/WordParser";
 import { PlacementCandidate, decidePlacement } from "@domain/services/VocabularyPlacementService";
 import { VocabularyRepository } from "@domain/repositories/VocabularyRepository";
 import { WordRepository } from "@domain/repositories/WordRepository";
@@ -11,7 +11,7 @@ import { WordRepository } from "@domain/repositories/WordRepository";
 export interface ImportResult {
   importedCount: number;
   updatedCount: number;
-  errors: string[];
+  errors: WordProblem[];
   /** Headwords skipped because the vocabulary already has them */
   duplicateHeadwords: string[];
 }
@@ -57,20 +57,20 @@ export class WordService {
       vocabulary = target.vocabulary;
       this.assertOwner(userId, vocabulary);
       const existing = await this.words.listByVocabularies([vocabulary.id]);
-      if (existing.some((w) => headwordKey(w) === headwordKey(draft))) throw duplicateError(draft.headword);
+      if (existing.some((word) => headwordKey(word) === headwordKey(draft))) throw duplicateError(draft.headword);
       if (existing.length >= MAX_VOCABULARY_WORDS) throw fullError();
     } else {
-      const owned = (await this.vocabularies.listOwned(userId)).filter((v) => v.sourceLanguage === target.sourceLanguage);
-      const ownedWords = await this.words.listByVocabularies(owned.map((v) => v.id));
-      const candidates: PlacementCandidate[] = owned.map((v) => ({
-        vocabulary: v,
-        words: ownedWords.filter((w) => w.vocabularyId === v.id),
+      const owned = (await this.vocabularies.listOwned(userId)).filter((vocabulary) => vocabulary.sourceLanguage === target.sourceLanguage);
+      const ownedWords = await this.words.listByVocabularies(owned.map((vocabulary) => vocabulary.id));
+      const candidates: PlacementCandidate[] = owned.map((vocabulary) => ({
+        vocabulary: vocabulary,
+        words: ownedWords.filter((word) => word.vocabularyId === vocabulary.id),
       }));
 
       const decision = decidePlacement(draft, target.sourceLanguage, candidates);
       if (decision.kind === "duplicate") throw duplicateError(draft.headword);
       if (decision.kind === "existing") {
-        vocabulary = owned.find((v) => v.id === decision.vocabularyId)!;
+        vocabulary = owned.find((vocabulary) => vocabulary.id === decision.vocabularyId)!;
       } else {
         vocabulary = await this.vocabularies.create(userId, randomId(), decision.input);
         createdVocabulary = true;
@@ -86,7 +86,7 @@ export class WordService {
     this.assertOwner(userId, vocabulary);
     const siblings = await this.words.listByVocabularies([vocabulary.id]);
     const key = headwordKey(draft);
-    if (siblings.some((w) => w.id !== existing.id && headwordKey(w) === key)) throw duplicateError(draft.headword);
+    if (siblings.some((word) => word.id !== existing.id && headwordKey(word) === key)) throw duplicateError(draft.headword);
 
     const word: Word = { ...draft, id: existing.id, vocabularyId: existing.vocabularyId, externalId: existing.externalId };
     await this.words.saveMany([word]);
@@ -109,13 +109,13 @@ export class WordService {
     const result: ImportResult = { importedCount: 0, updatedCount: 0, errors: [], duplicateHeadwords: [] };
 
     if (!Array.isArray(rawEntries)) {
-      result.errors.push("The file must contain a JSON array of words.");
+      result.errors.push({ code: "fileNotAnArray", entryNumber: null, headword: null });
       return result;
     }
 
     const existing = await this.words.listByVocabularies([vocabulary.id]);
-    const byExternalId = new Map(existing.filter((w) => w.externalId).map((w) => [w.externalId!, w]));
-    const byKey = new Map(existing.map((w) => [headwordKey(w), w]));
+    const byExternalId = new Map(existing.filter((word) => word.externalId).map((word) => [word.externalId!, word]));
+    const byKey = new Map(existing.map((word) => [headwordKey(word), word]));
     let capacity = MAX_VOCABULARY_WORDS - existing.length;
 
     const toSave: Word[] = [];
@@ -146,7 +146,12 @@ export class WordService {
       }
 
       if (capacity <= 0) {
-        result.errors.push(`"${draft.headword}": the vocabulary is full (${MAX_VOCABULARY_WORDS} words).`);
+        result.errors.push({
+          code: "vocabularyFull",
+          entryNumber: index + 1,
+          headword: draft.headword,
+          detail: String(MAX_VOCABULARY_WORDS),
+        });
         return;
       }
 
@@ -170,7 +175,7 @@ export class WordService {
 }
 
 function replaceOrPush(words: Word[], word: Word): void {
-  const index = words.findIndex((w) => w.id === word.id);
+  const index = words.findIndex((currentWord) => currentWord.id === word.id);
   if (index >= 0) words[index] = word;
   else words.push(word);
 }

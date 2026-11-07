@@ -74,18 +74,18 @@ export function activeTimerSeconds(settings: Pick<QuizSettings, "timerMode" | "q
 export function normalizeQuizSettings(value: unknown): QuizSettings {
   if (typeof value !== "object" || value === null) return { ...DEFAULT_QUIZ_SETTINGS };
   const raw = value as Record<string, unknown>;
-  const d = DEFAULT_QUIZ_SETTINGS;
+  const defaults = DEFAULT_QUIZ_SETTINGS;
   return {
-    questionCount: clampQuestionCount(Number(raw.questionCount ?? d.questionCount)),
-    direction: QUIZ_DIRECTIONS.includes(raw.direction as QuizDirection) ? (raw.direction as QuizDirection) : d.direction,
+    questionCount: clampQuestionCount(Number(raw.questionCount ?? defaults.questionCount)),
+    direction: QUIZ_DIRECTIONS.includes(raw.direction as QuizDirection) ? (raw.direction as QuizDirection) : defaults.direction,
     includeSentenceWriting:
-      typeof raw.includeSentenceWriting === "boolean" ? raw.includeSentenceWriting : d.includeSentenceWriting,
+      typeof raw.includeSentenceWriting === "boolean" ? raw.includeSentenceWriting : defaults.includeSentenceWriting,
     vocabularyIds: Array.isArray(raw.vocabularyIds)
-      ? raw.vocabularyIds.filter((v): v is string => typeof v === "string")
+      ? raw.vocabularyIds.filter((value): value is string => typeof value === "string")
       : [],
-    letters: Array.isArray(raw.letters) ? raw.letters.filter((v): v is string => typeof v === "string") : [],
-    timerMode: TIMER_MODES.includes(raw.timerMode as TimerMode) ? (raw.timerMode as TimerMode) : d.timerMode,
-    quizTimerSeconds: clampTimerSeconds(Number(raw.quizTimerSeconds ?? d.quizTimerSeconds), d.quizTimerSeconds),
-    wordTimerSeconds: clampTimerSeconds(Number(raw.wordTimerSeconds ?? d.wordTimerSeconds), d.wordTimerSeconds),
+    letters: Array.isArray(raw.letters) ? raw.letters.filter((value): value is string => typeof value === "string") : [],
+    timerMode: TIMER_MODES.includes(raw.timerMode as TimerMode) ? (raw.timerMode as TimerMode) : defaults.timerMode,
+    quizTimerSeconds: clampTimerSeconds(Number(raw.quizTimerSeconds ?? defaults.quizTimerSeconds), defaults.quizTimerSeconds),
+    wordTimerSeconds: clampTimerSeconds(Number(raw.wordTimerSeconds ?? defaults.wordTimerSeconds), defaults.wordTimerSeconds),
   };
 }

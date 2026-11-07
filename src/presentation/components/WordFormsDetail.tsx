@@ -1,50 +1,71 @@
+import { LanguageCode } from "@domain/entities/Language";
 import { Word, displayForm, getSentenceTranslation, getTranslations } from "@domain/entities/Word";
+import WordInflections from "@presentation/components/WordInflections";
 import { useLanguage } from "@presentation/context/LanguageContext";
 import { useProfile } from "@presentation/context/ProfileContext";
+import { WORD_TYPE_KEYS } from "@presentation/i18n/grammarLabels";
 
-export default function WordFormsDetail({ word }: { word: Word }) {
+interface BodyProps {
+  word: Word;
+  sourceLanguage: LanguageCode;
+  primaryLanguage: LanguageCode;
+}
+
+/** Everything known about a word besides the word and its meaning. Shared by the word dialog and the quiz answer. */
+export function WordDetailsBody({ word, sourceLanguage, primaryLanguage }: BodyProps) {
   const { t } = useLanguage();
-  const { profile } = useProfile();
-  const language = profile.primaryLanguage;
+  const tags = word.tags.filter((tag) => tag.trim());
   return (
-    <div>
-      <p className="word-title" dir="auto">
-        {displayForm(word)}
-      </p>
+    <div className="word-details">
       <p className="muted">
-        {word.wordType}
+        {t(WORD_TYPE_KEYS[word.wordType])}
         {word.level ? ` · ${word.level}` : ""}
       </p>
-      {word.nounForms?.plural && (
-        <p className="muted">
-          {t("pluralLabel")}: {word.nounForms.plural}
-        </p>
-      )}
-      {word.verbForms && (word.verbForms.presentThirdPerson || word.verbForms.simplePast || word.verbForms.perfect) && (
-        <p className="muted" dir="auto">
-          {[word.verbForms.presentThirdPerson, word.verbForms.simplePast, word.verbForms.perfect].filter(Boolean).join(", ")}
-          {word.verbForms.passive ? ` · ${t("passiveLabel")}: ${word.verbForms.passive}` : ""}
-        </p>
-      )}
-      <p style={{ fontWeight: 600 }} dir="auto">
-        {getTranslations(word, language).join("، ")}
-      </p>
-      {word.sentences.map((s, i) => (
-        <p key={i} className="muted" style={{ margin: "4px 0" }} dir="auto">
-          {s.text}
-          <br />
-          <em>{getSentenceTranslation(s, language)}</em>
-        </p>
-      ))}
-      {word.tags.length > 0 && (
+      <WordInflections word={word} sourceLanguage={sourceLanguage} />
+      {word.sentences
+        .filter((sentence) => sentence.text?.trim())
+        .map((sentence, index) => {
+          const translation = getSentenceTranslation(sentence, primaryLanguage);
+          return (
+            <p key={index} className="muted word-details-sentence" dir="auto">
+              {sentence.text}
+              {translation && (
+                <>
+                  <br />
+                  <em>{translation}</em>
+                </>
+              )}
+            </p>
+          );
+        })}
+      {tags.length > 0 && (
         <p>
-          {word.tags.map((tag) => (
+          {tags.map((tag) => (
             <span key={tag} className="pill" style={{ marginInlineEnd: 4 }}>
               #{tag}
             </span>
           ))}
         </p>
       )}
+    </div>
+  );
+}
+
+export default function WordFormsDetail({ word, sourceLanguage }: { word: Word; sourceLanguage: LanguageCode }) {
+  const { profile } = useProfile();
+  const primaryLanguage = profile.primaryLanguage;
+  const meaning = getTranslations(word, primaryLanguage).join("، ");
+  return (
+    <div>
+      <p className="word-title" dir="auto">
+        {displayForm(word)}
+      </p>
+      {meaning && (
+        <p style={{ fontWeight: 600 }} dir="auto">
+          {meaning}
+        </p>
+      )}
+      <WordDetailsBody word={word} sourceLanguage={sourceLanguage} primaryLanguage={primaryLanguage} />
     </div>
   );
 }

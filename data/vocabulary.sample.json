@@ -17,7 +17,7 @@
     },
     "sentences": [
       {
-        "german": "Wir sehen uns jeden Tag.",
+        "text": "Wir sehen uns jeden Tag.",
         "translations": {
           "en": "We see each other every day.",
           "fa": "ما هر روز همدیگر را می‌بینیم."
@@ -48,7 +48,7 @@
     },
     "sentences": [
       {
-        "german": "Am Morgen trinke ich immer Kaffee.",
+        "text": "Am Morgen trinke ich immer Kaffee.",
         "translations": {
           "en": "In the morning I always drink coffee.",
           "fa": "صبح‌ها همیشه قهوه می‌نوشم."
@@ -80,7 +80,7 @@
     },
     "sentences": [
       {
-        "german": "Ich habe am Vormittag einen Termin.",
+        "text": "Ich habe am Vormittag einen Termin.",
         "translations": {
           "en": "I have an appointment in the late morning.",
           "fa": "پیش از ظهر یک قرار ملاقات دارم."
@@ -111,7 +111,7 @@
     },
     "sentences": [
       {
-        "german": "Wir treffen uns zu Mittag.",
+        "text": "Wir treffen uns zu Mittag.",
         "translations": {
           "en": "We're meeting at noon.",
           "fa": "ظهر همدیگر را می‌بینیم."
@@ -141,7 +141,7 @@
     },
     "sentences": [
       {
-        "german": "Am Nachmittag gehe ich einkaufen.",
+        "text": "Am Nachmittag gehe ich einkaufen.",
         "translations": {
           "en": "In the afternoon I'm going shopping.",
           "fa": "بعدازظهر به خرید می‌روم."
@@ -172,7 +172,7 @@
     },
     "sentences": [
       {
-        "german": "Am Abend gehen wir ins Kino.",
+        "text": "Am Abend gehen wir ins Kino.",
         "translations": {
           "en": "In the evening we're going to the cinema.",
           "fa": "عصر به سینما می‌رویم."
@@ -203,7 +203,7 @@
     },
     "sentences": [
       {
-        "german": "In der Nacht ist es sehr ruhig.",
+        "text": "In der Nacht ist es sehr ruhig.",
         "translations": {
           "en": "At night it's very quiet.",
           "fa": "شب‌ها خیلی آرام است."
@@ -233,7 +233,7 @@
     },
     "sentences": [
       {
-        "german": "Nächste Woche fahre ich nach Berlin.",
+        "text": "Nächste Woche fahre ich nach Berlin.",
         "translations": {
           "en": "Next week I'm going to Berlin.",
           "fa": "هفتهٔ آینده به برلین می‌روم."
@@ -263,7 +263,7 @@
     },
     "sentences": [
       {
-        "german": "Der Kurs dauert drei Monate.",
+        "text": "Der Kurs dauert drei Monate.",
         "translations": {
           "en": "The course lasts three months.",
           "fa": "این دوره سه ماه طول می‌کشد."
@@ -293,7 +293,7 @@
     },
     "sentences": [
       {
-        "german": "Ich wohne seit einem Jahr in Dushanbe.",
+        "text": "Ich wohne seit einem Jahr in Dushanbe.",
         "translations": {
           "en": "I've been living in Dushanbe for a year.",
           "fa": "یک سال است که در دوشنبه زندگی می‌کنم."
@@ -323,7 +323,7 @@
     },
     "sentences": [
       {
-        "german": "Was machst du am Wochenende?",
+        "text": "Was machst du am Wochenende?",
         "translations": {
           "en": "What are you doing on the weekend?",
           "fa": "آخر هفته چه‌کار می‌کنی؟"
@@ -355,14 +355,14 @@
     },
     "sentences": [
       {
-        "german": "Am Anfang habe ich bei der Arbeit viele Fragen gestellt.",
+        "text": "Am Anfang habe ich bei der Arbeit viele Fragen gestellt.",
         "translations": {
           "en": "At the beginning I asked a lot of questions at work.",
           "fa": "در ابتدا در محل کار سؤال‌های زیادی پرسیدم."
         }
       },
       {
-        "german": "Wir machen Anfang Juli Ferien.",
+        "text": "Wir machen Anfang Juli Ferien.",
         "translations": {
           "en": "We're going on holiday at the start of July.",
           "fa": "ما اوایل ژوئیه به تعطیلات می‌رویم."
@@ -398,14 +398,14 @@
     },
     "sentences": [
       {
-        "german": "Wann fängst du mit der Arbeit an?",
+        "text": "Wann fängst du mit der Arbeit an?",
         "translations": {
           "en": "When are you starting work?",
           "fa": "کِی کارت را شروع می‌کنی؟"
         }
       },
       {
-        "german": "Hier fängt die Bahnhofstraße an.",
+        "text": "Hier fängt die Bahnhofstraße an.",
         "translations": {
           "en": "This is where Bahnhofstraße begins.",
           "fa": "خیابان بان‌هوف‌اشتراسه از اینجا شروع می‌شود."
@@ -433,7 +433,7 @@
     },
     "sentences": [
       {
-        "german": "Anfangs ging alles gut.",
+        "text": "Anfangs ging alles gut.",
         "translations": {
           "en": "At first everything went well.",
           "fa": "در ابتدا همه‌چیز خوب پیش می‌رفت."
@@ -468,7 +468,7 @@
     },
     "sentences": [
       {
-        "german": "An der nächsten Kreuzung müssen Sie links abbiegen.",
+        "text": "An der nächsten Kreuzung müssen Sie links abbiegen.",
         "translations": {
           "en": "You have to turn left at the next intersection.",
           "fa": "در چهارراه بعدی باید به چپ بپیچید."
@@ -501,7 +501,7 @@
     },
     "sentences": [
       {
-        "german": "Auf der Abbildung sehen Sie, wie man das Gerät einschaltet.",
+        "text": "Auf der Abbildung sehen Sie, wie man das Gerät einschaltet.",
         "translations": {
           "en": "The illustration shows you how to switch on the device.",
           "fa": "در تصویر می‌بینید که چگونه دستگاه را روشن کنید."
@@ -529,7 +529,7 @@
     },
     "sentences": [
       {
-        "german": "Unser Urlaub war ein tolles Abenteuer.",
+        "text": "Unser Urlaub war ein tolles Abenteuer.",
         "translations": {
           "en": "Our holiday was a great adventure.",
           "fa": "تعطیلات ما یک ماجراجویی فوق‌العاده بود."
@@ -555,14 +555,14 @@
     },
     "sentences": [
       {
-        "german": "Heute kann ich nicht, aber morgen ganz bestimmt.",
+        "text": "Heute kann ich nicht, aber morgen ganz bestimmt.",
         "translations": {
           "en": "I can't today, but definitely tomorrow.",
           "fa": "امروز نمی‌توانم، اما فردا حتماً."
         }
       },
       {
-        "german": "Wir haben nur eine kleine Wohnung, sind aber damit zufrieden.",
+        "text": "Wir haben nur eine kleine Wohnung, sind aber damit zufrieden.",
         "translations": {
           "en": "We only have a small apartment, but we're happy with it.",
           "fa": "ما فقط یک آپارتمان کوچک داریم، اما راضی هستیم."
@@ -597,7 +597,7 @@
     },
     "sentences": [
       {
-        "german": "Unser Zug ist pünktlich abgefahren.",
+        "text": "Unser Zug ist pünktlich abgefahren.",
         "translations": {
           "en": "Our train left on time.",
           "fa": "قطارمان سر ساعت حرکت کرد."
@@ -628,7 +628,7 @@
     },
     "sentences": [
       {
-        "german": "Es bleiben uns noch zwanzig Minuten bis zur Abfahrt.",
+        "text": "Es bleiben uns noch zwanzig Minuten bis zur Abfahrt.",
         "translations": {
           "en": "We still have twenty minutes until departure.",
           "fa": "بیست دقیقه تا حرکت وقت داریم."
@@ -659,7 +659,7 @@
     },
     "sentences": [
       {
-        "german": "Werfen Sie den Bioabfall bitte nicht zum normalen Müll.",
+        "text": "Werfen Sie den Bioabfall bitte nicht zum normalen Müll.",
         "translations": {
           "en": "Please don't put organic waste in with the regular rubbish.",
           "fa": "لطفاً زبالهٔ آلی را با زبالهٔ عادی مخلوط نکنید."
@@ -695,7 +695,7 @@
     },
     "sentences": [
       {
-        "german": "Ich soll dieses Päckchen bei Herrn Müller abgeben.",
+        "text": "Ich soll dieses Päckchen bei Herrn Müller abgeben.",
         "translations": {
           "en": "I'm supposed to drop off this package at Mr. Müller's.",
           "fa": "باید این بسته را به آقای مولر تحویل دهم."
@@ -728,7 +728,7 @@
     },
     "sentences": [
       {
-        "german": "Vielleicht bleiben wir ein paar Tage länger, das hängt vom Wetter ab.",
+        "text": "Vielleicht bleiben wir ein paar Tage länger, das hängt vom Wetter ab.",
         "translations": {
           "en": "Maybe we'll stay a few days longer, it depends on the weather.",
           "fa": "شاید چند روز بیشتر بمانیم، این به آب‌وهوا بستگی دارد."
@@ -752,7 +752,7 @@
     },
     "sentences": [
       {
-        "german": "Gregor ist finanziell von seinen Eltern abhängig.",
+        "text": "Gregor ist finanziell von seinen Eltern abhängig.",
         "translations": {
           "en": "Gregor is financially dependent on his parents.",
           "fa": "گرگور از نظر مالی به والدینش وابسته است."
@@ -785,7 +785,7 @@
     },
     "sentences": [
       {
-        "german": "Für die Reise habe ich 500 Euro von meinem Konto abgehoben.",
+        "text": "Für die Reise habe ich 500 Euro von meinem Konto abgehoben.",
         "translations": {
           "en": "I withdrew 500 euros from my account for the trip.",
           "fa": "برای سفر پانصد یورو از حسابم برداشت کردم."
@@ -822,7 +822,7 @@
     },
     "sentences": [
       {
-        "german": "Meine Freundin hat mich vom Bahnhof abgeholt.",
+        "text": "Meine Freundin hat mich vom Bahnhof abgeholt.",
         "translations": {
           "en": "My friend picked me up from the train station.",
           "fa": "دوستم مرا از ایستگاه قطار سوار کرد."
@@ -859,7 +859,7 @@
     },
     "sentences": [
       {
-        "german": "Achten Sie bitte darauf, dass Sie abschließen, wenn Sie gehen.",
+        "text": "Achten Sie bitte darauf, dass Sie abschließen, wenn Sie gehen.",
         "translations": {
           "en": "Please make sure to lock up when you leave.",
           "fa": "لطفاً توجه کنید وقتی می‌روید در را قفل کنید."
@@ -888,7 +888,7 @@
     },
     "sentences": [
       {
-        "german": "Hast du schon meine neue Adresse?",
+        "text": "Hast du schon meine neue Adresse?",
         "translations": {
           "en": "Do you already have my new address?",
           "fa": "آدرس جدید من را داری؟"
@@ -913,14 +913,14 @@
     },
     "sentences": [
       {
-        "german": "Emilia ist in einer ganz ähnlichen Situation wie ich.",
+        "text": "Emilia ist in einer ganz ähnlichen Situation wie ich.",
         "translations": {
           "en": "Emilia is in a very similar situation to me.",
           "fa": "امیلیا در وضعیتی کاملاً شبیه به من است."
         }
       },
       {
-        "german": "Oleg sieht seinem Bruder sehr ähnlich.",
+        "text": "Oleg sieht seinem Bruder sehr ähnlich.",
         "translations": {
           "en": "Oleg looks a lot like his brother.",
           "fa": "اولگ خیلی شبیه برادرش است."
@@ -950,7 +950,7 @@
     },
     "sentences": [
       {
-        "german": "Ich hatte keine Ahnung, dass du heute Geburtstag hast.",
+        "text": "Ich hatte keine Ahnung, dass du heute Geburtstag hast.",
         "translations": {
           "en": "I had no idea it was your birthday today.",
           "fa": "اصلاً نمی‌دانستم امروز تولدت است."
@@ -974,7 +974,7 @@
     },
     "sentences": [
       {
-        "german": "Ich bin sehr aktiv und mache viel Sport.",
+        "text": "Ich bin sehr aktiv und mache viel Sport.",
         "translations": {
           "en": "I'm very active and do a lot of sport.",
           "fa": "من خیلی فعال هستم و ورزش زیادی می‌کنم."
@@ -1002,7 +1002,7 @@
     },
     "sentences": [
       {
-        "german": "In den Ferien bietet die Stadt für Kinder verschiedene Freizeitaktivitäten.",
+        "text": "In den Ferien bietet die Stadt für Kinder verschiedene Freizeitaktivitäten.",
         "translations": {
           "en": "During the holidays the city offers various leisure activities for children.",
           "fa": "شهر در تعطیلات فعالیت‌های تفریحی گوناگونی برای کودکان ارائه می‌دهد."
@@ -1028,7 +1028,7 @@
     },
     "sentences": [
       {
-        "german": "Umweltschutz ist ein aktuelles Thema.",
+        "text": "Umweltschutz ist ein aktuelles Thema.",
         "translations": {
           "en": "Environmental protection is a current topic.",
           "fa": "حفاظت از محیط‌زیست موضوعی به‌روز است."
@@ -1062,7 +1062,7 @@
     },
     "sentences": [
       {
-        "german": "Ich kann diese Bedingungen nicht akzeptieren.",
+        "text": "Ich kann diese Bedingungen nicht akzeptieren.",
         "translations": {
           "en": "I cannot accept these conditions.",
           "fa": "من نمی‌توانم این شرایط را بپذیرم."
@@ -1087,14 +1087,14 @@
     },
     "sentences": [
       {
-        "german": "Ich gehe nicht gern allein spazieren.",
+        "text": "Ich gehe nicht gern allein spazieren.",
         "translations": {
           "en": "I don't like going for walks alone.",
           "fa": "دوست ندارم تنها پیاده‌روی کنم."
         }
       },
       {
-        "german": "Soll ich Ihnen helfen? – Danke, ich schaffe es schon allein.",
+        "text": "Soll ich Ihnen helfen? – Danke, ich schaffe es schon allein.",
         "translations": {
           "en": "Shall I help you? – Thanks, I can manage on my own.",
           "fa": "کمکتان کنم؟ – ممنون، خودم از پسش برمی‌آیم."
@@ -1120,7 +1120,7 @@
     },
     "sentences": [
       {
-        "german": "Wir können uns morgen treffen, allerdings habe ich erst ab Mittag Zeit.",
+        "text": "Wir können uns morgen treffen, allerdings habe ich erst ab Mittag Zeit.",
         "translations": {
           "en": "We can meet tomorrow, though I'm only free from midday.",
           "fa": "می‌توانیم فردا همدیگر را ببینیم، اگرچه من فقط از ظهر وقت دارم."
@@ -1145,14 +1145,14 @@
     },
     "sentences": [
       {
-        "german": "Wir haben nur über allgemeine Probleme gesprochen.",
+        "text": "Wir haben nur über allgemeine Probleme gesprochen.",
         "translations": {
           "en": "We only talked about general problems.",
           "fa": "ما فقط دربارهٔ مشکلات عمومی صحبت کردیم."
         }
       },
       {
-        "german": "Im Allgemeinen bin ich mit meiner Arbeit sehr zufrieden.",
+        "text": "Im Allgemeinen bin ich mit meiner Arbeit sehr zufrieden.",
         "translations": {
           "en": "In general I'm very satisfied with my work.",
           "fa": "به‌طور کلی از کارم بسیار راضی‌ام."
@@ -1177,14 +1177,14 @@
     },
     "sentences": [
       {
-        "german": "Wie alt sind Sie?",
+        "text": "Wie alt sind Sie?",
         "translations": {
           "en": "How old are you?",
           "fa": "چند سالتان است؟"
         }
       },
       {
-        "german": "Maria ist eine alte Freundin von mir.",
+        "text": "Maria ist eine alte Freundin von mir.",
         "translations": {
           "en": "Maria is an old friend of mine.",
           "fa": "ماریا یکی از دوستان قدیمی من است."
@@ -1212,7 +1212,7 @@
     },
     "sentences": [
       {
-        "german": "Wir sind etwa im gleichen Alter.",
+        "text": "Wir sind etwa im gleichen Alter.",
         "translations": {
           "en": "We're about the same age.",
           "fa": "ما تقریباً هم‌سن هستیم."
@@ -1236,7 +1236,7 @@
     },
     "sentences": [
       {
-        "german": "Wir brauchen alternative Energien.",
+        "text": "Wir brauchen alternative Energien.",
         "translations": {
           "en": "We need alternative energy sources.",
           "fa": "ما به انرژی‌های جایگزین نیاز داریم."
@@ -1267,7 +1267,7 @@
     },
     "sentences": [
       {
-        "german": "Auf dieser Strecke ist der Zug eine gute Alternative zum Flugzeug.",
+        "text": "Auf dieser Strecke ist der Zug eine gute Alternative zum Flugzeug.",
         "translations": {
           "en": "On this route the train is a good alternative to flying.",
           "fa": "در این مسیر قطار جایگزین خوبی برای هواپیماست."
@@ -1297,7 +1297,7 @@
     },
     "sentences": [
       {
-        "german": "Dort an der Ampel kannst du über die Straße gehen.",
+        "text": "Dort an der Ampel kannst du über die Straße gehen.",
         "translations": {
           "en": "You can cross the street there at the traffic light.",
           "fa": "آنجا کنار چراغ راهنما می‌توانی از خیابان رد شوی."
@@ -1328,7 +1328,7 @@
     },
     "sentences": [
       {
-        "german": "Das Arbeitsamt befindet sich neben dem Busbahnhof.",
+        "text": "Das Arbeitsamt befindet sich neben dem Busbahnhof.",
         "translations": {
           "en": "The employment office is next to the bus station.",
           "fa": "ادارهٔ کاریابی کنار ترمینال اتوبوس است."
@@ -1362,7 +1362,7 @@
     },
     "sentences": [
       {
-        "german": "Bei dem Fest haben wir uns sehr gut amüsiert.",
+        "text": "Bei dem Fest haben wir uns sehr gut amüsiert.",
         "translations": {
           "en": "We had a lot of fun at the party.",
           "fa": "در آن جشن خیلی خوش گذراندیم."
@@ -1395,7 +1395,7 @@
     },
     "sentences": [
       {
-        "german": "Die Politiker analysieren die Situation auf dem Arbeitsmarkt.",
+        "text": "Die Politiker analysieren die Situation auf dem Arbeitsmarkt.",
         "translations": {
           "en": "The politicians are analyzing the situation on the job market.",
           "fa": "سیاست‌مداران وضعیت بازار کار را تحلیل می‌کنند."
@@ -1421,7 +1421,7 @@
     },
     "sentences": [
       {
-        "german": "Irina hat Urlaub. Sie kann uns also helfen.",
+        "text": "Irina hat Urlaub. Sie kann uns also helfen.",
         "translations": {
           "en": "Irina is on holiday. So she can help us.",
           "fa": "ایرینا تعطیلات است. پس می‌تواند به ما کمک کند."
@@ -1448,14 +1448,14 @@
     },
     "sentences": [
       {
-        "german": "Als mein Mann kam, war die Party schon zu Ende.",
+        "text": "Als mein Mann kam, war die Party schon zu Ende.",
         "translations": {
           "en": "When my husband arrived, the party was already over.",
           "fa": "وقتی شوهرم آمد، مهمانی قبلاً تمام شده بود."
         }
       },
       {
-        "german": "Meine Schwester ist älter als ich.",
+        "text": "Meine Schwester ist älter als ich.",
         "translations": {
           "en": "My sister is older than me.",
           "fa": "خواهرم از من بزرگ‌تر است."
@@ -1480,7 +1480,7 @@
     },
     "sentences": [
       {
-        "german": "Das alltägliche Leben ist manchmal langweilig.",
+        "text": "Das alltägliche Leben ist manchmal langweilig.",
         "translations": {
           "en": "Everyday life is sometimes boring.",
           "fa": "زندگی روزمره گاهی خسته‌کننده است."
@@ -1510,7 +1510,7 @@
     },
     "sentences": [
       {
-        "german": "Am Montag fängt die Schule wieder an.",
+        "text": "Am Montag fängt die Schule wieder an.",
         "translations": {
           "en": "School starts again on Monday.",
           "fa": "دوشنبه مدرسه دوباره شروع می‌شود."
@@ -1541,7 +1541,7 @@
     },
     "sentences": [
       {
-        "german": "Dann sehen wir uns also am Dienstag.",
+        "text": "Dann sehen wir uns also am Dienstag.",
         "translations": {
           "en": "So we'll see each other on Tuesday then.",
           "fa": "پس سه‌شنبه همدیگر را می‌بینیم."
@@ -1572,7 +1572,7 @@
     },
     "sentences": [
       {
-        "german": "Der Kurs findet mittwochs statt.",
+        "text": "Der Kurs findet mittwochs statt.",
         "translations": {
           "en": "The course takes place on Wednesdays.",
           "fa": "این دوره چهارشنبه‌ها برگزار می‌شود."
@@ -1603,7 +1603,7 @@
     },
     "sentences": [
       {
-        "german": "Am Donnerstag habe ich keine Zeit.",
+        "text": "Am Donnerstag habe ich keine Zeit.",
         "translations": {
           "en": "I don't have time on Thursday.",
           "fa": "پنجشنبه وقت ندارم."
@@ -1634,7 +1634,7 @@
     },
     "sentences": [
       {
-        "german": "Freitags gehe ich immer schwimmen.",
+        "text": "Freitags gehe ich immer schwimmen.",
         "translations": {
           "en": "I always go swimming on Fridays.",
           "fa": "جمعه‌ها همیشه شنا می‌روم."
@@ -1665,7 +1665,7 @@
     },
     "sentences": [
       {
-        "german": "Samstag bleibt unser Geschäft geschlossen.",
+        "text": "Samstag bleibt unser Geschäft geschlossen.",
         "translations": {
           "en": "Our shop stays closed on Saturday.",
           "fa": "شنبه مغازهٔ ما بسته می‌ماند."
@@ -1696,7 +1696,7 @@
     },
     "sentences": [
       {
-        "german": "Sonntags schlafe ich lange.",
+        "text": "Sonntags schlafe ich lange.",
         "translations": {
           "en": "On Sundays I sleep in.",
           "fa": "یکشنبه‌ها دیر می‌خوابم (تا دیر می‌خوابم)."
@@ -1727,7 +1727,7 @@
     },
     "sentences": [
       {
-        "german": "Im Januar ist es meistens sehr kalt.",
+        "text": "Im Januar ist es meistens sehr kalt.",
         "translations": {
           "en": "In January it's usually very cold.",
           "fa": "در ژانویه معمولاً خیلی سرد است."
@@ -1758,7 +1758,7 @@
     },
     "sentences": [
       {
-        "german": "Mein Geburtstag ist im Februar.",
+        "text": "Mein Geburtstag ist im Februar.",
         "translations": {
           "en": "My birthday is in February.",
           "fa": "تولدم در فوریه است."
@@ -1789,7 +1789,7 @@
     },
     "sentences": [
       {
-        "german": "Der Frühling beginnt im März.",
+        "text": "Der Frühling beginnt im März.",
         "translations": {
           "en": "Spring begins in March.",
           "fa": "بهار در مارس شروع می‌شود."
@@ -1820,7 +1820,7 @@
     },
     "sentences": [
       {
-        "german": "Im April regnet es hier oft.",
+        "text": "Im April regnet es hier oft.",
         "translations": {
           "en": "It often rains here in April.",
           "fa": "در آوریل اینجا اغلب باران می‌بارد."
@@ -1851,7 +1851,7 @@
     },
     "sentences": [
       {
-        "german": "Wir heiraten im Mai.",
+        "text": "Wir heiraten im Mai.",
         "translations": {
           "en": "We're getting married in May.",
           "fa": "ما در ماه مه ازدواج می‌کنیم."
@@ -1882,7 +1882,7 @@
     },
     "sentences": [
       {
-        "german": "Die Schule endet im Juni.",
+        "text": "Die Schule endet im Juni.",
         "translations": {
           "en": "School ends in June.",
           "fa": "مدرسه در ژوئن تمام می‌شود."
@@ -1913,7 +1913,7 @@
     },
     "sentences": [
       {
-        "german": "Im August machen wir Urlaub.",
+        "text": "Im August machen wir Urlaub.",
         "translations": {
           "en": "We're going on holiday in August.",
           "fa": "در اوت به تعطیلات می‌رویم."
@@ -1944,7 +1944,7 @@
     },
     "sentences": [
       {
-        "german": "Im September fängt das neue Semester an.",
+        "text": "Im September fängt das neue Semester an.",
         "translations": {
           "en": "The new semester starts in September.",
           "fa": "ترم جدید در سپتامبر شروع می‌شود."
@@ -1975,7 +1975,7 @@
     },
     "sentences": [
       {
-        "german": "Im Oktober werden die Tage kürzer.",
+        "text": "Im Oktober werden die Tage kürzer.",
         "translations": {
           "en": "In October the days get shorter.",
           "fa": "در اکتبر روزها کوتاه‌تر می‌شوند."
@@ -2006,7 +2006,7 @@
     },
     "sentences": [
       {
-        "german": "Im November ist das Wetter oft grau.",
+        "text": "Im November ist das Wetter oft grau.",
         "translations": {
           "en": "The weather is often grey in November.",
           "fa": "در نوامبر هوا اغلب ابری است."
@@ -2037,7 +2037,7 @@
     },
     "sentences": [
       {
-        "german": "Im Dezember feiern wir Weihnachten.",
+        "text": "Im Dezember feiern wir Weihnachten.",
         "translations": {
           "en": "We celebrate Christmas in December.",
           "fa": "در دسامبر کریسمس را جشن می‌گیریم."
@@ -2048,6 +2048,499 @@
     "tags": [
       "time",
       "months"
+    ]
+  },
+  {
+    "id": "b1-noun-student",
+    "wordType": "noun",
+    "headword": "Student",
+    "translations": {
+      "en": [
+        "student"
+      ],
+      "fa": [
+        "دانشجو"
+      ]
+    },
+    "nounForms": {
+      "article": "der",
+      "plural": "-en"
+    },
+    "sentences": [
+      {
+        "text": "Ich kenne den Studenten.",
+        "translations": {
+          "en": "I know the student.",
+          "fa": "من آن دانشجو را می‌شناسم."
+        }
+      }
+    ],
+    "level": "A2",
+    "tags": [
+      "people",
+      "n-declension"
+    ]
+  },
+  {
+    "id": "b1-noun-junge",
+    "wordType": "noun",
+    "headword": "Junge",
+    "translations": {
+      "en": [
+        "boy"
+      ],
+      "fa": [
+        "پسر"
+      ]
+    },
+    "nounForms": {
+      "article": "der",
+      "plural": "-n"
+    },
+    "sentences": [
+      {
+        "text": "Sie hilft dem Jungen.",
+        "translations": {
+          "en": "She helps the boy.",
+          "fa": "او به آن پسر کمک می‌کند."
+        }
+      }
+    ],
+    "level": "A1",
+    "tags": [
+      "people",
+      "n-declension"
+    ]
+  },
+  {
+    "id": "b1-noun-herr",
+    "wordType": "noun",
+    "headword": "Herr",
+    "translations": {
+      "en": [
+        "gentleman"
+      ],
+      "fa": [
+        "آقا"
+      ]
+    },
+    "nounForms": {
+      "article": "der",
+      "plural": "-en"
+    },
+    "sentences": [
+      {
+        "text": "Kennst du den Herrn dort?",
+        "translations": {
+          "en": "Do you know the gentleman over there?",
+          "fa": "آن آقا را می‌شناسی؟"
+        }
+      }
+    ],
+    "level": "A1",
+    "tags": [
+      "people",
+      "n-declension"
+    ]
+  },
+  {
+    "id": "b1-noun-haus",
+    "wordType": "noun",
+    "headword": "Haus",
+    "translations": {
+      "en": [
+        "house"
+      ],
+      "fa": [
+        "خانه"
+      ]
+    },
+    "nounForms": {
+      "article": "das",
+      "plural": "¨-er"
+    },
+    "sentences": [
+      {
+        "text": "Wir wohnen in einem alten Haus.",
+        "translations": {
+          "en": "We live in an old house.",
+          "fa": "ما در یک خانهٔ قدیمی زندگی می‌کنیم."
+        }
+      }
+    ],
+    "level": "A1",
+    "tags": [
+      "home"
+    ]
+  },
+  {
+    "id": "b1-noun-apfel",
+    "wordType": "noun",
+    "headword": "Apfel",
+    "translations": {
+      "en": [
+        "apple"
+      ],
+      "fa": [
+        "سیب"
+      ]
+    },
+    "nounForms": {
+      "article": "der",
+      "plural": "¨"
+    },
+    "sentences": [
+      {
+        "text": "Ich esse jeden Tag einen Apfel.",
+        "translations": {
+          "en": "I eat an apple every day.",
+          "fa": "من هر روز یک سیب می‌خورم."
+        }
+      }
+    ],
+    "level": "A1",
+    "tags": [
+      "food"
+    ]
+  },
+  {
+    "id": "b1-noun-auto",
+    "wordType": "noun",
+    "headword": "Auto",
+    "translations": {
+      "en": [
+        "car"
+      ],
+      "fa": [
+        "ماشین"
+      ]
+    },
+    "nounForms": {
+      "article": "das",
+      "plural": "-s"
+    },
+    "sentences": [
+      {
+        "text": "Die Kinder spielen neben den Autos.",
+        "translations": {
+          "en": "The children are playing next to the cars.",
+          "fa": "بچه‌ها کنار ماشین‌ها بازی می‌کنند."
+        }
+      }
+    ],
+    "level": "A1",
+    "tags": [
+      "transport"
+    ]
+  },
+  {
+    "id": "b1-noun-kind",
+    "wordType": "noun",
+    "headword": "Kind",
+    "translations": {
+      "en": [
+        "child"
+      ],
+      "fa": [
+        "کودک"
+      ]
+    },
+    "nounForms": {
+      "article": "das",
+      "plural": "Kinder"
+    },
+    "sentences": [
+      {
+        "text": "Das Buch gehört den Kindern.",
+        "translations": {
+          "en": "The book belongs to the children.",
+          "fa": "این کتاب مال بچه‌هاست."
+        }
+      }
+    ],
+    "level": "A1",
+    "tags": [
+      "people"
+    ]
+  },
+  {
+    "id": "b1-verb-sein",
+    "wordType": "verb",
+    "headword": "sein",
+    "translations": {
+      "en": [
+        "to be"
+      ],
+      "fa": [
+        "بودن"
+      ]
+    },
+    "verbForms": {
+      "infinitive": "sein",
+      "presentThirdPerson": "ist",
+      "simplePast": "war",
+      "perfect": "ist gewesen",
+      "passive": null,
+      "auxiliaryIsSein": true,
+      "separable": false
+    },
+    "sentences": [
+      {
+        "text": "Ich bin heute müde.",
+        "translations": {
+          "en": "I am tired today.",
+          "fa": "من امروز خسته‌ام."
+        }
+      }
+    ],
+    "level": "A1",
+    "tags": [
+      "irregular"
+    ]
+  },
+  {
+    "id": "b1-verb-haben",
+    "wordType": "verb",
+    "headword": "haben",
+    "translations": {
+      "en": [
+        "to have"
+      ],
+      "fa": [
+        "داشتن"
+      ]
+    },
+    "verbForms": {
+      "infinitive": "haben",
+      "presentThirdPerson": "hat",
+      "simplePast": "hatte",
+      "perfect": "hat gehabt",
+      "passive": null,
+      "auxiliaryIsSein": false,
+      "separable": false
+    },
+    "sentences": [
+      {
+        "text": "Hast du einen Moment Zeit?",
+        "translations": {
+          "en": "Do you have a moment?",
+          "fa": "یک لحظه وقت داری؟"
+        }
+      }
+    ],
+    "level": "A1",
+    "tags": [
+      "irregular"
+    ]
+  },
+  {
+    "id": "b1-verb-koennen",
+    "wordType": "verb",
+    "headword": "können",
+    "translations": {
+      "en": [
+        "can, to be able to"
+      ],
+      "fa": [
+        "توانستن"
+      ]
+    },
+    "verbForms": {
+      "infinitive": "können",
+      "presentThirdPerson": "kann",
+      "simplePast": "konnte",
+      "perfect": "hat gekonnt",
+      "passive": null,
+      "auxiliaryIsSein": false,
+      "separable": false
+    },
+    "sentences": [
+      {
+        "text": "Ich kann gut schwimmen.",
+        "translations": {
+          "en": "I can swim well.",
+          "fa": "من خوب می‌توانم شنا کنم."
+        }
+      }
+    ],
+    "level": "A1",
+    "tags": [
+      "modal"
+    ]
+  },
+  {
+    "id": "b1-verb-wissen",
+    "wordType": "verb",
+    "headword": "wissen",
+    "translations": {
+      "en": [
+        "to know"
+      ],
+      "fa": [
+        "دانستن"
+      ]
+    },
+    "verbForms": {
+      "infinitive": "wissen",
+      "presentThirdPerson": "weiß",
+      "simplePast": "wusste",
+      "perfect": "hat gewusst",
+      "passive": null,
+      "auxiliaryIsSein": false,
+      "separable": false
+    },
+    "sentences": [
+      {
+        "text": "Das wusste ich nicht.",
+        "translations": {
+          "en": "I did not know that.",
+          "fa": "این را نمی‌دانستم."
+        }
+      }
+    ],
+    "level": "A1",
+    "tags": [
+      "irregular"
+    ]
+  },
+  {
+    "id": "b1-verb-fahren",
+    "wordType": "verb",
+    "headword": "fahren",
+    "translations": {
+      "en": [
+        "to drive, to go"
+      ],
+      "fa": [
+        "رانندگی کردن"
+      ]
+    },
+    "verbForms": {
+      "infinitive": "fahren",
+      "presentThirdPerson": "fährt",
+      "simplePast": "fuhr",
+      "perfect": "ist gefahren",
+      "passive": null,
+      "auxiliaryIsSein": true,
+      "separable": false
+    },
+    "sentences": [
+      {
+        "text": "Wir fahren morgen nach Berlin.",
+        "translations": {
+          "en": "We are going to Berlin tomorrow.",
+          "fa": "ما فردا به برلین می‌رویم."
+        }
+      }
+    ],
+    "level": "A1",
+    "tags": [
+      "strong"
+    ]
+  },
+  {
+    "id": "b1-verb-lesen",
+    "wordType": "verb",
+    "headword": "lesen",
+    "translations": {
+      "en": [
+        "to read"
+      ],
+      "fa": [
+        "خواندن"
+      ]
+    },
+    "verbForms": {
+      "infinitive": "lesen",
+      "presentThirdPerson": "liest",
+      "simplePast": "las",
+      "perfect": "hat gelesen",
+      "passive": "wird gelesen",
+      "auxiliaryIsSein": false,
+      "separable": false
+    },
+    "sentences": [
+      {
+        "text": "Sie liest jeden Abend ein Buch.",
+        "translations": {
+          "en": "She reads a book every evening.",
+          "fa": "او هر شب یک کتاب می‌خواند."
+        }
+      }
+    ],
+    "level": "A1",
+    "tags": [
+      "strong"
+    ]
+  },
+  {
+    "id": "b1-verb-arbeiten",
+    "wordType": "verb",
+    "headword": "arbeiten",
+    "translations": {
+      "en": [
+        "to work"
+      ],
+      "fa": [
+        "کار کردن"
+      ]
+    },
+    "verbForms": {
+      "infinitive": "arbeiten",
+      "presentThirdPerson": "arbeitet",
+      "simplePast": "arbeitete",
+      "perfect": "hat gearbeitet",
+      "passive": null,
+      "auxiliaryIsSein": false,
+      "separable": false
+    },
+    "sentences": [
+      {
+        "text": "Du arbeitest zu viel.",
+        "translations": {
+          "en": "You work too much.",
+          "fa": "تو زیادی کار می‌کنی."
+        }
+      }
+    ],
+    "level": "A1",
+    "tags": [
+      "weak"
+    ]
+  },
+  {
+    "id": "b1-verb-sammeln",
+    "wordType": "verb",
+    "headword": "sammeln",
+    "translations": {
+      "en": [
+        "to collect"
+      ],
+      "fa": [
+        "جمع کردن"
+      ]
+    },
+    "verbForms": {
+      "infinitive": "sammeln",
+      "presentThirdPerson": "sammelt",
+      "simplePast": "sammelte",
+      "perfect": "hat gesammelt",
+      "passive": "wird gesammelt",
+      "auxiliaryIsSein": false,
+      "separable": false
+    },
+    "sentences": [
+      {
+        "text": "Ich sammle alte Briefmarken.",
+        "translations": {
+          "en": "I collect old stamps.",
+          "fa": "من تمبرهای قدیمی جمع می‌کنم."
+        }
+      }
+    ],
+    "level": "B1",
+    "tags": [
+      "weak"
     ]
   }
 ]

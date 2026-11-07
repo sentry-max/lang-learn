@@ -42,8 +42,8 @@ export default function DurationPicker({ seconds, onChange, presets, id }: Props
         min={0}
         max={key === "hours" ? 5 : 59}
         value={parts[key]}
-        onChange={(e) => update(key, e.target.value)}
-        onFocus={(e) => e.target.select()}
+        onChange={(event) => update(key, event.target.value)}
+        onFocus={(event) => event.target.select()}
         aria-invalid={invalid}
       />
       <span className="muted small">{label}</span>
@@ -84,8 +84,8 @@ export default function DurationPicker({ seconds, onChange, presets, id }: Props
 }
 
 function formatPreset(seconds: number, t: ReturnType<typeof useLanguage>["t"]): string {
-  const { hours, minutes, seconds: s } = splitDuration(seconds);
+  const { hours, minutes, seconds: currentSeconds } = splitDuration(seconds);
   if (hours) return t("presetHours", { count: hours });
   if (minutes) return t("presetMinutes", { count: minutes });
-  return t("presetSeconds", { count: s });
+  return t("presetSeconds", { count: currentSeconds });
 }

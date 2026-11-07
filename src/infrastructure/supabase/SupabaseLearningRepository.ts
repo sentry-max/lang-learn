@@ -185,7 +185,7 @@ export class SupabaseLearningRepository implements LearningRepository {
           )
         )
       );
-      return results.flat().map(rowToEvent).filter((e): e is ReviewEvent => e !== null);
+      return results.flat().map(rowToEvent).filter((reviewEvent): reviewEvent is ReviewEvent => reviewEvent !== null);
     });
   }
 

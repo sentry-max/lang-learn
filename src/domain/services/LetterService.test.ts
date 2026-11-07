@@ -22,12 +22,12 @@ describe("filterByLetters / countByLetter", () => {
   const words = ["apple", "Anker", "Baum", "خانه"];
 
   it("keeps everything with no letters and filters by any of several letters", () => {
-    expect(filterByLetters(words, (w) => w, [])).toHaveLength(4);
-    expect(filterByLetters(words, (w) => w, ["a", "خ"])).toEqual(["apple", "Anker", "خانه"]);
+    expect(filterByLetters(words, (word) => word, [])).toHaveLength(4);
+    expect(filterByLetters(words, (word) => word, ["a", "خ"])).toEqual(["apple", "Anker", "خانه"]);
   });
 
   it("counts per letter", () => {
-    expect(countByLetter(words, (w) => w)).toEqual([
+    expect(countByLetter(words, (word) => word)).toEqual([
       { letter: "A", count: 2 },
       { letter: "B", count: 1 },
       { letter: "خ", count: 1 },

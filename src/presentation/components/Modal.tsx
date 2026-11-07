@@ -49,9 +49,9 @@ export default function Modal({ title, onClose, children, wide, compact, footer 
     const previousOverflow = document.body.style.overflow;
     document.body.style.overflow = "hidden";
 
-    function handleKeyDown(e: KeyboardEvent) {
-      if (e.key === "Escape") {
-        e.stopPropagation();
+    function handleKeyDown(event: KeyboardEvent) {
+      if (event.key === "Escape") {
+        event.stopPropagation();
         close();
       }
     }
@@ -65,32 +65,32 @@ export default function Modal({ title, onClose, children, wide, compact, footer 
 
   // Drag-to-close for the bottom sheet (touch and pen only, from the header).
   const drag = useRef<{ y: number; dy: number } | null>(null);
-  function onDragStart(e: PointerEvent<HTMLDivElement>) {
-    if (e.pointerType === "mouse" || (e.target as HTMLElement).closest("button")) return;
-    drag.current = { y: e.clientY, dy: 0 };
-    e.currentTarget.setPointerCapture(e.pointerId);
+  function onDragStart(event: PointerEvent<HTMLDivElement>) {
+    if (event.pointerType === "mouse" || (event.target as HTMLElement).closest("button")) return;
+    drag.current = { y: event.clientY, dy: 0 };
+    event.currentTarget.setPointerCapture(event.pointerId);
     if (boxRef.current) boxRef.current.style.transition = "none";
   }
-  function onDragMove(e: PointerEvent<HTMLDivElement>) {
+  function onDragMove(event: PointerEvent<HTMLDivElement>) {
     if (!drag.current || !boxRef.current) return;
-    drag.current.dy = Math.max(0, e.clientY - drag.current.y);
+    drag.current.dy = Math.max(0, event.clientY - drag.current.y);
     boxRef.current.style.transform = `translateY(${drag.current.dy}px)`;
   }
   function onDragEnd() {
-    const dy = drag.current?.dy ?? 0;
+    const deltaY = drag.current?.dy ?? 0;
     drag.current = null;
     const box = boxRef.current;
     if (!box) return;
     box.style.transition = "";
-    if (dy > DISMISS_DRAG_PX) close();
+    if (deltaY > DISMISS_DRAG_PX) close();
     else box.style.transform = "";
   }
 
   return (
     <div
       className={`modal-backdrop${closing ? " closing" : ""}`}
-      onMouseDown={(e) => {
-        if (e.target === e.currentTarget) close();
+      onMouseDown={(event) => {
+        if (event.target === event.currentTarget) close();
       }}
     >
       <div

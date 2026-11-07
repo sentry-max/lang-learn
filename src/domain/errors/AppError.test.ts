@@ -8,15 +8,15 @@ describe("toAppError", () => {
   });
 
   it("recognizes a fetch TypeError as a network error with a clear message", () => {
-    const err = new TypeError("Failed to fetch");
-    const result = toAppError(err);
+    const error = new TypeError("Failed to fetch");
+    const result = toAppError(error);
     expect(result.code).toBe("network");
     expect(result.message).toMatch(/internet connection/i);
   });
 
   it("wraps a plain Error, keeping its message", () => {
-    const err = new Error("Unexpected token in JSON");
-    const result = toAppError(err);
+    const error = new Error("Unexpected token in JSON");
+    const result = toAppError(error);
     expect(result.code).toBe("unknown");
     expect(result.message).toBe("Unexpected token in JSON");
   });

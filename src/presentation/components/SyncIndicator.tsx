@@ -17,8 +17,8 @@ export default function SyncIndicator() {
 
   useEffect(() => {
     if (!open) return;
-    const close = (e: MouseEvent) => !rootRef.current?.contains(e.target as Node) && setOpen(false);
-    const onKey = (e: KeyboardEvent) => e.key === "Escape" && setOpen(false);
+    const close = (event: MouseEvent) => !rootRef.current?.contains(event.target as Node) && setOpen(false);
+    const onKey = (event: KeyboardEvent) => event.key === "Escape" && setOpen(false);
     document.addEventListener("mousedown", close);
     document.addEventListener("keydown", onKey);
     return () => {
@@ -38,7 +38,7 @@ export default function SyncIndicator() {
         aria-label={label}
         title={label}
         aria-expanded={open}
-        onClick={() => setOpen((o) => !o)}
+        onClick={() => setOpen((isOpen) => !isOpen)}
       >
         <Icon name={state === "offline" ? "cloudOff" : "cloud"} size={20} />
         {pending > 0 && <span className="sync-badge">{pending > 99 ? "99+" : pending}</span>}

@@ -61,8 +61,8 @@ export class CachingWordRepository implements WordRepository {
             const words = await inFlight;
             anyAvailable = true;
             return words;
-          } catch (err) {
-            if (!isNetworkError(err)) throw err;
+          } catch (error) {
+            if (!isNetworkError(error)) throw error;
           }
         }
         const entry = this.entries.get(id);
@@ -80,12 +80,12 @@ export class CachingWordRepository implements WordRepository {
     if (this.connectivity.isOnline()) {
       try {
         return await this.inner.getByIds(ids);
-      } catch (err) {
-        if (!isNetworkError(err)) throw err;
+      } catch (error) {
+        if (!isNetworkError(error)) throw error;
       }
     }
     const wanted = new Set(ids);
-    return Array.from(this.entries.values()).flatMap((entry) => entry.words.filter((w) => wanted.has(w.id)));
+    return Array.from(this.entries.values()).flatMap((entry) => entry.words.filter((word) => wanted.has(word.id)));
   }
 
   async saveMany(words: Word[]): Promise<void> {
@@ -93,7 +93,7 @@ export class CachingWordRepository implements WordRepository {
     try {
       await this.inner.saveMany(words);
     } finally {
-      this.invalidate(words.map((w) => w.vocabularyId));
+      this.invalidate(words.map((word) => word.vocabularyId));
     }
   }
 
@@ -102,7 +102,7 @@ export class CachingWordRepository implements WordRepository {
     try {
       await this.inner.softDelete(words);
     } finally {
-      this.invalidate(words.map((w) => w.vocabularyId));
+      this.invalidate(words.map((word) => word.vocabularyId));
     }
   }
 

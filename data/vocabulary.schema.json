@@ -1,7 +1,7 @@
 {
   "$schema": "http://json-schema.org/draft-07/schema#",
   "title": "VocabularyImport",
-  "description": "Array of words importable into one vocabulary. The vocabulary decides the words' language; translations are keyed by language code (de, en, fa). Import the same \"id\" again to update a word.",
+  "description": "Array of words importable into one vocabulary. The vocabulary decides the words' language; translations are keyed by language code (de, en, fa). Import the same \"id\" again to update a word. Store only what is listed here: the app works out every other form when it shows the word (German noun cases and all tenses; English plurals and all tenses).",
   "type": "array",
   "items": {
     "type": "object",
@@ -32,7 +32,7 @@
       },
       "headword": {
         "type": "string",
-        "description": "The word itself, without article, e.g. 'Abend' or 'anfangen'."
+        "description": "The word itself, without article, e.g. 'Abend', 'anfangen', 'sich amüsieren', 'give up'. A leading 'to' on an English verb is ignored."
       },
       "translations": {
         "type": "object",
@@ -65,65 +65,66 @@
       },
       "nounForms": {
         "type": "object",
-        "description": "Optional. 'article' is only used for German (der/die/das).",
+        "description": "Optional. German nouns need 'article' for their case tables and 'plural' for their plural tables. An English noun without a stored plural gets a derived one.",
         "properties": {
           "article": {
             "type": [
               "string",
               "null"
             ],
-            "description": "German: der, die or das"
+            "enum": [
+              "der",
+              "die",
+              "das",
+              null
+            ],
+            "description": "German only: der, die or das. Ignored in languages without articles."
           },
           "plural": {
             "type": [
               "string",
               "null"
             ],
-            "description": "e.g. '-e', '¨-er', or full plural word"
+            "description": "Dictionary notation or the full word: '-e' (Tag → Tage), '-s', '-' (unchanged), '¨-er' (Haus → Häuser), '¨' (Apfel → Äpfel), 'Kinder', 'cacti'. Null: no plural."
           }
         }
       },
       "verbForms": {
         "type": "object",
-        "description": "Required for German verbs, optional otherwise.",
+        "description": "Principal parts the other forms are derived from. Required for German verbs (leave a part out and the tenses built on it are not shown). Optional in English, where missing parts are derived and stored parts win, e.g. { \"simplePast\": \"dreamt\", \"perfect\": \"dreamt\" }.",
         "properties": {
           "infinitive": {
-            "type": "string"
+            "type": "string",
+            "description": "Defaults to the headword, e.g. 'anfangen', 'sich amüsieren'."
           },
           "presentThirdPerson": {
             "type": "string",
-            "description": "e.g. 'fängt an'"
+            "description": "e.g. 'fängt an', 'amüsiert sich', 'goes'. German: the vowel change and a separable prefix are read from this."
           },
           "simplePast": {
             "type": "string",
-            "description": "Präteritum, e.g. 'fing an'"
+            "description": "Third person: 'fing an', 'konnte', 'went'."
           },
           "perfect": {
             "type": "string",
-            "description": "e.g. 'hat angefangen' or 'ist gefahren'"
+            "description": "With or without the auxiliary: 'hat angefangen', 'ist gefahren', 'gone'."
           },
           "passive": {
             "type": [
               "string",
               "null"
             ],
-            "description": "e.g. 'wird gemacht', null if not applicable"
+            "description": "e.g. 'wird gemacht', 'is written'. Any value turns on the passive tables, which are built from the past participle; null or absent means the verb has none."
           },
           "auxiliaryIsSein": {
-            "type": "boolean"
+            "type": "boolean",
+            "description": "German: use 'sein' in the perfect tenses. Also read from a 'perfect' starting with 'ist'."
           },
           "separable": {
-            "type": "boolean"
+            "type": "boolean",
+            "description": "German: separable-prefix verb, e.g. 'anfangen'."
           }
-        },
-        "required": [
-          "infinitive",
-          "presentThirdPerson",
-          "simplePast",
-          "perfect",
-          "auxiliaryIsSein",
-          "separable"
-        ]
+        }
       },
       "sentences": {
         "type": "array",
@@ -138,7 +139,7 @@
             },
             "german": {
               "type": "string",
-              "description": "Accepted as an alias of 'text' (v1 files)"
+              "description": "Older alias of 'text', still accepted on import."
             },
             "translations": {
               "type": "object",

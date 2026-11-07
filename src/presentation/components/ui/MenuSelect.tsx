@@ -25,12 +25,12 @@ export default function MenuSelect<T extends string>({ value, options, onChange,
   const [active, setActive] = useState(0);
   const rootRef = useRef<HTMLDivElement>(null);
   const listId = useId();
-  const current = options.find((o) => o.value === value);
+  const current = options.find((option) => option.value === value);
 
   useEffect(() => {
     if (!open) return;
-    setActive(Math.max(0, options.findIndex((o) => o.value === value)));
-    const close = (e: MouseEvent) => !rootRef.current?.contains(e.target as Node) && setOpen(false);
+    setActive(Math.max(0, options.findIndex((option) => option.value === value)));
+    const close = (event: MouseEvent) => !rootRef.current?.contains(event.target as Node) && setOpen(false);
     document.addEventListener("mousedown", close);
     return () => document.removeEventListener("mousedown", close);
   }, [open]); // eslint-disable-line react-hooks/exhaustive-deps
@@ -40,14 +40,14 @@ export default function MenuSelect<T extends string>({ value, options, onChange,
     setOpen(false);
   }
 
-  function onKeyDown(e: KeyboardEvent) {
-    if (e.key === "Escape") return setOpen(false);
-    if (e.key === "ArrowDown" || e.key === "ArrowUp") {
-      e.preventDefault();
+  function onKeyDown(event: KeyboardEvent) {
+    if (event.key === "Escape") return setOpen(false);
+    if (event.key === "ArrowDown" || event.key === "ArrowUp") {
+      event.preventDefault();
       if (!open) return setOpen(true);
-      setActive((i) => (i + (e.key === "ArrowDown" ? 1 : options.length - 1)) % options.length);
-    } else if ((e.key === "Enter" || e.key === " ") && open) {
-      e.preventDefault();
+      setActive((index) => (index + (event.key === "ArrowDown" ? 1 : options.length - 1)) % options.length);
+    } else if ((event.key === "Enter" || event.key === " ") && open) {
+      event.preventDefault();
       choose(options[active]);
     }
   }
@@ -61,7 +61,7 @@ export default function MenuSelect<T extends string>({ value, options, onChange,
         aria-expanded={open}
         aria-controls={listId}
         aria-label={ariaLabel}
-        onClick={() => setOpen((o) => !o)}
+        onClick={() => setOpen((isOpen) => !isOpen)}
       >
         {icon && <Icon name={icon} size={16} />}
         <span>{current?.label}</span>
@@ -69,13 +69,13 @@ export default function MenuSelect<T extends string>({ value, options, onChange,
       </button>
       {open && (
         <ul className="menu-select-list" role="listbox" id={listId} aria-label={ariaLabel}>
-          {options.map((option, i) => (
+          {options.map((option, index) => (
             <li
               key={option.value}
               role="option"
               aria-selected={option.value === value}
-              className={`menu-select-option${i === active ? " active" : ""}`}
-              onMouseEnter={() => setActive(i)}
+              className={`menu-select-option${index === active ? " active" : ""}`}
+              onMouseEnter={() => setActive(index)}
               onClick={() => choose(option)}
             >
               <span>{option.label}</span>

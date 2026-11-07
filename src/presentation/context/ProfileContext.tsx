@@ -38,7 +38,7 @@ export function ProfileProvider({ children }: { children: ReactNode }) {
         setLanguage(loaded.uiLanguage);
         applyAppearance(loaded.preferences);
       })
-      .catch((err) => active && setError(errorMessage(err, "profileLoadError")));
+      .catch((error) => active && setError(errorMessage(error, "profileLoadError")));
     return () => {
       active = false;
     };
@@ -75,7 +75,7 @@ export function ProfileProvider({ children }: { children: ReactNode }) {
   if (error) {
     return (
       <div className="app-main">
-        <ErrorBanner message={error} onRetry={() => setAttempt((n) => n + 1)} />
+        <ErrorBanner message={error} onRetry={() => setAttempt((count) => count + 1)} />
       </div>
     );
   }
@@ -84,7 +84,7 @@ export function ProfileProvider({ children }: { children: ReactNode }) {
 }
 
 export function useProfile(): ProfileState {
-  const ctx = useContext(ProfileContext);
-  if (!ctx) throw new Error("useProfile must be used within a ProfileProvider");
-  return ctx;
+  const context = useContext(ProfileContext);
+  if (!context) throw new Error("useProfile must be used within a ProfileProvider");
+  return context;
 }

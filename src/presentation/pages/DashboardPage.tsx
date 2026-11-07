@@ -27,17 +27,17 @@ export default function DashboardPage() {
       </div>
     );
   }
-  const s = stats.data;
-  const roundPercent = s.totalWords === 0 ? 0 : Math.round((s.seenThisRound / s.totalWords) * 100);
+  const currentStats = stats.data;
+  const roundPercent = currentStats.totalWords === 0 ? 0 : Math.round((currentStats.seenThisRound / currentStats.totalWords) * 100);
 
   return (
     <div className="app-main">
       <div className="stat-grid">
-        <Stat value={formatNumber(s.totalWords, language)} label={t("totalWords")} />
-        <Stat value={formatNumber(s.wordsStarted, language)} label={t("wordsPracticed")} />
-        <Stat value={formatNumber(s.dueToday, language)} label={t("dueToday")} />
+        <Stat value={formatNumber(currentStats.totalWords, language)} label={t("totalWords")} />
+        <Stat value={formatNumber(currentStats.wordsStarted, language)} label={t("wordsPracticed")} />
+        <Stat value={formatNumber(currentStats.dueToday, language)} label={t("dueToday")} />
         <Stat
-          value={s.overallAccuracy === null ? "—" : `${formatNumber(Math.round(s.overallAccuracy * 100), language)}%`}
+          value={currentStats.overallAccuracy === null ? "—" : `${formatNumber(Math.round(currentStats.overallAccuracy * 100), language)}%`}
           label={t("overallAccuracy")}
         />
       </div>
@@ -47,19 +47,19 @@ export default function DashboardPage() {
         <div className="progress-bar large" aria-hidden="true">
           <div style={{ width: `${roundPercent}%` }} />
         </div>
-        <p className="muted">{t("roundProgressBody", { seen: s.seenThisRound, total: s.totalWords })}</p>
+        <p className="muted">{t("roundProgressBody", { seen: currentStats.seenThisRound, total: currentStats.totalWords })}</p>
         <div className="summary-grid">
-          {DIFFICULTY_RATINGS.map((r) => (
-            <div key={r} className={`summary-cell rating-pill ${r}`}>
-              <strong>{formatNumber(s.byLastRating[r], language)}</strong>
-              <span>{t(RATING_KEYS[r])}</span>
+          {DIFFICULTY_RATINGS.map((rating) => (
+            <div key={rating} className={`summary-cell rating-pill ${rating}`}>
+              <strong>{formatNumber(currentStats.byLastRating[rating], language)}</strong>
+              <span>{t(RATING_KEYS[rating])}</span>
             </div>
           ))}
         </div>
       </div>
 
-      <WordList title={t("weakestWords")} words={s.weakestWords} />
-      <WordList title={t("strongestWords")} words={s.strongestWords} />
+      <WordList title={t("weakestWords")} words={currentStats.weakestWords} />
+      <WordList title={t("strongestWords")} words={currentStats.strongestWords} />
     </div>
   );
 }
@@ -79,11 +79,11 @@ function WordList({ title, words }: { title: string; words: WordStat[] }) {
     <div className="card">
       <h3 style={{ marginTop: 0 }}>{title}</h3>
       {words.length === 0 && <p className="muted">{t("noDataYet")}</p>}
-      {words.map((w) => (
-        <div className="word-list-item" key={w.word.id}>
-          <span dir="auto">{displayForm(w.word)}</span>
+      {words.map((stat) => (
+        <div className="word-list-item" key={stat.word.id}>
+          <span dir="auto">{displayForm(stat.word)}</span>
           <span className="muted">
-            {w.accuracy === null ? "—" : `${formatNumber(Math.round(w.accuracy * 100), language)}%`}
+            {stat.accuracy === null ? "—" : `${formatNumber(Math.round(stat.accuracy * 100), language)}%`}
           </span>
         </div>
       ))}

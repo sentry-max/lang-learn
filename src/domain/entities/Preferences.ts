@@ -77,15 +77,15 @@ export function clampAdvanceDelay(value: number, fallback: number): number {
 }
 
 function clampNumber(value: unknown, min: number, max: number, fallback: number): number {
-  const n = typeof value === "number" ? value : Number(value);
-  if (value === undefined || value === null || !Number.isFinite(n)) return fallback;
-  return Math.min(max, Math.max(min, Math.round(n * 100) / 100));
+  const parsed = typeof value === "number" ? value : Number(value);
+  if (value === undefined || value === null || !Number.isFinite(parsed)) return fallback;
+  return Math.min(max, Math.max(min, Math.round(parsed * 100) / 100));
 }
 
 /** Coerces stored/unknown preferences into valid ones, filling gaps with defaults. */
 export function normalizePreferences(value: unknown): Preferences {
   const raw = (typeof value === "object" && value !== null ? value : {}) as Record<string, unknown>;
-  const d = DEFAULT_PREFERENCES;
+  const defaults = DEFAULT_PREFERENCES;
   const bool = (key: keyof Preferences, fallback: boolean) => (typeof raw[key] === "boolean" ? (raw[key] as boolean) : fallback);
 
   const rawBehavior = (typeof raw.ratingBehavior === "object" && raw.ratingBehavior !== null
@@ -93,35 +93,35 @@ export function normalizePreferences(value: unknown): Preferences {
     : {}) as Record<string, unknown>;
   const ratingBehavior = {} as Record<DifficultyRating, RatingBehavior>;
   for (const rating of DIFFICULTY_RATINGS) {
-    const fallback = d.ratingBehavior[rating];
-    const r = (typeof rawBehavior[rating] === "object" && rawBehavior[rating] !== null
+    const fallback = defaults.ratingBehavior[rating];
+    const raw = (typeof rawBehavior[rating] === "object" && rawBehavior[rating] !== null
       ? rawBehavior[rating]
       : {}) as Record<string, unknown>;
     ratingBehavior[rating] = {
-      showAnswer: typeof r.showAnswer === "boolean" ? r.showAnswer : fallback.showAnswer,
-      autoAdvance: typeof r.autoAdvance === "boolean" ? r.autoAdvance : fallback.autoAdvance,
-      delaySeconds: clampAdvanceDelay(Number(r.delaySeconds ?? fallback.delaySeconds), fallback.delaySeconds),
+      showAnswer: typeof raw.showAnswer === "boolean" ? raw.showAnswer : fallback.showAnswer,
+      autoAdvance: typeof raw.autoAdvance === "boolean" ? raw.autoAdvance : fallback.autoAdvance,
+      delaySeconds: clampAdvanceDelay(Number(raw.delaySeconds ?? fallback.delaySeconds), fallback.delaySeconds),
     };
   }
 
   return {
-    theme: THEME_PREFERENCES.includes(raw.theme as ThemePreference) ? (raw.theme as ThemePreference) : d.theme,
+    theme: THEME_PREFERENCES.includes(raw.theme as ThemePreference) ? (raw.theme as ThemePreference) : defaults.theme,
     fontSize: FONT_SIZE_PREFERENCES.includes(raw.fontSize as FontSizePreference)
       ? (raw.fontSize as FontSizePreference)
-      : d.fontSize,
-    reduceMotion: bool("reduceMotion", d.reduceMotion),
-    liquidGlass: bool("liquidGlass", d.liquidGlass),
+      : defaults.fontSize,
+    reduceMotion: bool("reduceMotion", defaults.reduceMotion),
+    liquidGlass: bool("liquidGlass", defaults.liquidGlass),
     ratingBehavior,
-    autoShowHint: bool("autoShowHint", d.autoShowHint),
-    soundEffects: bool("soundEffects", d.soundEffects),
-    soundVolume: clampNumber(raw.soundVolume, 0, 1, d.soundVolume),
-    haptics: bool("haptics", d.haptics),
-    autoPronounce: bool("autoPronounce", d.autoPronounce),
-    speechRate: clampNumber(raw.speechRate, 0.5, 1.5, d.speechRate),
-    keyboardShortcuts: bool("keyboardShortcuts", d.keyboardShortcuts),
-    continuousAdd: bool("continuousAdd", d.continuousAdd),
+    autoShowHint: bool("autoShowHint", defaults.autoShowHint),
+    soundEffects: bool("soundEffects", defaults.soundEffects),
+    soundVolume: clampNumber(raw.soundVolume, 0, 1, defaults.soundVolume),
+    haptics: bool("haptics", defaults.haptics),
+    autoPronounce: bool("autoPronounce", defaults.autoPronounce),
+    speechRate: clampNumber(raw.speechRate, 0.5, 1.5, defaults.speechRate),
+    keyboardShortcuts: bool("keyboardShortcuts", defaults.keyboardShortcuts),
+    continuousAdd: bool("continuousAdd", defaults.continuousAdd),
     defaultVocabularyIds: Array.isArray(raw.defaultVocabularyIds)
-      ? Array.from(new Set(raw.defaultVocabularyIds.filter((v): v is string => typeof v === "string"))).slice(0, 200)
+      ? Array.from(new Set(raw.defaultVocabularyIds.filter((value): value is string => typeof value === "string"))).slice(0, 200)
       : [],
   };
 }

@@ -5,6 +5,7 @@ import { QuizItem } from "@domain/services/QuizSession";
 import { useLanguage } from "@presentation/context/LanguageContext";
 import Icon from "@presentation/components/ui/Icon";
 import { RATING_KEYS } from "@presentation/components/RatingPill";
+import { WordDetailsBody } from "@presentation/components/WordFormsDetail";
 import { canSpeak } from "@presentation/speech";
 
 export interface CardFeedback {
@@ -20,6 +21,8 @@ interface Props {
   hintOpen: boolean;
   onShowHint: () => void;
   onPronounce: () => void;
+  /** The user opened or tapped the answer's details, so they want time to read it. */
+  onDetailsTapped: () => void;
   feedback: CardFeedback | null;
   showShortcuts: boolean;
 }
@@ -31,6 +34,7 @@ export default function QuizCard({
   hintOpen,
   onShowHint,
   onPronounce,
+  onDetailsTapped,
   feedback,
   showShortcuts,
 }: Props) {
@@ -120,12 +124,9 @@ export default function QuizCard({
                   <span className="muted">{t("meaning")}</span> <strong>{target.values.join("، ")}</strong>
                 </p>
               )}
-              {sentence && (
-                <p className="answer-example">
-                  {sentence.text}
-                  {sentenceTranslation?.value ? <span className="muted"> — {sentenceTranslation.value}</span> : null}
-                </p>
-              )}
+              <div onClick={onDetailsTapped}>
+                <WordDetailsBody word={word} sourceLanguage={sourceLanguage} primaryLanguage={primaryLanguage} />
+              </div>
             </div>
           )}
           {feedback.willRetry && (

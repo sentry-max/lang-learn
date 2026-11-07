@@ -14,32 +14,32 @@ export function useSwipe<T extends HTMLElement>(onSwipe: () => void, enabled: bo
 
   function reset() {
     start.current = null;
-    const el = ref.current;
-    if (!el) return;
-    el.style.transition = "transform 180ms ease";
-    el.style.transform = "";
+    const element = ref.current;
+    if (!element) return;
+    element.style.transition = "transform 180ms ease";
+    element.style.transform = "";
   }
 
   return {
     ref,
-    onPointerDown(e: PointerEvent<T>) {
-      if (!enabled || e.pointerType === "mouse") return;
-      start.current = { x: e.clientX, y: e.clientY };
+    onPointerDown(event: PointerEvent<T>) {
+      if (!enabled || event.pointerType === "mouse") return;
+      start.current = { x: event.clientX, y: event.clientY };
       if (ref.current) ref.current.style.transition = "none";
     },
-    onPointerMove(e: PointerEvent<T>) {
-      const s = start.current;
-      if (!s || !ref.current) return;
-      const dx = e.clientX - s.x;
-      if (Math.abs(dx) > Math.abs(e.clientY - s.y)) ref.current.style.transform = `translateX(${dx * 0.4}px)`;
+    onPointerMove(event: PointerEvent<T>) {
+      const seconds = start.current;
+      if (!seconds || !ref.current) return;
+      const deltaX = event.clientX - seconds.x;
+      if (Math.abs(deltaX) > Math.abs(event.clientY - seconds.y)) ref.current.style.transform = `translateX(${deltaX * 0.4}px)`;
     },
-    onPointerUp(e: PointerEvent<T>) {
-      const s = start.current;
+    onPointerUp(event: PointerEvent<T>) {
+      const seconds = start.current;
       reset();
-      if (!s || !enabled) return;
-      const dx = e.clientX - s.x;
-      const dy = e.clientY - s.y;
-      if (Math.abs(dx) >= MIN_DISTANCE_PX && Math.abs(dx) > Math.abs(dy) * 1.5) onSwipe();
+      if (!seconds || !enabled) return;
+      const deltaX = event.clientX - seconds.x;
+      const deltaY = event.clientY - seconds.y;
+      if (Math.abs(deltaX) >= MIN_DISTANCE_PX && Math.abs(deltaX) > Math.abs(deltaY) * 1.5) onSwipe();
     },
     onPointerCancel: reset,
   };

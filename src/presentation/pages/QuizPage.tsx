@@ -115,17 +115,17 @@ export default function QuizPage() {
 
   const finish = useCallback(
     (reason: EndReason | null) => {
-      const q = quizRef.current;
-      if (!q || q.endedAt !== null) return;
-      const session = reason ? endSession(q.session, reason) : q.session;
-      setQuiz({ ...q, session, endedAt: Date.now() });
+      const activeQuiz = quizRef.current;
+      if (!activeQuiz || activeQuiz.endedAt !== null) return;
+      const session = reason ? endSession(activeQuiz.session, reason) : activeQuiz.session;
+      setQuiz({ ...activeQuiz, session, endedAt: Date.now() });
       setShown(null);
       setWordDeadline(null);
       setStage("done");
       stopSpeaking();
       const summary = summarize(session);
       cue(reason === "time_up" ? "timeout" : summary.successRate && summary.successRate >= 0.7 ? "complete" : "success");
-      if (q.sessionId) completeQuizSession.execute(user.id, q.sessionId).catch(() => {});
+      if (activeQuiz.sessionId) completeQuizSession.execute(user.id, activeQuiz.sessionId).catch(() => {});
     },
     [completeQuizSession, soundOn, preferences.soundVolume, preferences.haptics, setQuiz, user.id] // eslint-disable-line react-hooks/exhaustive-deps
   );
@@ -152,8 +152,8 @@ export default function QuizPage() {
         quizDeadline: settings.timerMode === "quiz" ? now + settings.quizTimerSeconds * 1000 : null,
       });
       setStage(generated.items.length === 0 ? "empty" : "running");
-    } catch (err) {
-      setError(errorMessage(err, "quizLoadError"));
+    } catch (error) {
+      setError(errorMessage(error, "quizLoadError"));
       setStage("settings");
     }
   }
@@ -173,9 +173,9 @@ export default function QuizPage() {
   // ------------------------------------------------------------- answering
 
   async function rate(rating: DifficultyRating, timedOut = false) {
-    const q = quizRef.current;
-    const item = q ? currentItem(q.session) : null;
-    if (!q || !item || shown || savingRef.current) return;
+    const activeQuiz = quizRef.current;
+    const item = activeQuiz ? currentItem(activeQuiz.session) : null;
+    if (!activeQuiz || !item || shown || savingRef.current) return;
     savingRef.current = true;
     setSaving(true);
     setError(null);
@@ -187,7 +187,7 @@ export default function QuizPage() {
       const previous = progressRef.current.has(item.word.id) ? progressRef.current.get(item.word.id)! : undefined;
       const updated = await submitAnswer.execute({
         userId: user.id,
-        sessionId: q.sessionId,
+        sessionId: activeQuiz.sessionId,
         wordId: item.word.id,
         mode: item.mode,
         rating,
@@ -196,8 +196,8 @@ export default function QuizPage() {
         previous,
       });
       progressRef.current.set(item.word.id, updated);
-    } catch (err) {
-      setError(errorMessage(err, "saveAnswerError"));
+    } catch (error) {
+      setError(errorMessage(error, "saveAnswerError"));
       if (timerMode === "word") setWordDeadline(Date.now() + wordLimitMs);
       return;
     } finally {
@@ -233,9 +233,9 @@ export default function QuizPage() {
   }
 
   const next = useCallback(() => {
-    const q = quizRef.current;
+    const activeQuiz = quizRef.current;
     setShown(null);
-    if (q && isFinished(q.session)) finish(null);
+    if (activeQuiz && isFinished(activeQuiz.session)) finish(null);
   }, [finish]);
 
   // ---------------------------------------------------------------- timers
@@ -274,26 +274,26 @@ export default function QuizPage() {
 
   useEffect(() => {
     if (stage !== "running" || !preferences.keyboardShortcuts) return;
-    function onKey(e: KeyboardEvent) {
-      if (paused || e.metaKey || e.ctrlKey || e.altKey) return;
-      const target = e.target as HTMLElement;
-      if (target.closest("input, textarea, select, .modal-backdrop")) return;
+    function onKey(event: KeyboardEvent) {
+      if (paused || event.metaKey || event.ctrlKey || event.altKey) return;
+      const target = event.target as HTMLElement;
+      if (target.closest("input, textarea, select, summary, .modal-backdrop")) return;
       if (shown) {
-        if (e.key === "Enter" || e.key === " " || e.key === "ArrowRight" || e.key === "ArrowLeft") {
-          e.preventDefault();
+        if (event.key === "Enter" || event.key === " " || event.key === "ArrowRight" || event.key === "ArrowLeft") {
+          event.preventDefault();
           next();
         }
         return;
       }
-      const n = Number(e.key);
-      if (n >= 1 && n <= 5) {
-        e.preventDefault();
-        rate(DIFFICULTY_RATINGS[n - 1]);
-      } else if (e.key.toLowerCase() === "h") {
+      const digit = Number(event.key);
+      if (digit >= 1 && digit <= 5) {
+        event.preventDefault();
+        rate(DIFFICULTY_RATINGS[digit - 1]);
+      } else if (event.key.toLowerCase() === "h") {
         setHintOpen(true);
-      } else if (e.key.toLowerCase() === "p" && current && current.mode !== "target_to_source") {
+      } else if (event.key.toLowerCase() === "p" && current && current.mode !== "target_to_source") {
         say(current.word.headword, current.sourceLanguage);
-      } else if (e.key === "Escape") {
+      } else if (event.key === "Escape") {
         requestExit();
       }
     }
@@ -408,6 +408,7 @@ export default function QuizPage() {
             hintOpen={hintOpen}
             onShowHint={() => setHintOpen(true)}
             onPronounce={() => say(displayed.word.headword, displayed.sourceLanguage)}
+            onDetailsTapped={() => setShown((visible) => visible && { ...visible, advanceAt: null })}
             feedback={shown}
             showShortcuts={false}
           />
@@ -427,7 +428,7 @@ export default function QuizPage() {
           </div>
         ) : (
           <>
-            <DifficultyRatingPicker value={null} onChange={(r) => rate(r)} disabled={saving} />
+            <DifficultyRatingPicker value={null} onChange={(rating) => rate(rating)} disabled={saving} />
             {preferences.keyboardShortcuts && <p className="shortcut-tip muted small">{t("shortcutTip")}</p>}
           </>
         )}

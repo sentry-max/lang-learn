@@ -193,6 +193,36 @@ It's saved with the rest of your settings (the `liquidGlass` preference). With
 the system's "Reduce transparency" setting on, surfaces become solid and the
 blur is turned off.
 
+## Word forms
+
+When the answer is revealed in a quiz, and when you open a word in a
+vocabulary, the app shows everything about the word: its type, level, meaning,
+every example sentence, its tags and all of its forms.
+
+- **German nouns**: the plural, then nominative, accusative and dative in the
+  singular and plural, each with its definite, indefinite and negative article
+  (`der Student · ein Student · kein Student`, `den Studenten · einen Studenten ·
+  keinen Studenten`), including the n-declension and the dative plural `-n`.
+- **German verbs**: Präsens, Präteritum, Perfekt, Plusquamperfekt, Futur I and
+  II, Konjunktiv I and II, Imperativ and the passive, for every person (ich, du,
+  er, sie, es, wir, ihr, sie, Sie), with separable prefixes and reflexive pronouns
+  in the right place (dative `mir`/`dir` when the verb also takes an object, as in
+  `sich etwas merken`). Each verb also shows the personal pronouns in the
+  nominative, accusative and dative (`ich · mich · mir`).
+- **English nouns**: the plural.
+- **English verbs**: all twelve tenses, the conditionals, the imperative and the
+  passive, for every person.
+
+Forms are worked out from what each word already stores (the article and plural,
+or the principal parts), so nothing extra is imported or migrated. English verbs
+and plurals with nothing stored are derived from rules and a list of irregular
+words. Forms stored on a word always win; a missing or blank field just hides
+what depends on it (no simple past → no Präteritum table). Tapping the details stops the automatic
+move to the next word, so there is time to read them.
+
+Code: `src/domain/services/WordInflectionService.ts`. Persian words show a stored
+plural only.
+
 ## Vocabularies
 
 - **Create**: title (required) and description (optional), the words'
@@ -204,8 +234,8 @@ blur is turned off.
   draft vocabulary is created (`VocabularyPlacementService`).
 - **Feed**: search, filter by language, sort by rating/downloads/newest;
   download, open, rate and review.
-- JSON format: see `data/vocabulary.schema.json` and
-  `data/vocabulary.sample.json`. Re-importing a word with the same `id`
+- JSON format: see `data/vocabulary.schema.json`, `data/vocabulary.sample.json`
+  (German) and `data/vocabulary.sample.en.json` (English). Re-importing a word with the same `id`
   updates it; the same word type + headword under a different id is skipped
   as a duplicate.
 
@@ -231,7 +261,8 @@ soft: history is archived, not deleted.
 4. `cp .env.example .env` and fill in `VITE_SUPABASE_URL` and
    `VITE_SUPABASE_ANON_KEY`.
 5. `npm install && npm run dev`, sign up, create a vocabulary and import
-   `data/vocabulary.sample.json`.
+   `data/vocabulary.sample.json` (word language German) or
+   `data/vocabulary.sample.en.json` (word language English).
 
 Note: `profiles.id` references `auth.users` with `on delete restrict`, so a
 user who has data can't be removed from the Supabase dashboard by accident.

@@ -49,23 +49,23 @@ export default function FeedPage() {
         vocabularies.browse({ search, language: sourceLanguage || undefined, sort, page, pageSize: PAGE_SIZE })
       )
     );
-    return { items: results.flatMap((r) => r.items), total: results[0]?.total ?? 0 };
+    return { items: results.flatMap((page) => page.items), total: results[0]?.total ?? 0 };
   }, [search, sourceLanguage, sort, pages, version]);
   const downloaded = useAsync(() => vocabularies.listDownloadedIds(user.id), [user.id, version]);
 
-  async function toggleDownload(v: Vocabulary) {
-    setBusyId(v.id);
+  async function toggleDownload(vocabulary: Vocabulary) {
+    setBusyId(vocabulary.id);
     setError(null);
     try {
-      if (downloaded.data?.has(v.id)) await vocabularies.removeDownload(user.id, v.id);
+      if (downloaded.data?.has(vocabulary.id)) await vocabularies.removeDownload(user.id, vocabulary.id);
       else {
-        await vocabularies.download(user.id, v);
+        await vocabularies.download(user.id, vocabulary);
         // Load its words now, so it's usable if the connection drops later.
         prepareOffline.execute(user.id).catch(() => {});
       }
       await Promise.all([downloaded.reload(), feed.reload()]);
-    } catch (err) {
-      setError(errorMessage(err, "downloadError"));
+    } catch (error) {
+      setError(errorMessage(error, "downloadError"));
     } finally {
       setBusyId(null);
     }
@@ -92,13 +92,13 @@ export default function FeedPage() {
           placeholder={t("feedSearchPlaceholder")}
           value={searchInput}
           maxLength={100}
-          onChange={(e) => setSearchInput(e.target.value)}
+          onChange={(event) => setSearchInput(event.target.value)}
         />
         <select
           aria-label={t("wordsLanguageLabel")}
           value={sourceLanguage}
-          onChange={(e) => {
-            setSourceLanguage(e.target.value as LanguageCode | "");
+          onChange={(event) => {
+            setSourceLanguage(event.target.value as LanguageCode | "");
             setPages(1);
           }}
         >
@@ -112,8 +112,8 @@ export default function FeedPage() {
         <select
           aria-label={t("sortLabel")}
           value={sort}
-          onChange={(e) => {
-            setSort(e.target.value as FeedSort);
+          onChange={(event) => {
+            setSort(event.target.value as FeedSort);
             setPages(1);
           }}
         >
@@ -129,32 +129,32 @@ export default function FeedPage() {
       {feed.data && items.length === 0 && <div className="card center-text muted">{t("feedEmpty")}</div>}
 
       <div className="card-grid">
-        {items.map((v) => {
-          const isOwn = v.ownerId === user.id;
-          const isDownloaded = downloaded.data?.has(v.id) ?? false;
+        {items.map((vocabulary) => {
+          const isOwn = vocabulary.ownerId === user.id;
+          const isDownloaded = downloaded.data?.has(vocabulary.id) ?? false;
           return (
-            <article key={v.id} className="card vocab-card">
-              <button type="button" className="vocab-card-title" onClick={() => navigate(`/vocabularies/${v.id}`)}>
-                <h3 dir="auto">{v.name}</h3>
+            <article key={vocabulary.id} className="card vocab-card">
+              <button type="button" className="vocab-card-title" onClick={() => navigate(`/vocabularies/${vocabulary.id}`)}>
+                <h3 dir="auto">{vocabulary.name}</h3>
               </button>
-              {v.description && (
+              {vocabulary.description && (
                 <p className="description clamp" dir="auto">
-                  {v.description}
+                  {vocabulary.description}
                 </p>
               )}
               <div className="meta-line">
-                <LanguagePair vocabulary={v} />
-                <span className="muted small">{t("wordCountLabel", { count: formatNumber(v.wordCount, language) })}</span>
+                <LanguagePair vocabulary={vocabulary} />
+                <span className="muted small">{t("wordCountLabel", { count: formatNumber(vocabulary.wordCount, language) })}</span>
               </div>
               <div className="meta-line">
-                <StarDisplay value={v.ratingAvg} count={v.ratingCount} />
-                <span className="muted small icon-text"><Icon name="download" size={14} /> {formatNumber(v.downloadCount, language)}</span>
+                <StarDisplay value={vocabulary.ratingAvg} count={vocabulary.ratingCount} />
+                <span className="muted small icon-text"><Icon name="download" size={14} /> {formatNumber(vocabulary.downloadCount, language)}</span>
               </div>
               <p className="muted small">
-                {t("byAuthor", { name: v.ownerName ?? t("unknownUser") })} · {formatDate(v.publishedAt ?? v.updatedAt, language)}
+                {t("byAuthor", { name: vocabulary.ownerName ?? t("unknownUser") })} · {formatDate(vocabulary.publishedAt ?? vocabulary.updatedAt, language)}
               </p>
               <div className="button-row">
-                <button className="btn btn-secondary btn-small" onClick={() => navigate(`/vocabularies/${v.id}`)}>
+                <button className="btn btn-secondary btn-small" onClick={() => navigate(`/vocabularies/${vocabulary.id}`)}>
                   {t("view")}
                 </button>
                 {isOwn ? (
@@ -162,8 +162,8 @@ export default function FeedPage() {
                 ) : (
                   <button
                     className={`btn btn-small${isDownloaded ? " btn-secondary" : ""}`}
-                    disabled={busyId === v.id}
-                    onClick={() => toggleDownload(v)}
+                    disabled={busyId === vocabulary.id}
+                    onClick={() => toggleDownload(vocabulary)}
                   >
                     <Icon name={isDownloaded ? "check" : "download"} size={16} /> {isDownloaded ? t("downloaded") : t("download")}
                   </button>
@@ -175,7 +175,7 @@ export default function FeedPage() {
       </div>
 
       {feed.data && items.length < feed.data.total && (
-        <button className="btn btn-secondary btn-block" disabled={feed.loading} onClick={() => setPages((p) => p + 1)}>
+        <button className="btn btn-secondary btn-block" disabled={feed.loading} onClick={() => setPages((pageCount) => pageCount + 1)}>
           {feed.loading ? <Spinner /> : t("loadMore")}
         </button>
       )}

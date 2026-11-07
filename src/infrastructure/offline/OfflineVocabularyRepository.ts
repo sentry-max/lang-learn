@@ -37,11 +37,11 @@ export class OfflineVocabularyRepository implements VocabularyRepository {
   async getById(id: string): Promise<Vocabulary | null> {
     try {
       return await this.cache.read(`vocabulary:${id}`, () => this.inner.getById(id));
-    } catch (err) {
+    } catch (error) {
       // Offline: any list loaded earlier may already contain it.
-      const known = this.knownVocabularies().find((v) => v.id === id);
-      if (known && isNetworkError(err)) return known;
-      throw err;
+      const known = this.knownVocabularies().find((vocabulary) => vocabulary.id === id);
+      if (known && isNetworkError(error)) return known;
+      throw error;
     }
   }
 

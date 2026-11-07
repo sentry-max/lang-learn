@@ -31,14 +31,14 @@ export default function VocabularyPicker({ vocabularies, selected, onChange, cur
 
   const selectedSet = useMemo(() => new Set(selected), [selected]);
   const filtered = useMemo(() => {
-    const q = query.trim().toLocaleLowerCase();
-    if (!q) return vocabularies;
+    const currentQuery = query.trim().toLocaleLowerCase();
+    if (!currentQuery) return vocabularies;
     return vocabularies.filter(
-      (v) => v.name.toLocaleLowerCase().includes(q) || (v.ownerName ?? "").toLocaleLowerCase().includes(q)
+      (vocabulary) => vocabulary.name.toLocaleLowerCase().includes(currentQuery) || (vocabulary.ownerName ?? "").toLocaleLowerCase().includes(currentQuery)
     );
   }, [vocabularies, query]);
 
-  const allFilteredSelected = filtered.length > 0 && filtered.every((v) => selectedSet.has(v.id));
+  const allFilteredSelected = filtered.length > 0 && filtered.every((vocabulary) => selectedSet.has(vocabulary.id));
 
   useEffect(() => {
     if (!open) {
@@ -46,7 +46,7 @@ export default function VocabularyPicker({ vocabularies, selected, onChange, cur
       return;
     }
     setActive(0);
-    const close = (e: MouseEvent) => !rootRef.current?.contains(e.target as Node) && setOpen(false);
+    const close = (event: MouseEvent) => !rootRef.current?.contains(event.target as Node) && setOpen(false);
     document.addEventListener("mousedown", close);
     return () => document.removeEventListener("mousedown", close);
   }, [open]);
@@ -59,7 +59,7 @@ export default function VocabularyPicker({ vocabularies, selected, onChange, cur
       : selected.length === vocabularies.length
       ? t("allVocabularies", { count: vocabularies.length })
       : selected.length === 1
-      ? vocabularies.find((v) => v.id === selected[0])?.name ?? ""
+      ? vocabularies.find((vocabulary) => vocabulary.id === selected[0])?.name ?? ""
       : t("vocabulariesSelected", { count: selected.length });
 
   function chooseOnly(id: string) {
@@ -69,27 +69,27 @@ export default function VocabularyPicker({ vocabularies, selected, onChange, cur
   }
 
   function toggle(id: string) {
-    onChange(selectedSet.has(id) ? selected.filter((x) => x !== id) : [...selected, id]);
+    onChange(selectedSet.has(id) ? selected.filter((selectedId) => selectedId !== id) : [...selected, id]);
   }
 
   function toggleAllFiltered() {
-    const ids = filtered.map((v) => v.id);
+    const ids = filtered.map((vocabulary) => vocabulary.id);
     onChange(
       allFilteredSelected ? selected.filter((id) => !ids.includes(id)) : Array.from(new Set([...selected, ...ids]))
     );
   }
 
-  function onKeyDown(e: KeyboardEvent) {
-    if (e.key === "Escape") {
+  function onKeyDown(event: KeyboardEvent) {
+    if (event.key === "Escape") {
       setOpen(false);
       return;
     }
-    if (e.key === "ArrowDown" || e.key === "ArrowUp") {
-      e.preventDefault();
+    if (event.key === "ArrowDown" || event.key === "ArrowUp") {
+      event.preventDefault();
       setOpen(true);
-      if (filtered.length) setActive((i) => (i + (e.key === "ArrowDown" ? 1 : filtered.length - 1)) % filtered.length);
-    } else if (e.key === "Enter" && open && filtered[active]) {
-      e.preventDefault();
+      if (filtered.length) setActive((index) => (index + (event.key === "ArrowDown" ? 1 : filtered.length - 1)) % filtered.length);
+    } else if (event.key === "Enter" && open && filtered[active]) {
+      event.preventDefault();
       chooseOnly(filtered[active].id);
     }
   }
@@ -110,9 +110,9 @@ export default function VocabularyPicker({ vocabularies, selected, onChange, cur
           value={open ? query : summary}
           placeholder={open ? t("searchVocabularies") : placeholder ?? t("chooseVocabularies")}
           onFocus={() => setOpen(true)}
-          onChange={(e) => {
+          onChange={(event) => {
             setOpen(true);
-            setQuery(e.target.value);
+            setQuery(event.target.value);
           }}
           onKeyDown={onKeyDown}
         />
@@ -122,9 +122,9 @@ export default function VocabularyPicker({ vocabularies, selected, onChange, cur
           className="combobox-arrow"
           tabIndex={-1}
           aria-label={t("quizVocabulariesLabel")}
-          onMouseDown={(e) => e.preventDefault()}
-          onClick={(e) => {
-            e.stopPropagation();
+          onMouseDown={(event) => event.preventDefault()}
+          onClick={(event) => {
+            event.stopPropagation();
             if (open) {
               setOpen(false);
               inputRef.current?.blur();
@@ -145,27 +145,27 @@ export default function VocabularyPicker({ vocabularies, selected, onChange, cur
               <span>{query ? t("selectAllMatches", { count: filtered.length }) : t("selectAll")}</span>
             </label>
           )}
-          {filtered.map((v, i) => (
+          {filtered.map((vocabulary, index) => (
             <div
-              key={v.id}
+              key={vocabulary.id}
               role="option"
-              aria-selected={selectedSet.has(v.id)}
-              className={`dropdown-item${i === active ? " active" : ""}${selectedSet.has(v.id) ? " checked" : ""}`}
-              onMouseEnter={() => setActive(i)}
+              aria-selected={selectedSet.has(vocabulary.id)}
+              className={`dropdown-item${index === active ? " active" : ""}${selectedSet.has(vocabulary.id) ? " checked" : ""}`}
+              onMouseEnter={() => setActive(index)}
             >
               <input
                 type="checkbox"
-                checked={selectedSet.has(v.id)}
-                onChange={() => toggle(v.id)}
-                aria-label={t("addToSelection", { name: v.name })}
+                checked={selectedSet.has(vocabulary.id)}
+                onChange={() => toggle(vocabulary.id)}
+                aria-label={t("addToSelection", { name: vocabulary.name })}
               />
-              <button type="button" className="dropdown-item-main" onClick={() => chooseOnly(v.id)}>
+              <button type="button" className="dropdown-item-main" onClick={() => chooseOnly(vocabulary.id)}>
                 <span dir="auto" className="dropdown-item-title">
-                  {v.name}
+                  {vocabulary.name}
                 </span>
                 <span className="muted small">
-                  {languageLabel(v.sourceLanguage)} · {t("wordCountLabel", { count: formatNumber(v.wordCount, language) })} ·{" "}
-                  {v.ownerId === currentUserId ? t("yours") : t("downloaded")}
+                  {languageLabel(vocabulary.sourceLanguage)} · {t("wordCountLabel", { count: formatNumber(vocabulary.wordCount, language) })} ·{" "}
+                  {vocabulary.ownerId === currentUserId ? t("yours") : t("downloaded")}
                 </span>
               </button>
             </div>

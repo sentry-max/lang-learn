@@ -14,7 +14,7 @@ export function speak(text: string, language: LanguageCode, rate = 0.9): void {
     const utterance = new SpeechSynthesisUtterance(text);
     utterance.lang = VOICE_LANG[language];
     utterance.rate = rate;
-    const voice = window.speechSynthesis.getVoices().find((v) => v.lang.toLowerCase().startsWith(language));
+    const voice = window.speechSynthesis.getVoices().find((voice) => voice.lang.toLowerCase().startsWith(language));
     if (voice) utterance.voice = voice;
     window.speechSynthesis.speak(utterance);
   } catch {

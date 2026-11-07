@@ -26,14 +26,14 @@ describe("parseWordInput", () => {
   it("requires at least one translation in another language", () => {
     const result = parseWordInput({ ...valid, translations: { de: ["Haus"] } }, 2, "de");
     expect(result.ok).toBe(false);
-    if (!result.ok) expect(result.errors[0]).toMatch(/Entry 3.*translations/);
+    if (!result.ok) expect(result.errors[0]).toMatchObject({ code: "translationsMissing", entryNumber: 3 });
   });
 
   it("rejects bad word types, levels and articles", () => {
     const badType = parseWordInput({ ...valid, wordType: "thing", level: "Z9" }, 0, "de");
     expect(!badType.ok && badType.errors).toHaveLength(2);
     const badArticle = parseWordInput({ ...valid, nounForms: { article: "le" } }, 0, "de");
-    expect(!badArticle.ok && badArticle.errors[0]).toMatch(/der, die, das/);
+    expect(!badArticle.ok && badArticle.errors[0]).toMatchObject({ code: "articleInvalid", detail: "der, die, das" });
   });
 
   it("requires verb forms for German verbs but not for English ones", () => {

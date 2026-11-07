@@ -6,7 +6,7 @@ import {
   chooseMode,
   selectQuizWords,
 } from "@domain/services/QuizSelectionService";
-import { createSeededRng } from "@domain/services/Random";
+import { createSeededRandomSource } from "@domain/services/Random";
 import { firstLetter, filterByLetters } from "@domain/services/LetterService";
 import { NOW, alphabetWords, makeProgress, makeWord } from "../../test/fixtures";
 
@@ -15,7 +15,7 @@ function fresh(words = alphabetWords(10)): QuizCandidate[] {
 }
 
 function ids(candidates: QuizCandidate[]): string[] {
-  return candidates.map((c) => c.word.id);
+  return candidates.map((candidate) => candidate.word.id);
 }
 
 describe("bucketOf", () => {
@@ -35,9 +35,9 @@ describe("selectQuizWords — randomness", () => {
     const candidates = fresh();
     const lettersSeen = new Set<string>();
     for (let seed = 1; seed <= 20; seed++) {
-      const { selected } = selectQuizWords({ candidates, quota: 10, now: NOW, rng: createSeededRng(seed) });
+      const { selected } = selectQuizWords({ candidates, quota: 10, now: NOW, rng: createSeededRandomSource(seed) });
       expect(selected).toHaveLength(10);
-      selected.forEach((c) => lettersSeen.add(firstLetter(c.word.headword)));
+      selected.forEach((candidate) => lettersSeen.add(firstLetter(candidate.word.headword)));
     }
     // 200 picks over 26 letters: essentially every letter should show up.
     expect(lettersSeen.size).toBeGreaterThanOrEqual(24);
@@ -48,8 +48,8 @@ describe("selectQuizWords — randomness", () => {
     let firstHalf = 0;
     const half = new Set(ids(candidates.slice(0, candidates.length / 2)));
     for (let seed = 1; seed <= 50; seed++) {
-      const { selected } = selectQuizWords({ candidates, quota: 10, now: NOW, rng: createSeededRng(seed) });
-      firstHalf += selected.filter((c) => half.has(c.word.id)).length;
+      const { selected } = selectQuizWords({ candidates, quota: 10, now: NOW, rng: createSeededRandomSource(seed) });
+      firstHalf += selected.filter((candidate) => half.has(candidate.word.id)).length;
     }
     // 500 picks, expected ~250 in the first half.
     expect(firstHalf).toBeGreaterThan(200);
@@ -57,44 +57,44 @@ describe("selectQuizWords — randomness", () => {
   });
 
   it("picks random words within a single chosen letter", () => {
-    const pool = filterByLetters(alphabetWords(30), (w) => w.headword, ["K"]);
+    const pool = filterByLetters(alphabetWords(30), (word) => word.headword, ["K"]);
     const candidates = fresh(pool);
     const picks = new Set<string>();
     for (let seed = 1; seed <= 10; seed++) {
-      const { selected } = selectQuizWords({ candidates, quota: 5, now: NOW, rng: createSeededRng(seed) });
-      expect(selected.every((c) => c.word.headword.startsWith("K"))).toBe(true);
+      const { selected } = selectQuizWords({ candidates, quota: 5, now: NOW, rng: createSeededRandomSource(seed) });
+      expect(selected.every((candidate) => candidate.word.headword.startsWith("K"))).toBe(true);
       ids(selected).forEach((id) => picks.add(id));
     }
     expect(picks.size).toBeGreaterThan(15);
   });
 
   it("returns nothing for an empty pool and caps the quota at the pool size", () => {
-    expect(selectQuizWords({ candidates: [], quota: 10, now: NOW, rng: createSeededRng(1) }).selected).toEqual([]);
+    expect(selectQuizWords({ candidates: [], quota: 10, now: NOW, rng: createSeededRandomSource(1) }).selected).toEqual([]);
     const small = fresh(alphabetWords(1).slice(0, 3));
-    expect(selectQuizWords({ candidates: small, quota: 10, now: NOW, rng: createSeededRng(1) }).selected).toHaveLength(3);
+    expect(selectQuizWords({ candidates: small, quota: 10, now: NOW, rng: createSeededRandomSource(1) }).selected).toHaveLength(3);
   });
 });
 
 describe("selectQuizWords — rounds", () => {
   it("never shows good/easy/very easy words again while unseen words remain", () => {
     const words = alphabetWords(2);
-    const candidates: QuizCandidate[] = words.map((word, i) => ({
+    const candidates: QuizCandidate[] = words.map((word, index) => ({
       word,
-      progress: i < 30 ? makeProgress(word.id, { lastRating: (["good", "easy", "very_easy"] as const)[i % 3] }) : null,
+      progress: index < 30 ? makeProgress(word.id, { lastRating: (["good", "easy", "very_easy"] as const)[index % 3] }) : null,
     }));
     const parkedIds = new Set(ids(candidates.slice(0, 30)));
 
     for (let seed = 1; seed <= 20; seed++) {
-      const result = selectQuizWords({ candidates, quota: 20, now: NOW, rng: createSeededRng(seed) });
+      const result = selectQuizWords({ candidates, quota: 20, now: NOW, rng: createSeededRandomSource(seed) });
       expect(result.cycleRestarted).toBe(false);
-      expect(result.selected.some((c) => parkedIds.has(c.word.id))).toBe(false);
+      expect(result.selected.some((candidate) => parkedIds.has(candidate.word.id))).toBe(false);
     }
   });
 
   it("starts a new round once every word has been shown, releasing parked words", () => {
     const words = alphabetWords(1);
     const candidates: QuizCandidate[] = words.map((word) => ({ word, progress: makeProgress(word.id) }));
-    const result = selectQuizWords({ candidates, quota: 10, now: NOW, rng: createSeededRng(3) });
+    const result = selectQuizWords({ candidates, quota: 10, now: NOW, rng: createSeededRandomSource(3) });
     expect(result.cycleRestarted).toBe(true);
     expect(result.selected).toHaveLength(10);
     expect(new Set(result.releasedWordIds)).toEqual(new Set(ids(candidates)));
@@ -102,12 +102,12 @@ describe("selectQuizWords — rounds", () => {
 
   it("finishes the round and continues into the next one to fill a session", () => {
     const words = alphabetWords(1).slice(0, 13);
-    const candidates: QuizCandidate[] = words.map((word, i) => ({
+    const candidates: QuizCandidate[] = words.map((word, index) => ({
       word,
-      progress: i < 10 ? makeProgress(word.id, { lastRating: "easy" }) : null,
+      progress: index < 10 ? makeProgress(word.id, { lastRating: "easy" }) : null,
     }));
     const unseen = ids(candidates.slice(10));
-    const result = selectQuizWords({ candidates, quota: 8, now: NOW, rng: createSeededRng(9) });
+    const result = selectQuizWords({ candidates, quota: 8, now: NOW, rng: createSeededRandomSource(9) });
     expect(result.selected).toHaveLength(8);
     expect(result.cycleRestarted).toBe(true);
     // All 3 remaining unseen words are in the session before any released word.
@@ -117,11 +117,11 @@ describe("selectQuizWords — rounds", () => {
 
   it("does not restart the round when only weak words remain alongside unseen ones", () => {
     const words = alphabetWords(1).slice(0, 6);
-    const candidates: QuizCandidate[] = words.map((word, i) => ({
+    const candidates: QuizCandidate[] = words.map((word, index) => ({
       word,
-      progress: i < 3 ? makeProgress(word.id, { lastRating: "bad" }) : null,
+      progress: index < 3 ? makeProgress(word.id, { lastRating: "bad" }) : null,
     }));
-    const result = selectQuizWords({ candidates, quota: 6, now: NOW, rng: createSeededRng(1) });
+    const result = selectQuizWords({ candidates, quota: 6, now: NOW, rng: createSeededRandomSource(1) });
     expect(result.cycleRestarted).toBe(false);
     expect(result.selected).toHaveLength(6);
   });
@@ -130,13 +130,13 @@ describe("selectQuizWords — rounds", () => {
 describe("selectQuizWords — weak words", () => {
   it("always includes weak words, even when many unseen words exist", () => {
     const words = alphabetWords(4);
-    const candidates: QuizCandidate[] = words.map((word, i) => ({
+    const candidates: QuizCandidate[] = words.map((word, index) => ({
       word,
-      progress: i < 5 ? makeProgress(word.id, { lastRating: "very_bad", totalCorrect: 0, totalIncorrect: 1 }) : null,
+      progress: index < 5 ? makeProgress(word.id, { lastRating: "very_bad", totalCorrect: 0, totalIncorrect: 1 }) : null,
     }));
     const weakIds = new Set(ids(candidates.slice(0, 5)));
-    const result = selectQuizWords({ candidates, quota: 10, now: NOW, rng: createSeededRng(5) });
-    const weakPicked = result.selected.filter((c) => weakIds.has(c.word.id)).length;
+    const result = selectQuizWords({ candidates, quota: 10, now: NOW, rng: createSeededRandomSource(5) });
+    const weakPicked = result.selected.filter((candidate) => weakIds.has(candidate.word.id)).length;
     expect(weakPicked).toBeGreaterThanOrEqual(2);
     // …but leaves room for new words too.
     expect(result.selected.length - weakPicked).toBeGreaterThanOrEqual(5);
@@ -144,11 +144,11 @@ describe("selectQuizWords — weak words", () => {
 
   it("fills with weak words when no unseen words are left", () => {
     const words = alphabetWords(1).slice(0, 10);
-    const candidates: QuizCandidate[] = words.map((word, i) => ({
+    const candidates: QuizCandidate[] = words.map((word, index) => ({
       word,
-      progress: makeProgress(word.id, { lastRating: i < 4 ? "bad" : "good" }),
+      progress: makeProgress(word.id, { lastRating: index < 4 ? "bad" : "good" }),
     }));
-    const result = selectQuizWords({ candidates, quota: 4, now: NOW, rng: createSeededRng(2) });
+    const result = selectQuizWords({ candidates, quota: 4, now: NOW, rng: createSeededRandomSource(2) });
     // No fresh words -> round restarts; weak words still get their share.
     expect(result.selected).toHaveLength(4);
   });
@@ -156,13 +156,13 @@ describe("selectQuizWords — weak words", () => {
   it("gives struggling users more review and confident users more new words", () => {
     const words = alphabetWords(2);
     const recent = new Date(NOW.getTime() - 3600 * 1000).toISOString();
-    const struggling: QuizCandidate[] = words.map((word, i) => ({
+    const struggling: QuizCandidate[] = words.map((word, index) => ({
       word,
-      progress: i < 10 ? makeProgress(word.id, { lastRating: "very_bad", lastReviewedAt: recent }) : null,
+      progress: index < 10 ? makeProgress(word.id, { lastRating: "very_bad", lastReviewedAt: recent }) : null,
     }));
-    const confident: QuizCandidate[] = words.map((word, i) => ({
+    const confident: QuizCandidate[] = words.map((word, index) => ({
       word,
-      progress: i < 10 ? makeProgress(word.id, { lastRating: i === 0 ? "bad" : "easy", lastReviewedAt: recent }) : null,
+      progress: index < 10 ? makeProgress(word.id, { lastRating: index === 0 ? "bad" : "easy", lastReviewedAt: recent }) : null,
     }));
     expect(adaptiveWeakShare(struggling, 10, 10, NOW)).toBeGreaterThan(adaptiveWeakShare(confident, 1, 10, NOW));
   });
@@ -172,21 +172,21 @@ describe("chooseMode", () => {
   const word = makeWord("Haus");
 
   it("respects a fixed direction", () => {
-    const rng = createSeededRng(1);
-    for (let i = 0; i < 20; i++) {
-      expect(chooseMode({ word, progress: null }, { direction: "target_to_source", includeSentenceWriting: false }, rng)).toBe(
+    const randomSource = createSeededRandomSource(1);
+    for (let index = 0; index < 20; index++) {
+      expect(chooseMode({ word, progress: null }, { direction: "target_to_source", includeSentenceWriting: false }, randomSource)).toBe(
         "target_to_source"
       );
     }
   });
 
   it("never asks for a sentence about a word the user doesn't know yet", () => {
-    const rng = createSeededRng(1);
-    for (let i = 0; i < 50; i++) {
-      const mode = chooseMode({ word, progress: null }, { direction: "mix", includeSentenceWriting: true }, rng);
+    const randomSource = createSeededRandomSource(1);
+    for (let index = 0; index < 50; index++) {
+      const mode = chooseMode({ word, progress: null }, { direction: "mix", includeSentenceWriting: true }, randomSource);
       expect(mode).not.toBe("sentence_writing");
       const weak = makeProgress(word.id, { lastRating: "very_bad" });
-      expect(chooseMode({ word, progress: weak }, { direction: "mix", includeSentenceWriting: true }, rng)).not.toBe(
+      expect(chooseMode({ word, progress: weak }, { direction: "mix", includeSentenceWriting: true }, randomSource)).not.toBe(
         "sentence_writing"
       );
     }
@@ -196,10 +196,10 @@ describe("chooseMode", () => {
     const progress = makeProgress(word.id, {
       modeStats: { source_to_target: { correct: 10, incorrect: 0 }, target_to_source: { correct: 1, incorrect: 9 } },
     });
-    const rng = createSeededRng(7);
+    const randomSource = createSeededRandomSource(7);
     let reverse = 0;
-    for (let i = 0; i < 200; i++) {
-      if (chooseMode({ word, progress }, { direction: "mix", includeSentenceWriting: false }, rng) === "target_to_source") {
+    for (let index = 0; index < 200; index++) {
+      if (chooseMode({ word, progress }, { direction: "mix", includeSentenceWriting: false }, randomSource) === "target_to_source") {
         reverse += 1;
       }
     }

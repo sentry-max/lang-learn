@@ -9,6 +9,8 @@ import { useCurrentUser } from "@presentation/context/AuthContext";
 import { useErrorMessage } from "@presentation/hooks/useErrorMessage";
 import { useProfile } from "@presentation/context/ProfileContext";
 import { useToast } from "@presentation/context/FeedbackContext";
+import { describeWordProblemBody } from "@presentation/i18n/describeWordProblem";
+import { WORD_TYPE_KEYS } from "@presentation/i18n/grammarLabels";
 import Modal from "@presentation/components/Modal";
 
 const AUTO = "auto";
@@ -67,7 +69,7 @@ function initialState(word?: Word): FormState {
 const splitList = (text: string) =>
   text
     .split(/[,،]/)
-    .map((s) => s.trim())
+    .map((part) => part.trim())
     .filter(Boolean);
 
 export default function WordFormDialog({ vocabulary, ownedVocabularies = [], word, onClose, onSaved }: Props) {
@@ -78,7 +80,7 @@ export default function WordFormDialog({ vocabulary, ownedVocabularies = [], wor
   const { preferences } = useProfile();
   const toast = useToast();
   const isEdit = word !== undefined;
-  const headwordRef = useRef<HTMLInputElement>(null);
+  const headwordInputRef = useRef<HTMLInputElement>(null);
   const [keepAdding, setKeepAdding] = useState(preferences.continuousAdd);
   const [addedCount, setAddedCount] = useState(0);
 
@@ -88,12 +90,12 @@ export default function WordFormDialog({ vocabulary, ownedVocabularies = [], wor
   const [errors, setErrors] = useState<string[]>([]);
   const [saving, setSaving] = useState(false);
 
-  const chosenVocabulary = vocabulary ?? ownedVocabularies.find((v) => v.id === target) ?? null;
+  const chosenVocabulary = vocabulary ?? ownedVocabularies.find((vocabulary) => vocabulary.id === target) ?? null;
   const sourceLanguage = chosenVocabulary?.sourceLanguage ?? autoLanguage;
   const grammar = GRAMMAR_PROFILES[sourceLanguage];
-  const otherLanguages = useMemo(() => SUPPORTED_LANGUAGES.filter((l) => l !== sourceLanguage), [sourceLanguage]);
+  const otherLanguages = useMemo(() => SUPPORTED_LANGUAGES.filter((language) => language !== sourceLanguage), [sourceLanguage]);
 
-  const set = <K extends keyof FormState>(key: K, value: FormState[K]) => setForm((f) => ({ ...f, [key]: value }));
+  const set = <K extends keyof FormState>(key: K, value: FormState[K]) => setForm((current) => ({ ...current, [key]: value }));
 
   function buildRaw(): Record<string, unknown> {
     const translations: Record<string, string[]> = {};
@@ -128,12 +130,17 @@ export default function WordFormDialog({ vocabulary, ownedVocabularies = [], wor
     return raw;
   }
 
-  async function handleSubmit(e: FormEvent) {
-    e.preventDefault();
+  // Closing mid-save would look like a cancel while the word is still being written.
+  function closeUnlessSaving() {
+    if (!saving) onClose();
+  }
+
+  async function handleSubmit(event: FormEvent) {
+    event.preventDefault();
     setErrors([]);
     const parsed = words.parse(buildRaw(), sourceLanguage);
     if (!parsed.ok) {
-      setErrors(parsed.errors.map((err) => err.replace(/^Entry 1( \([^)]*\))?: /, "")));
+      setErrors(parsed.errors.map((problem) => describeWordProblemBody(t, problem)));
       return;
     }
 
@@ -154,28 +161,28 @@ export default function WordFormDialog({ vocabulary, ownedVocabularies = [], wor
         if (keepAdding) {
           // Ready for the next word: keep type, level, tags and target; clear the rest.
           toast(message);
-          setAddedCount((n) => n + 1);
-          setForm((f) => ({ ...initialState(), wordType: f.wordType, level: f.level, tags: f.tags }));
+          setAddedCount((count) => count + 1);
+          setForm((current) => ({ ...initialState(), wordType: current.wordType, level: current.level, tags: current.tags }));
           if (result.createdVocabulary) setTarget(AUTO);
-          headwordRef.current?.focus();
+          headwordInputRef.current?.focus();
           return;
         }
       }
       onClose();
-    } catch (err) {
-      setErrors([errorMessage(err, "wordSaveError")]);
+    } catch (error) {
+      setErrors([errorMessage(error, "wordSaveError")]);
     } finally {
       setSaving(false);
     }
   }
 
   return (
-    <Modal title={isEdit ? t("editWordTitle") : t("addWordTitle")} onClose={onClose} wide>
+    <Modal title={isEdit ? t("editWordTitle") : t("addWordTitle")} onClose={closeUnlessSaving} wide>
       <form onSubmit={handleSubmit} noValidate>
         {errors.length > 0 && (
           <div className="error-banner" style={{ display: "block" }} role="alert">
-            {errors.map((err, i) => (
-              <div key={i}>{err}</div>
+            {errors.map((error, index) => (
+              <div key={index}>{error}</div>
             ))}
           </div>
         )}
@@ -184,11 +191,11 @@ export default function WordFormDialog({ vocabulary, ownedVocabularies = [], wor
           <div className="form-row">
             <div className="form-field">
               <label htmlFor="wf-target">{t("vocabularyLabel")}</label>
-              <select id="wf-target" value={target} onChange={(e) => setTarget(e.target.value)}>
+              <select id="wf-target" value={target} onChange={(event) => setTarget(event.target.value)}>
                 <option value={AUTO}>{t("placementAuto")}</option>
-                {ownedVocabularies.map((v) => (
-                  <option key={v.id} value={v.id}>
-                    {v.name} ({languageLabel(v.sourceLanguage)})
+                {ownedVocabularies.map((vocabulary) => (
+                  <option key={vocabulary.id} value={vocabulary.id}>
+                    {vocabulary.name} ({languageLabel(vocabulary.sourceLanguage)})
                   </option>
                 ))}
               </select>
@@ -196,7 +203,7 @@ export default function WordFormDialog({ vocabulary, ownedVocabularies = [], wor
             {target === AUTO && (
               <div className="form-field">
                 <label htmlFor="wf-lang">{t("wordLanguageLabel")}</label>
-                <select id="wf-lang" value={autoLanguage} onChange={(e) => setAutoLanguage(e.target.value as LanguageCode)}>
+                <select id="wf-lang" value={autoLanguage} onChange={(event) => setAutoLanguage(event.target.value as LanguageCode)}>
                   {SUPPORTED_LANGUAGES.map((code) => (
                     <option key={code} value={code}>
                       {languageLabel(code)}
@@ -212,21 +219,21 @@ export default function WordFormDialog({ vocabulary, ownedVocabularies = [], wor
         <div className="form-row">
           <div className="form-field">
             <label htmlFor="wf-type">{t("wordTypeLabel")}</label>
-            <select id="wf-type" value={form.wordType} onChange={(e) => set("wordType", e.target.value as WordType)}>
-              {WORD_TYPES.map((wt) => (
-                <option key={wt} value={wt}>
-                  {wt}
+            <select id="wf-type" value={form.wordType} onChange={(event) => set("wordType", event.target.value as WordType)}>
+              {WORD_TYPES.map((wordType) => (
+                <option key={wordType} value={wordType}>
+                  {t(WORD_TYPE_KEYS[wordType])}
                 </option>
               ))}
             </select>
           </div>
           <div className="form-field">
             <label htmlFor="wf-level">{t("levelLabel")}</label>
-            <select id="wf-level" value={form.level} onChange={(e) => set("level", e.target.value)}>
+            <select id="wf-level" value={form.level} onChange={(event) => set("level", event.target.value)}>
               <option value="">—</option>
-              {CEFR_LEVELS.map((lvl) => (
-                <option key={lvl} value={lvl}>
-                  {lvl}
+              {CEFR_LEVELS.map((level) => (
+                <option key={level} value={level}>
+                  {level}
                 </option>
               ))}
             </select>
@@ -239,14 +246,14 @@ export default function WordFormDialog({ vocabulary, ownedVocabularies = [], wor
           </label>
           <input
             id="wf-headword"
-            ref={headwordRef}
+            ref={headwordInputRef}
             data-autofocus
             type="text"
             dir="auto"
             required
             maxLength={200}
             value={form.headword}
-            onChange={(e) => set("headword", e.target.value)}
+            onChange={(event) => set("headword", event.target.value)}
           />
         </div>
 
@@ -258,7 +265,7 @@ export default function WordFormDialog({ vocabulary, ownedVocabularies = [], wor
               type="text"
               dir="auto"
               value={form.translations[code] ?? ""}
-              onChange={(e) => set("translations", { ...form.translations, [code]: e.target.value })}
+              onChange={(event) => set("translations", { ...form.translations, [code]: event.target.value })}
             />
           </div>
         ))}
@@ -268,11 +275,11 @@ export default function WordFormDialog({ vocabulary, ownedVocabularies = [], wor
             {grammar.articles && (
               <div className="form-field">
                 <label htmlFor="wf-article">{t("articleLabel")}</label>
-                <select id="wf-article" value={form.article} onChange={(e) => set("article", e.target.value)}>
+                <select id="wf-article" value={form.article} onChange={(event) => set("article", event.target.value)}>
                   <option value="">{t("articleNone")}</option>
-                  {grammar.articles.map((a) => (
-                    <option key={a} value={a}>
-                      {a}
+                  {grammar.articles.map((article) => (
+                    <option key={article} value={article}>
+                      {article}
                     </option>
                   ))}
                 </select>
@@ -281,7 +288,7 @@ export default function WordFormDialog({ vocabulary, ownedVocabularies = [], wor
             {grammar.hasPlural && (
               <div className="form-field">
                 <label htmlFor="wf-plural">{t("pluralLabel")}</label>
-                <input id="wf-plural" type="text" dir="auto" value={form.plural} onChange={(e) => set("plural", e.target.value)} />
+                <input id="wf-plural" type="text" dir="auto" value={form.plural} onChange={(event) => set("plural", event.target.value)} />
               </div>
             )}
           </div>
@@ -297,22 +304,22 @@ export default function WordFormDialog({ vocabulary, ownedVocabularies = [], wor
                   type="text"
                   dir="auto"
                   value={form.presentThirdPerson}
-                  onChange={(e) => set("presentThirdPerson", e.target.value)}
+                  onChange={(event) => set("presentThirdPerson", event.target.value)}
                 />
               </div>
               <div className="form-field">
                 <label htmlFor="wf-past">{t("simplePastLabel")}</label>
-                <input id="wf-past" type="text" dir="auto" value={form.simplePast} onChange={(e) => set("simplePast", e.target.value)} />
+                <input id="wf-past" type="text" dir="auto" value={form.simplePast} onChange={(event) => set("simplePast", event.target.value)} />
               </div>
             </div>
             <div className="form-row">
               <div className="form-field">
                 <label htmlFor="wf-perfect">{t("perfectLabel")}</label>
-                <input id="wf-perfect" type="text" dir="auto" value={form.perfect} onChange={(e) => set("perfect", e.target.value)} />
+                <input id="wf-perfect" type="text" dir="auto" value={form.perfect} onChange={(event) => set("perfect", event.target.value)} />
               </div>
               <div className="form-field">
                 <label htmlFor="wf-passive">{t("passiveLabel")}</label>
-                <input id="wf-passive" type="text" dir="auto" value={form.passive} onChange={(e) => set("passive", e.target.value)} />
+                <input id="wf-passive" type="text" dir="auto" value={form.passive} onChange={(event) => set("passive", event.target.value)} />
               </div>
             </div>
             {(grammar.hasAuxiliaryChoice || grammar.hasSeparableVerbs) && (
@@ -322,14 +329,14 @@ export default function WordFormDialog({ vocabulary, ownedVocabularies = [], wor
                     <input
                       type="checkbox"
                       checked={form.auxiliaryIsSein}
-                      onChange={(e) => set("auxiliaryIsSein", e.target.checked)}
+                      onChange={(event) => set("auxiliaryIsSein", event.target.checked)}
                     />
                     {t("auxiliaryLabel")}
                   </label>
                 )}
                 {grammar.hasSeparableVerbs && (
                   <label>
-                    <input type="checkbox" checked={form.separable} onChange={(e) => set("separable", e.target.checked)} />
+                    <input type="checkbox" checked={form.separable} onChange={(event) => set("separable", event.target.checked)} />
                     {t("separableLabel")}
                   </label>
                 )}
@@ -348,7 +355,7 @@ export default function WordFormDialog({ vocabulary, ownedVocabularies = [], wor
             dir="auto"
             maxLength={500}
             value={form.sentence}
-            onChange={(e) => set("sentence", e.target.value)}
+            onChange={(event) => set("sentence", event.target.value)}
           />
         </div>
         {form.sentence.trim() &&
@@ -361,26 +368,26 @@ export default function WordFormDialog({ vocabulary, ownedVocabularies = [], wor
                 dir="auto"
                 maxLength={500}
                 value={form.sentenceTranslations[code] ?? ""}
-                onChange={(e) => set("sentenceTranslations", { ...form.sentenceTranslations, [code]: e.target.value })}
+                onChange={(event) => set("sentenceTranslations", { ...form.sentenceTranslations, [code]: event.target.value })}
               />
             </div>
           ))}
 
         <div className="form-field">
           <label htmlFor="wf-tags">{t("tagsLabel")}</label>
-          <input id="wf-tags" type="text" dir="auto" value={form.tags} onChange={(e) => set("tags", e.target.value)} />
+          <input id="wf-tags" type="text" dir="auto" value={form.tags} onChange={(event) => set("tags", event.target.value)} />
         </div>
 
         <div className="form-actions">
           {!isEdit && (
             <label className="checkbox-label keep-adding">
-              <input type="checkbox" checked={keepAdding} onChange={(e) => setKeepAdding(e.target.checked)} />
+              <input type="checkbox" checked={keepAdding} onChange={(event) => setKeepAdding(event.target.checked)} />
               {t("keepAddingLabel")}
               {addedCount > 0 && <span className="pill">{t("addedSoFar", { count: addedCount })}</span>}
             </label>
           )}
           <div className="button-row">
-            <button type="button" className="btn btn-secondary" onClick={onClose}>
+            <button type="button" className="btn btn-secondary" disabled={saving} onClick={onClose}>
               {addedCount > 0 ? t("done") : t("cancelButton")}
             </button>
             <button type="submit" className="btn" disabled={saving}>

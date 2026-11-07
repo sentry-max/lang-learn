@@ -89,7 +89,7 @@ export function Tabs<T extends string>({
   onChange: (value: T) => void;
   ariaLabel?: string;
 }) {
-  const index = Math.max(0, tabs.findIndex((t) => t.value === value));
+  const index = Math.max(0, tabs.findIndex((tab) => tab.value === value));
   return (
     <div
       className="tabs"

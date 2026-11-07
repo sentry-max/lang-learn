@@ -14,8 +14,38 @@ import {
 /**
  * Validates one raw word (from a JSON import or the word form) and turns
  * it into a clean WordDraft. Rejects anything malformed with per-entry
- * messages instead of letting bad data into the database.
+ * problems, which the UI words in the user's language, instead of letting
+ * bad data into the database.
  */
+
+export type WordProblemCode =
+  | "notAnObject"
+  | "idTooLong"
+  | "headwordMissing"
+  | "headwordTooLong"
+  | "wordTypeInvalid"
+  | "translationsMissing"
+  | "translationsTooLong"
+  | "sentencesNotAnArray"
+  | "sentenceInvalid"
+  | "sentencesTooLong"
+  | "levelInvalid"
+  | "tagsTooLong"
+  | "nounFormsInvalid"
+  | "articleInvalid"
+  | "verbFormsMissing"
+  | "verbFormsInvalid"
+  | "vocabularyFull"
+  | "fileNotAnArray";
+
+export interface WordProblem {
+  code: WordProblemCode;
+  /** 1-based position in the imported file, null for a problem with the whole file */
+  entryNumber: number | null;
+  headword: string | null;
+  /** The allowed articles, or the vocabulary's word limit */
+  detail?: string;
+}
 
 export const WORD_LIMITS = {
   externalIdMax: 200,
@@ -28,71 +58,71 @@ export const WORD_LIMITS = {
   tagMax: 40,
 } as const;
 
-export type ParseResult = { ok: true; word: WordDraft } | { ok: false; errors: string[] };
+export type ParseResult = { ok: true; word: WordDraft } | { ok: false; errors: WordProblem[] };
 
 export function parseWordInput(raw: unknown, index: number, sourceLanguage: LanguageCode): ParseResult {
-  const prefix = `Entry ${index + 1}`;
+  const entryNumber = index + 1;
   if (typeof raw !== "object" || raw === null || Array.isArray(raw)) {
-    return { ok: false, errors: [`${prefix}: not an object.`] };
+    return { ok: false, errors: [{ code: "notAnObject", entryNumber, headword: null }] };
   }
-  const e = raw as Record<string, unknown>;
-  const label = typeof e.headword === "string" && e.headword.trim() ? `${prefix} ("${e.headword.trim()}")` : prefix;
-  const errors: string[] = [];
+  const entry = raw as Record<string, unknown>;
+  const headword = typeof entry.headword === "string" ? entry.headword.trim() : "";
+  const errors: WordProblem[] = [];
+  const addProblem = (code: WordProblemCode, detail?: string) => errors.push({ code, entryNumber, headword: headword || null, detail });
 
-  const externalId = typeof e.id === "string" && e.id.trim() ? e.id.trim() : null;
-  if (externalId && externalId.length > WORD_LIMITS.externalIdMax) errors.push(`${label}: "id" is too long.`);
+  const externalId = typeof entry.id === "string" && entry.id.trim() ? entry.id.trim() : null;
+  if (externalId && externalId.length > WORD_LIMITS.externalIdMax) addProblem("idTooLong");
 
-  const headword = typeof e.headword === "string" ? e.headword.trim() : "";
-  if (!headword) errors.push(`${label}: missing "headword".`);
-  else if (headword.length > WORD_LIMITS.headwordMax) errors.push(`${label}: "headword" is too long.`);
+  if (!headword) addProblem("headwordMissing");
+  else if (headword.length > WORD_LIMITS.headwordMax) addProblem("headwordTooLong");
 
-  const wordType = e.wordType as WordType;
-  if (!WORD_TYPES.includes(wordType)) errors.push(`${label}: invalid "wordType".`);
+  const wordType = entry.wordType as WordType;
+  if (!WORD_TYPES.includes(wordType)) addProblem("wordTypeInvalid");
 
-  const translations = normalizeTranslationsMap(e.translations);
+  const translations = normalizeTranslationsMap(entry.translations);
   delete translations[sourceLanguage];
   const translationCount = Object.keys(translations).length;
   if (translationCount === 0) {
-    errors.push(`${label}: "translations" needs at least one language other than the word's own, e.g. { "fa": [...], "en": [...] }.`);
+    addProblem("translationsMissing");
   }
   for (const values of Object.values(translations)) {
-    if (values!.length > WORD_LIMITS.translationsPerLanguage || values!.some((v) => v.length > WORD_LIMITS.translationMax)) {
-      errors.push(`${label}: too many or too long translations.`);
+    if (values!.length > WORD_LIMITS.translationsPerLanguage || values!.some((value) => value.length > WORD_LIMITS.translationMax)) {
+      addProblem("translationsTooLong");
       break;
     }
   }
 
-  if (e.sentences !== undefined && !Array.isArray(e.sentences)) {
-    errors.push(`${label}: "sentences" must be an array.`);
+  if (entry.sentences !== undefined && !Array.isArray(entry.sentences)) {
+    addProblem("sentencesNotAnArray");
   }
-  const sentences = normalizeSentences(e.sentences);
-  if (Array.isArray(e.sentences) && sentences.length !== e.sentences.length) {
-    errors.push(`${label}: every sentence needs "text" (or "german") and translations.`);
+  const sentences = normalizeSentences(entry.sentences);
+  if (Array.isArray(entry.sentences) && sentences.length !== entry.sentences.length) {
+    addProblem("sentenceInvalid");
   }
-  if (sentences.length > WORD_LIMITS.sentences || sentences.some((s) => s.text.length > WORD_LIMITS.sentenceMax)) {
-    errors.push(`${label}: too many or too long sentences.`);
+  if (sentences.length > WORD_LIMITS.sentences || sentences.some((sentence) => sentence.text.length > WORD_LIMITS.sentenceMax)) {
+    addProblem("sentencesTooLong");
   }
 
   let level: CefrLevel | null = null;
-  if (e.level !== undefined && e.level !== null && e.level !== "") {
-    if (CEFR_LEVELS.includes(e.level as CefrLevel)) level = e.level as CefrLevel;
-    else errors.push(`${label}: invalid "level".`);
+  if (entry.level !== undefined && entry.level !== null && entry.level !== "") {
+    if (CEFR_LEVELS.includes(entry.level as CefrLevel)) level = entry.level as CefrLevel;
+    else addProblem("levelInvalid");
   }
 
-  const tags = Array.isArray(e.tags)
-    ? Array.from(new Set(e.tags.filter((t): t is string => typeof t === "string").map((t) => t.trim()).filter(Boolean)))
+  const tags = Array.isArray(entry.tags)
+    ? Array.from(new Set(entry.tags.filter((tag): tag is string => typeof tag === "string").map((tag) => tag.trim()).filter(Boolean)))
     : [];
-  if (tags.length > WORD_LIMITS.tags || tags.some((t) => t.length > WORD_LIMITS.tagMax)) {
-    errors.push(`${label}: too many or too long tags.`);
+  if (tags.length > WORD_LIMITS.tags || tags.some((tag) => tag.length > WORD_LIMITS.tagMax)) {
+    addProblem("tagsTooLong");
   }
 
   const grammar = GRAMMAR_PROFILES[sourceLanguage];
-  const nounForms = wordType === "noun" ? parseNounForms(e.nounForms, grammar.articles, label, errors) : undefined;
+  const nounForms = wordType === "noun" ? parseNounForms(entry.nounForms, grammar.articles, addProblem) : undefined;
   const verbForms =
-    wordType === "verb" ? parseVerbForms(e.verbForms, headword, grammar.verbFormsRequired, label, errors) : undefined;
+    wordType === "verb" ? parseVerbForms(entry.verbForms, headword, grammar.verbFormsRequired, addProblem) : undefined;
 
   const regionalVariant =
-    typeof e.regionalVariant === "string" && e.regionalVariant.trim() ? e.regionalVariant.trim().slice(0, 20) : undefined;
+    typeof entry.regionalVariant === "string" && entry.regionalVariant.trim() ? entry.regionalVariant.trim().slice(0, 20) : undefined;
 
   if (errors.length > 0) return { ok: false, errors };
 
@@ -116,18 +146,17 @@ export function parseWordInput(raw: unknown, index: number, sourceLanguage: Lang
 function parseNounForms(
   value: unknown,
   articles: string[] | null,
-  label: string,
-  errors: string[]
+  addProblem: (code: WordProblemCode, detail?: string) => void
 ): NounForms | undefined {
   if (value === undefined || value === null) return undefined;
   if (typeof value !== "object") {
-    errors.push(`${label}: "nounForms" must be an object.`);
+    addProblem("nounFormsInvalid");
     return undefined;
   }
   const raw = value as Record<string, unknown>;
   const article = typeof raw.article === "string" && raw.article.trim() ? raw.article.trim() : null;
   if (article && articles && !articles.includes(article)) {
-    errors.push(`${label}: article must be one of ${articles.join(", ")}.`);
+    addProblem("articleInvalid", articles.join(", "));
   }
   const plural = typeof raw.plural === "string" && raw.plural.trim() ? raw.plural.trim() : null;
   return { article: articles ? article : null, plural };
@@ -138,15 +167,14 @@ function parseVerbForms(
   value: unknown,
   headword: string,
   required: boolean,
-  label: string,
-  errors: string[]
+  addProblem: (code: WordProblemCode, detail?: string) => void
 ): VerbForms | undefined {
   if (value === undefined || value === null) {
-    if (required) errors.push(`${label}: verbs require "verbForms".`);
+    if (required) addProblem("verbFormsMissing");
     return undefined;
   }
   if (typeof value !== "object") {
-    errors.push(`${label}: "verbForms" must be an object.`);
+    addProblem("verbFormsInvalid");
     return undefined;
   }
   const raw = value as Record<string, unknown>;

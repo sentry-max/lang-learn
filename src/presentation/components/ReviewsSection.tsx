@@ -28,7 +28,7 @@ export default function ReviewsSection({ vocabulary, onChanged }: Props) {
   const { version } = useSyncStatus();
   const list = useAsync(() => reviews.list(vocabulary.id), [vocabulary.id, version]);
 
-  const mine = list.data?.find((r) => r.userId === user.id) ?? null;
+  const mine = list.data?.find((review) => review.userId === user.id) ?? null;
   const canReview = reviews.canReview(user.id, vocabulary);
 
   const [rating, setRating] = useState(0);
@@ -48,15 +48,15 @@ export default function ReviewsSection({ vocabulary, onChanged }: Props) {
       await action();
       await list.reload();
       onChanged();
-    } catch (err) {
-      setError(errorMessage(err, "reviewSaveError"));
+    } catch (error) {
+      setError(errorMessage(error, "reviewSaveError"));
     } finally {
       setSaving(false);
     }
   }
 
-  function submit(e: FormEvent) {
-    e.preventDefault();
+  function submit(event: FormEvent) {
+    event.preventDefault();
     if (rating < 1) {
       setError(t("reviewPickStars"));
       return;
@@ -64,7 +64,7 @@ export default function ReviewsSection({ vocabulary, onChanged }: Props) {
     run(() => reviews.save(user.id, vocabulary, rating, comment));
   }
 
-  const others = (list.data ?? []).filter((r) => r.userId !== user.id);
+  const others = (list.data ?? []).filter((review) => review.userId !== user.id);
 
   return (
     <div className="card">
@@ -83,7 +83,7 @@ export default function ReviewsSection({ vocabulary, onChanged }: Props) {
             maxLength={REVIEW_COMMENT_MAX}
             placeholder={t("reviewPlaceholder")}
             value={comment}
-            onChange={(e) => setComment(e.target.value)}
+            onChange={(event) => setComment(event.target.value)}
           />
           {error && <ErrorBanner message={error} />}
           <div className="button-row">

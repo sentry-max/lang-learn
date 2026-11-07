@@ -52,8 +52,8 @@ export function FeedbackProvider({ children }: { children: ReactNode }) {
   const toast = useCallback((message: string, kind: ToastKind = "success") => {
     const id = nextId.current++;
     setToasts((list) => [...list, { id, kind, message, leaving: false }]);
-    window.setTimeout(() => setToasts((list) => list.map((x) => (x.id === id ? { ...x, leaving: true } : x))), TOAST_MS);
-    window.setTimeout(() => setToasts((list) => list.filter((x) => x.id !== id)), TOAST_MS + 300);
+    window.setTimeout(() => setToasts((list) => list.map((toast) => (toast.id === id ? { ...toast, leaving: true } : toast))), TOAST_MS);
+    window.setTimeout(() => setToasts((list) => list.filter((toast) => toast.id !== id)), TOAST_MS + 300);
   }, []);
 
   const value = useMemo(() => ({ confirm, toast }), [confirm, toast]);
@@ -92,10 +92,10 @@ export function FeedbackProvider({ children }: { children: ReactNode }) {
         </Modal>
       )}
       <div className="toast-stack" role="status" aria-live="polite">
-        {toasts.map((x) => (
-          <div key={x.id} className={`toast ${x.kind}${x.leaving ? " leaving" : ""}`}>
-            <Icon name={TOAST_ICONS[x.kind]} size={18} />
-            <span>{x.message}</span>
+        {toasts.map((toast) => (
+          <div key={toast.id} className={`toast ${toast.kind}${toast.leaving ? " leaving" : ""}`}>
+            <Icon name={TOAST_ICONS[toast.kind]} size={18} />
+            <span>{toast.message}</span>
           </div>
         ))}
       </div>
@@ -104,13 +104,13 @@ export function FeedbackProvider({ children }: { children: ReactNode }) {
 }
 
 export function useConfirm() {
-  const ctx = useContext(FeedbackContext);
-  if (!ctx) throw new Error("useConfirm must be used within a FeedbackProvider");
-  return ctx.confirm;
+  const context = useContext(FeedbackContext);
+  if (!context) throw new Error("useConfirm must be used within a FeedbackProvider");
+  return context.confirm;
 }
 
 export function useToast() {
-  const ctx = useContext(FeedbackContext);
-  if (!ctx) throw new Error("useToast must be used within a FeedbackProvider");
-  return ctx.toast;
+  const context = useContext(FeedbackContext);
+  if (!context) throw new Error("useToast must be used within a FeedbackProvider");
+  return context.toast;
 }

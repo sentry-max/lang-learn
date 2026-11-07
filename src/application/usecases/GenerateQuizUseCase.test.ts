@@ -3,7 +3,7 @@ import { GenerateQuizUseCase } from "@application/usecases/GenerateQuizUseCase";
 import { SubmitAnswerUseCase } from "@application/usecases/SubmitAnswerUseCase";
 import { VocabularyService } from "@application/services/VocabularyService";
 import { DEFAULT_QUIZ_SETTINGS, QuizSettings } from "@domain/entities/QuizSettings";
-import { createSeededRng } from "@domain/services/Random";
+import { createSeededRandomSource } from "@domain/services/Random";
 import { NOW, alphabetWords, makeProgress, makeVocabulary, makeWord } from "../../test/fixtures";
 import {
   InMemoryLearningRepository,
@@ -26,7 +26,7 @@ function setup() {
     makeWord("apple", { id: "dl-apple", vocabularyId: "dl" }),
   ]);
   const learning = new InMemoryLearningRepository();
-  const useCase = new GenerateQuizUseCase(new VocabularyService(vocabularies), words, learning, createSeededRng(1), () => NOW);
+  const useCase = new GenerateQuizUseCase(new VocabularyService(vocabularies), words, learning, createSeededRandomSource(1), () => NOW);
   return { useCase, learning, words };
 }
 
@@ -40,18 +40,18 @@ describe("GenerateQuizUseCase", () => {
   it("uses own published and downloaded vocabularies, never drafts", async () => {
     const { useCase } = setup();
     const quiz = await useCase.execute(USER, settings({ questionCount: 200 }));
-    const ids = quiz.items.map((i) => i.word.id);
+    const ids = quiz.items.map((item) => item.word.id);
     expect(ids).toContain("dl-apple");
     expect(ids).not.toContain("draft-word");
     expect(quiz.poolSize).toBe(53);
-    expect(quiz.items.find((i) => i.word.id === "dl-apple")?.sourceLanguage).toBe("en");
+    expect(quiz.items.find((item) => item.word.id === "dl-apple")?.sourceLanguage).toBe("en");
   });
 
   it("restricts to chosen vocabularies and letters", async () => {
     const { useCase } = setup();
     const quiz = await useCase.execute(USER, settings({ vocabularyIds: ["v1"], letters: ["B", "Q"] }));
     expect(quiz.poolSize).toBe(4);
-    expect(quiz.items.every((i) => /^[BQ]/.test(i.word.headword))).toBe(true);
+    expect(quiz.items.every((item) => /^[BQ]/.test(item.word.headword))).toBe(true);
   });
 
   it("ignores a drafted vocabulary even when explicitly selected", async () => {
@@ -86,7 +86,7 @@ describe("GenerateQuizUseCase", () => {
     await answer(badItem, "bad");
 
     const second = await useCase.execute(USER, scope);
-    const ids = second.items.map((i) => i.word.id);
+    const ids = second.items.map((item) => item.word.id);
     expect(second.cycleRestarted).toBe(false);
     expect(ids).not.toContain(easyItem.word.id);
     expect(ids).toContain(badItem.word.id);

@@ -48,8 +48,8 @@ export default function VocabulariesPage() {
     try {
       await action();
       await data.reload();
-    } catch (err) {
-      setError(errorMessage(err, fallback));
+    } catch (error) {
+      setError(errorMessage(error, fallback));
     } finally {
       setBusyId(null);
     }
@@ -111,25 +111,25 @@ export default function VocabulariesPage() {
           </div>
         )}
         {tab === "mine" &&
-          owned.map((v) => (
-            <VocabularyRow key={v.id} vocabulary={v} onOpen={() => navigate(`/vocabularies/${v.id}`)}>
-              <StatusPill vocabulary={v} />
-              {v.status === "draft" ? (
+          owned.map((vocabulary) => (
+            <VocabularyRow key={vocabulary.id} vocabulary={vocabulary} onOpen={() => navigate(`/vocabularies/${vocabulary.id}`)}>
+              <StatusPill vocabulary={vocabulary} />
+              {vocabulary.status === "draft" ? (
                 <button
                   className="btn btn-small"
-                  disabled={busyId === v.id || publishBlocker(v.wordCount) !== null}
-                  title={publishBlocker(v.wordCount) ? t("publishRequirement") : undefined}
-                  onClick={() => act(v.id, () => vocabularies.publish(v), "publishError")}
+                  disabled={busyId === vocabulary.id || publishBlocker(vocabulary.wordCount) !== null}
+                  title={publishBlocker(vocabulary.wordCount) ? t("publishRequirement") : undefined}
+                  onClick={() => act(vocabulary.id, () => vocabularies.publish(vocabulary), "publishError")}
                 >
                   {t("publish")}
                 </button>
               ) : (
                 <button
                   className="btn btn-secondary btn-small"
-                  disabled={busyId === v.id}
+                  disabled={busyId === vocabulary.id}
                   onClick={() =>
                     confirm({ title: t("confirmUnpublish"), confirmLabel: t("unpublish") }).then((ok) => {
-                      if (ok) void act(v.id, () => vocabularies.unpublish(v.id), "publishError");
+                      if (ok) void act(vocabulary.id, () => vocabularies.unpublish(vocabulary.id), "publishError");
                     })
                   }
                 >
@@ -139,14 +139,14 @@ export default function VocabulariesPage() {
               <button
                 className="icon-btn danger"
                 aria-label={t("delete")}
-                disabled={busyId === v.id}
+                disabled={busyId === vocabulary.id}
                 onClick={() =>
                   confirm({
-                    title: t("confirmDeleteVocabulary", { name: v.name }),
+                    title: t("confirmDeleteVocabulary", { name: vocabulary.name }),
                     confirmLabel: t("delete"),
                     danger: true,
                   }).then((ok) => {
-                    if (ok) void act(v.id, () => vocabularies.delete(v.id), "deleteError");
+                    if (ok) void act(vocabulary.id, () => vocabularies.delete(vocabulary.id), "deleteError");
                   })
                 }
               >
@@ -164,18 +164,18 @@ export default function VocabulariesPage() {
           </div>
         )}
         {tab === "downloaded" &&
-          downloaded.map((v) => (
-            <VocabularyRow key={v.id} vocabulary={v} onOpen={() => navigate(`/vocabularies/${v.id}`)} showAuthor>
+          downloaded.map((vocabulary) => (
+            <VocabularyRow key={vocabulary.id} vocabulary={vocabulary} onOpen={() => navigate(`/vocabularies/${vocabulary.id}`)} showAuthor>
               <button
                 className="btn btn-secondary btn-small"
-                disabled={busyId === v.id}
+                disabled={busyId === vocabulary.id}
                 onClick={() =>
                   confirm({
-                    title: t("confirmRemoveDownload", { name: v.name }),
+                    title: t("confirmRemoveDownload", { name: vocabulary.name }),
                     confirmLabel: t("removeDownload"),
                     danger: true,
                   }).then((ok) => {
-                    if (ok) void act(v.id, () => vocabularies.removeDownload(user.id, v.id), "downloadError");
+                    if (ok) void act(vocabulary.id, () => vocabularies.removeDownload(user.id, vocabulary.id), "downloadError");
                   })
                 }
               >
@@ -201,7 +201,7 @@ export default function VocabulariesPage() {
 }
 
 function VocabularyRow({
-  vocabulary: v,
+  vocabulary: vocabulary,
   onOpen,
   showAuthor,
   children,
@@ -216,14 +216,14 @@ function VocabularyRow({
     <div className="vocab-card-row">
       <button type="button" className="vocab-card-main" onClick={onOpen}>
         <span className="vocab-row-headword" dir="auto">
-          {v.name}
+          {vocabulary.name}
         </span>
         <span className="meta-line">
-          <LanguagePair vocabulary={v} />
-          <span className="muted small">{t("wordCountLabel", { count: formatNumber(v.wordCount, language) })}</span>
-          {showAuthor && v.ownerName && <span className="muted small">{t("byAuthor", { name: v.ownerName })}</span>}
-          {v.status === "published" && <StarDisplay value={v.ratingAvg} count={v.ratingCount} />}
-          <span className="muted small">{t("updatedOn", { date: formatDate(v.updatedAt, language) })}</span>
+          <LanguagePair vocabulary={vocabulary} />
+          <span className="muted small">{t("wordCountLabel", { count: formatNumber(vocabulary.wordCount, language) })}</span>
+          {showAuthor && vocabulary.ownerName && <span className="muted small">{t("byAuthor", { name: vocabulary.ownerName })}</span>}
+          {vocabulary.status === "published" && <StarDisplay value={vocabulary.ratingAvg} count={vocabulary.ratingCount} />}
+          <span className="muted small">{t("updatedOn", { date: formatDate(vocabulary.updatedAt, language) })}</span>
         </span>
       </button>
       <div className="row-actions">{children}</div>

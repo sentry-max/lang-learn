@@ -56,9 +56,9 @@ export function makeVocabulary(id: string, overrides: Partial<Vocabulary> = {}):
 /** Headwords starting with every letter A..Z, `perLetter` each: "Aa0", "Aa1", ... "Za9". */
 export function alphabetWords(perLetter: number): Word[] {
   const words: Word[] = [];
-  for (let c = 65; c <= 90; c++) {
-    const letter = String.fromCharCode(c);
-    for (let i = 0; i < perLetter; i++) words.push(makeWord(`${letter}${letter.toLowerCase()}${i}`));
+  for (let charCode = 65; charCode <= 90; charCode++) {
+    const letter = String.fromCharCode(charCode);
+    for (let index = 0; index < perLetter; index++) words.push(makeWord(`${letter}${letter.toLowerCase()}${index}`));
   }
   return words;
 }

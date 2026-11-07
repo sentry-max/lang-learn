@@ -99,10 +99,10 @@ export default function SettingsPage() {
             setSaveState("saved");
             setError(null);
           }
-        } catch (err) {
+        } catch (error) {
           if (mounted.current) {
             setSaveState("error");
-            setError(errorMessage(err, "profileSaveError"));
+            setError(errorMessage(error, "profileSaveError"));
           }
         }
       });
@@ -120,17 +120,17 @@ export default function SettingsPage() {
   }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
   const setPref = <K extends keyof Preferences>(key: K, value: Preferences[K]) =>
-    setDraft((d) => ({ ...d, preferences: { ...d.preferences, [key]: value } }));
+    setDraft((draft) => ({ ...draft, preferences: { ...draft.preferences, [key]: value } }));
   const setBehavior = (rating: DifficultyRating, patch: Partial<RatingBehavior>) =>
-    setDraft((d) => ({
-      ...d,
+    setDraft((draft) => ({
+      ...draft,
       preferences: {
-        ...d.preferences,
-        ratingBehavior: { ...d.preferences.ratingBehavior, [rating]: { ...d.preferences.ratingBehavior[rating], ...patch } },
+        ...draft.preferences,
+        ratingBehavior: { ...draft.preferences.ratingBehavior, [rating]: { ...draft.preferences.ratingBehavior[rating], ...patch } },
       },
     }));
 
-  const p = draft.preferences;
+  const preferences = draft.preferences;
 
   return (
     <div className="app-main settings-page">
@@ -170,7 +170,7 @@ export default function SettingsPage() {
             dir="auto"
             maxLength={DISPLAY_NAME_MAX}
             value={draft.displayName}
-            onChange={(e) => setDraft({ ...draft, displayName: e.target.value })}
+            onChange={(event) => setDraft({ ...draft, displayName: event.target.value })}
           />
           {nameMissing ? (
             <p className="field-error">{t("displayNameRequired")}</p>
@@ -184,7 +184,7 @@ export default function SettingsPage() {
             <select
               id="st-primary"
               value={draft.primaryLanguage}
-              onChange={(e) => setDraft({ ...draft, primaryLanguage: e.target.value as LanguageCode })}
+              onChange={(event) => setDraft({ ...draft, primaryLanguage: event.target.value as LanguageCode })}
             >
               {SUPPORTED_LANGUAGES.map((code) => (
                 <option key={code} value={code}>
@@ -196,7 +196,7 @@ export default function SettingsPage() {
           </div>
           <div className="form-field">
             <label htmlFor="st-ui">{t("uiLanguageLabel")}</label>
-            <select id="st-ui" value={draft.uiLanguage} onChange={(e) => setDraft({ ...draft, uiLanguage: e.target.value as UiLanguage })}>
+            <select id="st-ui" value={draft.uiLanguage} onChange={(event) => setDraft({ ...draft, uiLanguage: event.target.value as UiLanguage })}>
               {UI_LANGUAGES.map((code) => (
                 <option key={code} value={code}>
                   {languageLabel(code)}
@@ -215,8 +215,8 @@ export default function SettingsPage() {
           <span className="field-label">{t("themeLabel")}</span>
           <Segmented<ThemePreference>
             ariaLabel={t("themeLabel")}
-            value={p.theme}
-            onChange={(v) => setPref("theme", v)}
+            value={preferences.theme}
+            onChange={(theme) => setPref("theme", theme)}
             options={[
               { value: "system", label: <><Icon name="monitor" size={16} /> {t("themeSystem")}</> },
               { value: "light", label: <><Icon name="sun" size={16} /> {t("themeLight")}</> },
@@ -228,8 +228,8 @@ export default function SettingsPage() {
           <span className="field-label">{t("fontSizeLabel")}</span>
           <Segmented<FontSizePreference>
             ariaLabel={t("fontSizeLabel")}
-            value={p.fontSize}
-            onChange={(v) => setPref("fontSize", v)}
+            value={preferences.fontSize}
+            onChange={(fontSize) => setPref("fontSize", fontSize)}
             options={[
               { value: "small", label: <span style={{ fontSize: "0.8em" }}>{t("fontSmall")}</span> },
               { value: "medium", label: t("fontMedium") },
@@ -239,8 +239,8 @@ export default function SettingsPage() {
           />
         </div>
         <Switch
-          checked={p.liquidGlass}
-          onChange={(v) => setPref("liquidGlass", v)}
+          checked={preferences.liquidGlass}
+          onChange={(isChecked) => setPref("liquidGlass", isChecked)}
           label={
             <span className="icon-text">
               <Icon name="sparkles" size={18} /> {t("liquidGlassLabel")}
@@ -249,8 +249,8 @@ export default function SettingsPage() {
           description={t("liquidGlassHint")}
         />
         <Switch
-          checked={p.reduceMotion}
-          onChange={(v) => setPref("reduceMotion", v)}
+          checked={preferences.reduceMotion}
+          onChange={(isChecked) => setPref("reduceMotion", isChecked)}
           label={t("reduceMotionLabel")}
           description={t("reduceMotionHint")}
         />
@@ -263,18 +263,18 @@ export default function SettingsPage() {
         <p className="muted">{t("settingsAfterAnswerHint")}</p>
         <div className="behavior-list">
           {DIFFICULTY_RATINGS.map((rating) => {
-            const b = p.ratingBehavior[rating];
+            const behavior = preferences.ratingBehavior[rating];
             return (
               <div key={rating} className="behavior-item">
                 <RatingPill rating={rating} />
-                <Switch checked={b.showAnswer} onChange={(v) => setBehavior(rating, { showAnswer: v })} label={t("showAnswerLabel")} />
+                <Switch checked={behavior.showAnswer} onChange={(isChecked) => setBehavior(rating, { showAnswer: isChecked })} label={t("showAnswerLabel")} />
                 <Switch
-                  checked={b.autoAdvance}
-                  onChange={(v) => setBehavior(rating, { autoAdvance: v })}
+                  checked={behavior.autoAdvance}
+                  onChange={(isChecked) => setBehavior(rating, { autoAdvance: isChecked })}
                   label={t("autoAdvanceLabel")}
-                  description={!b.showAnswer && b.autoAdvance ? t("autoAdvanceImmediate") : undefined}
+                  description={!behavior.showAnswer && behavior.autoAdvance ? t("autoAdvanceImmediate") : undefined}
                 />
-                {b.autoAdvance && b.showAnswer && (
+                {behavior.autoAdvance && behavior.showAnswer && (
                   <label className="inline-field delay-field">
                     <span>{t("advanceDelayLabel")}</span>
                     <input
@@ -282,9 +282,9 @@ export default function SettingsPage() {
                       min={MIN_ADVANCE_DELAY_SECONDS}
                       max={MAX_ADVANCE_DELAY_SECONDS}
                       step={0.5}
-                      value={b.delaySeconds}
-                      onChange={(e) => setBehavior(rating, { delaySeconds: Number(e.target.value) })}
-                      onBlur={(e) => setBehavior(rating, { delaySeconds: clampAdvanceDelay(Number(e.target.value), 5) })}
+                      value={behavior.delaySeconds}
+                      onChange={(event) => setBehavior(rating, { delaySeconds: Number(event.target.value) })}
+                      onBlur={(event) => setBehavior(rating, { delaySeconds: clampAdvanceDelay(Number(event.target.value), 5) })}
                     />
                     <span className="muted">{t("secondsShort")}</span>
                   </label>
@@ -297,18 +297,18 @@ export default function SettingsPage() {
 
       <section className="card">
         <h3 className="card-title">
-          <Icon name={p.soundEffects ? "volume" : "volumeOff"} /> {t("settingsSounds")}
+          <Icon name={preferences.soundEffects ? "volume" : "volumeOff"} /> {t("settingsSounds")}
         </h3>
         <Switch
-          checked={p.soundEffects}
-          onChange={(v) => {
-            setPref("soundEffects", v);
-            if (v) playCue("success", p.soundVolume);
+          checked={preferences.soundEffects}
+          onChange={(isChecked) => {
+            setPref("soundEffects", isChecked);
+            if (isChecked) playCue("success", preferences.soundVolume);
           }}
           label={t("soundEffectsLabel")}
           description={t("soundEffectsHint")}
         />
-        {p.soundEffects && (
+        {preferences.soundEffects && (
           <div className="slider-row">
             <label htmlFor="st-volume">{t("soundVolumeLabel")}</label>
             <input
@@ -318,22 +318,22 @@ export default function SettingsPage() {
               min={0.1}
               max={1}
               step={0.1}
-              value={p.soundVolume}
-              onChange={(e) => setPref("soundVolume", Number(e.target.value))}
-              onPointerUp={() => playCue("success", p.soundVolume)}
-              onKeyUp={() => playCue("success", p.soundVolume)}
+              value={preferences.soundVolume}
+              onChange={(event) => setPref("soundVolume", Number(event.target.value))}
+              onPointerUp={() => playCue("success", preferences.soundVolume)}
+              onKeyUp={() => playCue("success", preferences.soundVolume)}
             />
-            <button type="button" className="icon-btn bordered" onClick={() => playCue("success", p.soundVolume)} aria-label={t("testSound")} title={t("testSound")}>
+            <button type="button" className="icon-btn bordered" onClick={() => playCue("success", preferences.soundVolume)} aria-label={t("testSound")} title={t("testSound")}>
               <Icon name="volume" size={18} />
             </button>
           </div>
         )}
         {canVibrate() && (
           <Switch
-            checked={p.haptics}
-            onChange={(v) => {
-              setPref("haptics", v);
-              if (v) vibrate("success");
+            checked={preferences.haptics}
+            onChange={(isChecked) => {
+              setPref("haptics", isChecked);
+              if (isChecked) vibrate("success");
             }}
             label={t("hapticsLabel")}
             description={t("hapticsHint")}
@@ -346,8 +346,8 @@ export default function SettingsPage() {
           <Icon name="mic" /> {t("settingsPronunciation")}
         </h3>
         <Switch
-          checked={p.autoPronounce}
-          onChange={(v) => setPref("autoPronounce", v)}
+          checked={preferences.autoPronounce}
+          onChange={(isChecked) => setPref("autoPronounce", isChecked)}
           label={t("autoPronounceLabel")}
           description={canSpeak() ? t("autoPronounceHint") : t("speechUnsupported")}
           disabled={!canSpeak()}
@@ -362,13 +362,13 @@ export default function SettingsPage() {
               min={0.5}
               max={1.5}
               step={0.1}
-              value={p.speechRate}
-              onChange={(e) => setPref("speechRate", Number(e.target.value))}
+              value={preferences.speechRate}
+              onChange={(event) => setPref("speechRate", Number(event.target.value))}
             />
             <button
               type="button"
               className="btn btn-secondary btn-small"
-              onClick={() => speak("Guten Morgen", "de", p.speechRate)}
+              onClick={() => speak("Guten Morgen", "de", preferences.speechRate)}
             >
               <Icon name="volume" size={16} /> {t("testSpeech")}
             </button>
@@ -385,7 +385,7 @@ export default function SettingsPage() {
           {library.data ? (
             <VocabularyPicker
               vocabularies={library.data}
-              selected={p.defaultVocabularyIds.filter((id) => library.data!.some((v) => v.id === id))}
+              selected={preferences.defaultVocabularyIds.filter((id) => library.data!.some((vocabulary) => vocabulary.id === id))}
               onChange={(ids) => setPref("defaultVocabularyIds", ids)}
               currentUserId={user.id}
               placeholder={t("noDefaultVocabulary")}
@@ -397,10 +397,10 @@ export default function SettingsPage() {
           )}
           <p className="muted form-hint">{t("defaultVocabulariesHint")}</p>
         </div>
-        <Switch checked={p.autoShowHint} onChange={(v) => setPref("autoShowHint", v)} label={t("autoShowHintLabel")} description={t("autoShowHintHint")} />
+        <Switch checked={preferences.autoShowHint} onChange={(isChecked) => setPref("autoShowHint", isChecked)} label={t("autoShowHintLabel")} description={t("autoShowHintHint")} />
         <Switch
-          checked={p.keyboardShortcuts}
-          onChange={(v) => setPref("keyboardShortcuts", v)}
+          checked={preferences.keyboardShortcuts}
+          onChange={(isChecked) => setPref("keyboardShortcuts", isChecked)}
           label={t("keyboardShortcutsLabel")}
           description={t("keyboardShortcutsHint")}
         />
@@ -410,7 +410,7 @@ export default function SettingsPage() {
         <h3 className="card-title">
           <Icon name="book" /> {t("settingsWords")}
         </h3>
-        <Switch checked={p.continuousAdd} onChange={(v) => setPref("continuousAdd", v)} label={t("keepAddingLabel")} description={t("keepAddingHint")} />
+        <Switch checked={preferences.continuousAdd} onChange={(isChecked) => setPref("continuousAdd", isChecked)} label={t("keepAddingLabel")} description={t("keepAddingHint")} />
       </section>
 
       <section className="card">

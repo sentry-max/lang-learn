@@ -39,7 +39,7 @@ export default function HistoryPage() {
   const [message, setMessage] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
 
-  const activeLetter = letter && overview.data?.letters.some((l) => l.letter === letter) ? letter : null;
+  const activeLetter = letter && overview.data?.letters.some((letterCount) => letterCount.letter === letter) ? letter : null;
 
   async function reset(wordIds: string[] | null, confirmText: string) {
     if (!(await confirm({ title: t("resetConfirmTitle"), message: confirmText, confirmLabel: t("reset"), danger: true }))) return;
@@ -50,8 +50,8 @@ export default function HistoryPage() {
       const count = wordIds === null ? await history.resetAll(user.id) : await history.resetWords(user.id, wordIds);
       setMessage(t("resetDone", { count }));
       await overview.reload();
-    } catch (err) {
-      setError(errorMessage(err, "resetError"));
+    } catch (error) {
+      setError(errorMessage(error, "resetError"));
     } finally {
       setBusy(false);
     }
@@ -85,10 +85,10 @@ export default function HistoryPage() {
             <div className="toolbar">
               <label className="inline-field">
                 <span className="muted">{t("resetByAnswer")}</span>
-                <select value={resetRating} onChange={(e) => setResetRating(e.target.value as DifficultyRating)}>
-                  {DIFFICULTY_RATINGS.map((r) => (
-                    <option key={r} value={r}>
-                      {t(RATING_KEYS[r])} ({wordIdsForRating(data, r).length})
+                <select value={resetRating} onChange={(event) => setResetRating(event.target.value as DifficultyRating)}>
+                  {DIFFICULTY_RATINGS.map((rating) => (
+                    <option key={rating} value={rating}>
+                      {t(RATING_KEYS[rating])} ({wordIdsForRating(data, rating).length})
                     </option>
                   ))}
                 </select>
@@ -116,16 +116,16 @@ export default function HistoryPage() {
             </div>
 
             <div className="chip-grid" role="tablist" aria-label={t("lettersLabel")}>
-              {data.letters.map(({ letter: l, count }) => (
+              {data.letters.map(({ letter: letter, count }) => (
                 <button
-                  key={l}
+                  key={letter}
                   type="button"
                   role="tab"
-                  aria-selected={activeLetter === l}
-                  className={`chip letter-chip${activeLetter === l ? " selected" : ""}`}
-                  onClick={() => setLetter(activeLetter === l ? null : l)}
+                  aria-selected={activeLetter === letter}
+                  className={`chip letter-chip${activeLetter === letter ? " selected" : ""}`}
+                  onClick={() => setLetter(activeLetter === letter ? null : letter)}
                 >
-                  <strong>{l}</strong>
+                  <strong>{letter}</strong>
                   <span className="chip-count">{count}</span>
                 </button>
               ))}
@@ -168,10 +168,10 @@ function LetterHistory({
   const errorMessage = useErrorMessage();
   const [expanded, setExpanded] = useState<string | null>(null);
 
-  const words = useMemo(() => overview.words.filter((w) => w.letter === letter), [overview, letter]);
+  const words = useMemo(() => overview.words.filter((entry) => entry.letter === letter), [overview, letter]);
   const events = useAsync(
-    () => history.getEvents(user.id, words.map((w) => w.wordId)),
-    [user.id, words.map((w) => w.wordId).join(",")]
+    () => history.getEvents(user.id, words.map((entry) => entry.wordId)),
+    [user.id, words.map((entry) => entry.wordId).join(",")]
   );
 
   return (

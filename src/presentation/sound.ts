@@ -35,17 +35,17 @@ export function playCue(cue: Cue, volume = 0.6): void {
     const AudioCtor = window.AudioContext ?? (window as unknown as { webkitAudioContext?: typeof AudioContext }).webkitAudioContext;
     if (!AudioCtor) return;
     context ??= new AudioCtor();
-    const ctx = context;
-    const start = ctx.currentTime + 0.01;
+    const audioContext = context;
+    const start = audioContext.currentTime + 0.01;
     for (const note of NOTES[cue]) {
-      const oscillator = ctx.createOscillator();
-      const gain = ctx.createGain();
+      const oscillator = audioContext.createOscillator();
+      const gain = audioContext.createGain();
       oscillator.type = "sine";
       oscillator.frequency.value = note.freq;
       gain.gain.setValueAtTime(0.0001, start + note.at);
       gain.gain.exponentialRampToValueAtTime(Math.max(0.0002, 0.2 * volume), start + note.at + 0.01);
       gain.gain.exponentialRampToValueAtTime(0.0001, start + note.at + note.length);
-      oscillator.connect(gain).connect(ctx.destination);
+      oscillator.connect(gain).connect(audioContext.destination);
       oscillator.start(start + note.at);
       oscillator.stop(start + note.at + note.length + 0.02);
     }

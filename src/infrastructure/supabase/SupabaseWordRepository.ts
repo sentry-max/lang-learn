@@ -131,7 +131,7 @@ export class SupabaseWordRepository implements WordRepository {
 
   softDelete(words: Pick<Word, "id" | "vocabularyId">[]): Promise<void> {
     return guard("Failed to delete words.", async () => {
-      for (const ids of chunk(unique(words.map((w) => w.id)), ID_CHUNK_SIZE)) {
+      for (const ids of chunk(unique(words.map((word) => word.id)), ID_CHUNK_SIZE)) {
         const { error } = await this.client.from("words").update({ deleted_at: nowIso() }).in("id", ids);
         throwIfSupabaseError(error, "Failed to delete words.");
       }

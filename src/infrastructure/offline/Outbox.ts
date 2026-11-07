@@ -34,7 +34,7 @@ export class Outbox {
   }
 
   operations(): OutboxOperation[] {
-    return this.entries.map((e) => e.operation);
+    return this.entries.map((entry) => entry.operation);
   }
 
   push(operation: OutboxOperation): void {
@@ -64,7 +64,7 @@ export class Outbox {
     try {
       const raw = this.storage?.getItem(this.storageKey);
       const parsed: unknown = raw ? JSON.parse(raw) : [];
-      return Array.isArray(parsed) ? (parsed as Entry[]).filter((e) => e && typeof e === "object" && e.operation) : [];
+      return Array.isArray(parsed) ? (parsed as Entry[]).filter((entry) => entry && typeof entry === "object" && entry.operation) : [];
     } catch {
       return [];
     }

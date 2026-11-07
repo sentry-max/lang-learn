@@ -111,9 +111,9 @@ export function summarize(state: QuizSessionState): SessionSummary {
   const good = byRating.very_easy + byRating.easy + byRating.good;
   return {
     answered,
-    uniqueWords: new Set(state.answers.map((a) => a.wordId)).size,
+    uniqueWords: new Set(state.answers.map((answer) => answer.wordId)).size,
     byRating,
-    timedOut: state.answers.filter((a) => a.timedOut).length,
+    timedOut: state.answers.filter((answer) => answer.timedOut).length,
     notReached: Math.max(0, state.items.length - state.index),
     successRate: answered === 0 ? null : good / answered,
     endedEarly: state.endedEarly,

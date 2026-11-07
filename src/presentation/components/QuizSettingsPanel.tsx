@@ -62,13 +62,13 @@ export default function QuizSettingsPanel({ initial, onStart }: Props) {
   const [customTime, setCustomTime] = useState(false);
   const [moreOpen, setMoreOpen] = useState(false);
   const set = <K extends keyof QuizSettings>(key: K, value: QuizSettings[K]) =>
-    setSettings((s) => ({ ...s, [key]: value }));
+    setSettings((settings) => ({ ...settings, [key]: value }));
 
   const library = useAsync(() => vocabularies.listQuizLibrary(user.id), [user.id, version]);
 
   // Only vocabularies still in the library count as selected; nothing selected means nothing to quiz.
   const selectedIds = useMemo(() => {
-    const available = new Set((library.data ?? []).map((v) => v.id));
+    const available = new Set((library.data ?? []).map((vocabulary) => vocabulary.id));
     return settings.vocabularyIds.filter((id) => available.has(id));
   }, [library.data, settings.vocabularyIds]);
 
@@ -77,13 +77,13 @@ export default function QuizSettingsPanel({ initial, onStart }: Props) {
     [selectedIds.join(","), version]
   );
 
-  const letterCounts = useMemo(() => countByLetter(poolWords.data ?? [], (w) => w.headword), [poolWords.data]);
+  const letterCounts = useMemo(() => countByLetter(poolWords.data ?? [], (word) => word.headword), [poolWords.data]);
   const validLetters = useMemo(
-    () => settings.letters.filter((l) => letterCounts.some((c) => c.letter === l)),
+    () => settings.letters.filter((letter) => letterCounts.some((letterCount) => letterCount.letter === letter)),
     [settings.letters, letterCounts]
   );
   const poolSize = useMemo(
-    () => filterByLetters(poolWords.data ?? [], (w) => w.headword, validLetters).length,
+    () => filterByLetters(poolWords.data ?? [], (word) => word.headword, validLetters).length,
     [poolWords.data, validLetters]
   );
 
@@ -122,7 +122,7 @@ export default function QuizSettingsPanel({ initial, onStart }: Props) {
 
   const allCount = Math.min(poolSize, MAX_QUESTION_COUNT);
   const effectiveCount = Math.min(settings.questionCount, poolSize);
-  const choices = QUESTION_CHOICES.filter((n) => n < poolSize);
+  const choices = QUESTION_CHOICES.filter((questionCount) => questionCount < poolSize);
   const timed = settings.timerMode !== "none";
   const timerKey = settings.timerMode === "quiz" ? "quizTimerSeconds" : "wordTimerSeconds";
   const timerSeconds = settings.timerMode === "quiz" ? settings.quizTimerSeconds : settings.wordTimerSeconds;
@@ -141,7 +141,7 @@ export default function QuizSettingsPanel({ initial, onStart }: Props) {
           <VocabularyPicker
             vocabularies={library.data}
             selected={selectedIds}
-            onChange={(ids) => setSettings((s) => ({ ...s, vocabularyIds: ids, letters: [] }))}
+            onChange={(ids) => setSettings((settings) => ({ ...settings, vocabularyIds: ids, letters: [] }))}
             currentUserId={user.id}
           />
           <Link className="icon-btn bordered" to="/vocabularies" title={t("manageVocabularies")} aria-label={t("manageVocabularies")}>
@@ -161,16 +161,16 @@ export default function QuizSettingsPanel({ initial, onStart }: Props) {
           <div className="skeleton" style={{ height: 36 }} />
         ) : (
           <div className="chip-grid" role="radiogroup" aria-label={t("questionsLabel")}>
-            {choices.map((n) => (
+            {choices.map((questionCount) => (
               <button
-                key={n}
+                key={questionCount}
                 type="button"
                 role="radio"
-                aria-checked={effectiveCount === n}
-                className={`chip chip-large${effectiveCount === n ? " selected" : ""}`}
-                onClick={() => set("questionCount", n)}
+                aria-checked={effectiveCount === questionCount}
+                className={`chip chip-large${effectiveCount === questionCount ? " selected" : ""}`}
+                onClick={() => set("questionCount", questionCount)}
               >
-                {formatNumber(n, language)}
+                {formatNumber(questionCount, language)}
               </button>
             ))}
             <button
@@ -228,13 +228,13 @@ export default function QuizSettingsPanel({ initial, onStart }: Props) {
                 {t("customTime")}
               </button>
             </div>
-            {showCustom && <DurationPicker seconds={timerSeconds} onChange={(v) => set(timerKey, v)} presets={[]} />}
+            {showCustom && <DurationPicker seconds={timerSeconds} onChange={(value) => set(timerKey, value)} presets={[]} />}
             <p className="muted small">{settings.timerMode === "quiz" ? t("quizTimerNote") : t("wordTimerNote")}</p>
           </div>
         )}
       </section>
 
-      <button type="button" className="more-toggle" aria-expanded={moreOpen} onClick={() => setMoreOpen((o) => !o)}>
+      <button type="button" className="more-toggle" aria-expanded={moreOpen} onClick={() => setMoreOpen((isOpen) => !isOpen)}>
         <Icon name="chevronDown" size={16} className={moreOpen ? "rotated" : undefined} />
         {t("moreOptions")}
         {extrasCount > 0 && <span className="pill">{extrasCount}</span>}
@@ -244,20 +244,20 @@ export default function QuizSettingsPanel({ initial, onStart }: Props) {
         <div className="more-options">
           <div className="form-field">
             <span className="field-label">{t("letterFilterLabel")}</span>
-            <LetterPicker letters={letterCounts} selected={validLetters} onChange={(l) => set("letters", l)} />
+            <LetterPicker letters={letterCounts} selected={validLetters} onChange={(letters) => set("letters", letters)} />
           </div>
           <div className="form-field">
             <span className="field-label">{t("directionLabel")}</span>
             <Segmented
               options={DIRECTIONS.map(({ value, key }) => ({ value, label: t(key, { lang: languageLabel(profile.primaryLanguage) }) }))}
               value={settings.direction}
-              onChange={(v) => set("direction", v)}
+              onChange={(direction) => set("direction", direction)}
               ariaLabel={t("directionLabel")}
             />
           </div>
           <Switch
             checked={settings.includeSentenceWriting}
-            onChange={(v) => set("includeSentenceWriting", v)}
+            onChange={(isChecked) => set("includeSentenceWriting", isChecked)}
             label={t("sentenceToggleLabel")}
           />
         </div>
@@ -281,8 +281,8 @@ export default function QuizSettingsPanel({ initial, onStart }: Props) {
 }
 
 function presetLabel(seconds: number, t: ReturnType<typeof useLanguage>["t"]): string {
-  const { hours, minutes, seconds: s } = splitDuration(seconds);
+  const { hours, minutes, seconds: currentSeconds } = splitDuration(seconds);
   if (hours) return t("presetHours", { count: hours });
   if (minutes) return t("presetMinutes", { count: minutes });
-  return t("presetSeconds", { count: s });
+  return t("presetSeconds", { count: currentSeconds });
 }

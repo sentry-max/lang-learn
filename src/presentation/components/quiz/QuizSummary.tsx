@@ -56,10 +56,10 @@ export default function QuizSummary({ summary, elapsedMs, cycleRestarted, onAgai
       </div>
 
       <div className="summary-grid">
-        {DIFFICULTY_RATINGS.map((r, i) => (
-          <div key={r} className={`summary-cell rating-pill ${r}`} style={{ animationDelay: `${i * 60}ms` }}>
-            <strong>{formatNumber(summary.byRating[r], language)}</strong>
-            <span>{t(RATING_KEYS[r])}</span>
+        {DIFFICULTY_RATINGS.map((rating, index) => (
+          <div key={rating} className={`summary-cell rating-pill ${rating}`} style={{ animationDelay: `${index * 60}ms` }}>
+            <strong>{formatNumber(summary.byRating[rating], language)}</strong>
+            <span>{t(RATING_KEYS[rating])}</span>
           </div>
         ))}
       </div>
