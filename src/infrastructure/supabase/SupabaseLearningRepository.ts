@@ -12,12 +12,9 @@ import { ID_CHUNK_SIZE, chunk, fetchAllPages, nowIso, unique } from "@infrastruc
 
 const PROGRESS_COLUMNS =
   "word_id, ease_factor, interval_days, repetitions, lapses, times_seen, total_correct, total_incorrect, streak, " +
-  "last_rating, last_reviewed_at, next_review_at, avg_response_ms, seen_in_cycle, mode_stats";
+  "last_rating, last_reviewed_at, next_review_at, avg_response_ms, mode_stats";
 
-const EVENT_COLUMNS = "id, word_id, session_id, mode, rating, shown_at, answered_at, response_ms";
-
-/** Word ids per RPC call when restarting a round (sent in the POST body). */
-const RPC_ID_CHUNK_SIZE = 2000;
+const EVENT_COLUMNS = "id, word_id, session_id, mode, rating, shown_at, answered_at, response_ms, collection_key";
 
 interface ProgressRow {
   word_id: string;
@@ -33,7 +30,6 @@ interface ProgressRow {
   last_reviewed_at: string | null;
   next_review_at: string;
   avg_response_ms: number | null;
-  seen_in_cycle: boolean;
   mode_stats: unknown;
 }
 
@@ -46,6 +42,7 @@ interface EventRow {
   shown_at: string;
   answered_at: string;
   response_ms: number | null;
+  collection_key: string | null;
 }
 
 function rowToProgress(row: ProgressRow): WordProgress {
@@ -63,7 +60,6 @@ function rowToProgress(row: ProgressRow): WordProgress {
     lastReviewedAt: row.last_reviewed_at,
     nextReviewAt: row.next_review_at,
     avgResponseMs: row.avg_response_ms,
-    seenInCycle: row.seen_in_cycle,
     modeStats: normalizeModeStats(row.mode_stats),
   };
 }
@@ -82,7 +78,6 @@ function progressToRpcPayload(progress: WordProgress) {
     last_reviewed_at: progress.lastReviewedAt,
     next_review_at: progress.nextReviewAt,
     avg_response_ms: progress.avgResponseMs,
-    seen_in_cycle: progress.seenInCycle,
     mode_stats: progress.modeStats,
   };
 }
@@ -98,6 +93,7 @@ function rowToEvent(row: EventRow): ReviewEvent | null {
     shownAt: row.shown_at,
     answeredAt: row.answered_at,
     responseMs: row.response_ms,
+    collectionKey: row.collection_key,
   };
 }
 
@@ -160,6 +156,7 @@ export class SupabaseLearningRepository implements LearningRepository {
         p_answered_at: event.answeredAt,
         p_response_ms: event.responseMs,
         p_progress: progressToRpcPayload(progress),
+        p_collection_key: event.collectionKey,
       });
       throwIfSupabaseError(error, "Failed to save your answer.");
     });
@@ -199,12 +196,39 @@ export class SupabaseLearningRepository implements LearningRepository {
     });
   }
 
-  restartCycle(_userId: string, wordIds: string[]): Promise<void> {
+  getAskedInRound(userId: string, collectionKey: string): Promise<string[]> {
+    return guard("Failed to load your quiz round.", async () => {
+      const { data: round, error } = await this.client
+        .from("quiz_collection_rounds")
+        .select("started_at")
+        .eq("user_id", userId)
+        .eq("collection_key", collectionKey)
+        .is("deleted_at", null)
+        .returns<{ started_at: string }[]>()
+        .maybeSingle();
+      throwIfSupabaseError(error, "Failed to load your quiz round.");
+      const startedAt = (round as { started_at: string } | null)?.started_at ?? null;
+      const rows = await fetchAllPages<{ word_id: string }>((from, to) => {
+        const query = this.client
+          .from("review_events")
+          .select("word_id")
+          .eq("user_id", userId)
+          .eq("collection_key", collectionKey)
+          .is("deleted_at", null);
+        // shortcut: compares device clocks (round start vs answer time); a device with a wrong clock may count a few answers in the wrong round.
+        return (startedAt ? query.gte("answered_at", startedAt) : query).order("id").range(from, to).returns<{ word_id: string }[]>();
+      }, "Failed to load your quiz round.");
+      return unique(rows.map((row) => row.word_id));
+    });
+  }
+
+  startRound(userId: string, collectionKey: string, startedAt: string): Promise<void> {
     return guard("Failed to start a new round.", async () => {
-      for (const ids of chunk(unique(wordIds), RPC_ID_CHUNK_SIZE)) {
-        const { error } = await this.client.rpc("restart_quiz_cycle", { p_word_ids: ids });
-        throwIfSupabaseError(error, "Failed to start a new round.");
-      }
+      // Upsert so a round queued while offline can safely be re-sent.
+      const { error } = await this.client
+        .from("quiz_collection_rounds")
+        .upsert({ user_id: userId, collection_key: collectionKey, started_at: startedAt, deleted_at: null }, { onConflict: "user_id,collection_key" });
+      throwIfSupabaseError(error, "Failed to start a new round.");
     });
   }
 

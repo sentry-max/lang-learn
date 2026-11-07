@@ -7,6 +7,7 @@ import {
   QuizSettings,
   TimerMode,
   isValidTimerSeconds,
+  questionQuota,
 } from "@domain/entities/QuizSettings";
 import { splitDuration } from "@domain/services/Duration";
 import { countByLetter, filterByLetters } from "@domain/services/LetterService";
@@ -14,12 +15,14 @@ import { useServices, useSyncStatus } from "@presentation/context/ServicesContex
 import { useLanguage } from "@presentation/context/LanguageContext";
 import { useCurrentUser } from "@presentation/context/AuthContext";
 import { useProfile } from "@presentation/context/ProfileContext";
+import { useConfirm, useToast } from "@presentation/context/FeedbackContext";
 import { useAsync } from "@presentation/hooks/useAsync";
 import { useErrorMessage } from "@presentation/hooks/useErrorMessage";
 import ErrorBanner from "@presentation/components/ErrorBanner";
 import LetterPicker from "@presentation/components/LetterPicker";
 import VocabularyPicker from "@presentation/components/VocabularyPicker";
 import DurationPicker from "@presentation/components/ui/DurationPicker";
+import { Spinner } from "@presentation/components/ui/Loader";
 import Icon, { IconName } from "@presentation/components/ui/Icon";
 import { Segmented, Switch } from "@presentation/components/ui/Controls";
 import { UiStringKey } from "@presentation/i18n/translations";
@@ -53,14 +56,17 @@ const DIRECTIONS: { value: QuizDirection; key: UiStringKey }[] = [
 export default function QuizSettingsPanel({ initial, onStart }: Props) {
   const user = useCurrentUser();
   const { profile } = useProfile();
-  const { vocabularies, words } = useServices();
+  const { vocabularies, words, history } = useServices();
   const { version } = useSyncStatus();
   const { t, language } = useLanguage();
   const errorMessage = useErrorMessage();
+  const confirm = useConfirm();
+  const toast = useToast();
 
   const [settings, setSettings] = useState<QuizSettings>(initial);
   const [customTime, setCustomTime] = useState(false);
   const [moreOpen, setMoreOpen] = useState(false);
+  const [isClearingHistory, setIsClearingHistory] = useState(false);
   const set = <K extends keyof QuizSettings>(key: K, value: QuizSettings[K]) =>
     setSettings((settings) => ({ ...settings, [key]: value }));
 
@@ -82,10 +88,37 @@ export default function QuizSettingsPanel({ initial, onStart }: Props) {
     () => settings.letters.filter((letter) => letterCounts.some((letterCount) => letterCount.letter === letter)),
     [settings.letters, letterCounts]
   );
-  const poolSize = useMemo(
-    () => filterByLetters(poolWords.data ?? [], (word) => word.headword, validLetters).length,
+  const poolWordsForLetters = useMemo(
+    () => filterByLetters(poolWords.data ?? [], (word) => word.headword, validLetters),
     [poolWords.data, validLetters]
   );
+  const poolSize = poolWordsForLetters.length;
+  const poolWordIds = useMemo(() => poolWordsForLetters.map((word) => word.id), [poolWordsForLetters]);
+  const askedWordIds = useAsync(
+    () => history.askedInRound(user.id, validLetters, poolWordIds),
+    [user.id, validLetters.join(","), poolWordIds, version]
+  );
+  const askedCount = askedWordIds.data?.length ?? 0;
+
+  async function clearLetterHistory() {
+    const isConfirmed = await confirm({
+      title: t("letterHistoryConfirmTitle"),
+      message: t("letterHistoryConfirmBody"),
+      confirmLabel: t("letterHistoryClear"),
+      danger: true,
+    });
+    if (!isConfirmed) return;
+    setIsClearingHistory(true);
+    try {
+      await history.clearRound(user.id, validLetters);
+      await askedWordIds.reload();
+      toast(t("letterHistoryCleared"), "success");
+    } catch (error) {
+      toast(errorMessage(error, "letterHistoryClearError"), "error");
+    } finally {
+      setIsClearingHistory(false);
+    }
+  }
 
   if (library.loading && !library.data) {
     return (
@@ -120,8 +153,8 @@ export default function QuizSettingsPanel({ initial, onStart }: Props) {
     );
   }
 
-  const allCount = Math.min(poolSize, MAX_QUESTION_COUNT);
-  const effectiveCount = Math.min(settings.questionCount, poolSize);
+  const allCount = questionQuota({ questionCount: MAX_QUESTION_COUNT, letters: validLetters }, poolSize);
+  const effectiveCount = questionQuota({ ...settings, letters: validLetters }, poolSize);
   const choices = QUESTION_CHOICES.filter((questionCount) => questionCount < poolSize);
   const timed = settings.timerMode !== "none";
   const timerKey = settings.timerMode === "quiz" ? "quizTimerSeconds" : "wordTimerSeconds";
@@ -181,6 +214,16 @@ export default function QuizSettingsPanel({ initial, onStart }: Props) {
               onClick={() => set("questionCount", MAX_QUESTION_COUNT)}
             >
               {t("allWordsChoice", { count: formatNumber(allCount, language) })}
+            </button>
+          </div>
+        )}
+        {askedCount > 0 && (
+          <div className="letter-history">
+            <span className="muted small">
+              {t("letterHistoryAsked", { asked: formatNumber(askedCount, language), total: formatNumber(poolSize, language) })}
+            </span>
+            <button type="button" className="btn btn-secondary btn-small" disabled={isClearingHistory} onClick={clearLetterHistory}>
+              {isClearingHistory && <Spinner />} {t("letterHistoryClear")}
             </button>
           </div>
         )}

@@ -1,4 +1,5 @@
 import { DifficultyRating, ReviewEvent, WordProgress } from "@domain/entities/Learning";
+import { collectionKeyOf } from "@domain/entities/QuizSettings";
 import { Word } from "@domain/entities/Word";
 import { countByLetter, firstLetter } from "@domain/services/LetterService";
 import { LearningRepository } from "@domain/repositories/LearningRepository";
@@ -23,7 +24,8 @@ const UNAVAILABLE_LETTER = "?";
 export class LearningHistoryService {
   constructor(
     private readonly learning: LearningRepository,
-    private readonly words: WordRepository
+    private readonly words: WordRepository,
+    private readonly clock: () => Date = () => new Date()
   ) {}
 
   async getOverview(userId: string): Promise<HistoryOverview> {
@@ -51,6 +53,18 @@ export class LearningHistoryService {
     }
     for (const list of byWord.values()) list.sort((a, b) => b.answeredAt.localeCompare(a.answeredAt));
     return byWord;
+  }
+
+  /** Which of `wordIds` were already asked in the current round of the collection for `letters`. */
+  async askedInRound(userId: string, letters: string[], wordIds: string[]): Promise<string[]> {
+    if (wordIds.length === 0) return [];
+    const asked = new Set(await this.learning.getAskedInRound(userId, collectionKeyOf(letters)));
+    return wordIds.filter((id) => asked.has(id));
+  }
+
+  /** Starts a new round for the collection of `letters`; answers and learning progress are kept. */
+  clearRound(userId: string, letters: string[]): Promise<void> {
+    return this.learning.startRound(userId, collectionKeyOf(letters), this.clock().toISOString());
   }
 
   resetAll(userId: string): Promise<number> {

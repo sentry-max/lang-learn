@@ -205,7 +205,7 @@ create table if not exists public.word_progress (
   last_reviewed_at timestamptz,
   next_review_at   timestamptz not null default now(),
   avg_response_ms  integer check (avg_response_ms >= 0),
-  seen_in_cycle    boolean not null default false,
+  seen_in_cycle    boolean not null default false, -- legacy: only older app builds read it
   mode_stats       jsonb not null default '{}'::jsonb check (jsonb_typeof(mode_stats) = 'object'),
   created_at       timestamptz not null default now(),
   updated_at       timestamptz not null default now(),
@@ -236,6 +236,26 @@ create index if not exists review_events_user_word_idx
   on public.review_events (user_id, word_id, answered_at desc) where deleted_at is null;
 create index if not exists review_events_word_idx on public.review_events (word_id);
 create index if not exists review_events_session_idx on public.review_events (session_id);
+
+-- The letter collection the answer was given in ('all', 'B', 'A,B'); null for answers from before collections.
+alter table public.review_events add column if not exists collection_key text
+  check (collection_key is null or char_length(collection_key) between 1 and 400);
+create index if not exists review_events_collection_idx
+  on public.review_events (user_id, collection_key, answered_at) where deleted_at is null;
+
+-- -----------------------------------------------------------------------------
+-- When each letter collection's current quiz round began. A word answered in the
+-- collection since then counts as asked and waits until the whole collection is.
+-- -----------------------------------------------------------------------------
+create table if not exists public.quiz_collection_rounds (
+  user_id        uuid not null default auth.uid() references public.profiles (id) on delete restrict,
+  collection_key text not null check (char_length(collection_key) between 1 and 400),
+  started_at     timestamptz not null,
+  created_at     timestamptz not null default now(),
+  updated_at     timestamptz not null default now(),
+  deleted_at     timestamptz,
+  primary key (user_id, collection_key)
+);
 
 -- =============================================================================
 -- Trigger functions
@@ -544,12 +564,24 @@ create trigger review_events_guard
   before update on public.review_events
   for each row execute function private.user_rows_guard();
 
+drop trigger if exists quiz_collection_rounds_guard on public.quiz_collection_rounds;
+create trigger quiz_collection_rounds_guard
+  before update on public.quiz_collection_rounds
+  for each row execute function private.user_rows_guard();
+
+drop trigger if exists quiz_collection_rounds_set_updated_at on public.quiz_collection_rounds;
+create trigger quiz_collection_rounds_set_updated_at
+  before update on public.quiz_collection_rounds
+  for each row execute function private.set_updated_at();
+
 -- =============================================================================
 -- RPC functions (SECURITY INVOKER: RLS still applies)
 -- =============================================================================
 
 -- Replaced by the version below that takes the event id (idempotent retries).
 drop function if exists public.record_review(uuid, uuid, text, text, timestamptz, timestamptz, integer, jsonb);
+-- Replaced by the version below that also takes the letter collection.
+drop function if exists public.record_review(uuid, uuid, uuid, text, text, timestamptz, timestamptz, integer, jsonb);
 
 -- Atomically stores one answer and the recalculated learning state.
 -- Idempotent: answers recorded offline are re-sent with the same p_event_id,
@@ -563,7 +595,8 @@ create or replace function public.record_review(
   p_shown_at    timestamptz,
   p_answered_at timestamptz,
   p_response_ms integer,
-  p_progress    jsonb
+  p_progress    jsonb,
+  p_collection_key text default null
 ) returns void
 language plpgsql security invoker set search_path = '' as $$
 declare
@@ -574,10 +607,10 @@ begin
   end if;
 
   insert into public.review_events
-    (id, user_id, word_id, session_id, mode, rating, shown_at, answered_at, response_ms)
+    (id, user_id, word_id, session_id, mode, rating, shown_at, answered_at, response_ms, collection_key)
   values
     (coalesce(p_event_id, gen_random_uuid()), v_uid, p_word_id, p_session_id, p_mode, p_rating,
-     coalesce(p_shown_at, now()), coalesce(p_answered_at, now()), p_response_ms)
+     coalesce(p_shown_at, now()), coalesce(p_answered_at, now()), p_response_ms, p_collection_key)
   on conflict (id) do nothing;
 
   if not found then
@@ -662,8 +695,8 @@ begin
 end;
 $$;
 
--- Starts a new round for the given words: previously "parked" words
--- (rated good/easy/very easy this round) become eligible again.
+-- Legacy: rounds live in quiz_collection_rounds now. Kept, with seen_in_cycle, for app builds still in use
+-- that call it; drop both once every client runs the collections version.
 create or replace function public.restart_quiz_cycle(p_word_ids uuid[])
 returns void
 language plpgsql security invoker set search_path = '' as $$
@@ -696,6 +729,7 @@ alter table public.vocabulary_reviews       enable row level security;
 alter table public.quiz_sessions            enable row level security;
 alter table public.word_progress            enable row level security;
 alter table public.review_events            enable row level security;
+alter table public.quiz_collection_rounds   enable row level security;
 
 -- languages -------------------------------------------------------------------
 drop policy if exists "languages: read" on public.languages;
@@ -884,6 +918,17 @@ create policy "review_events: update own" on public.review_events
   for update to authenticated
   using (user_id = (select auth.uid())) with check (user_id = (select auth.uid()));
 
+drop policy if exists "quiz_collection_rounds: own" on public.quiz_collection_rounds;
+create policy "quiz_collection_rounds: own" on public.quiz_collection_rounds
+  for select to authenticated using (user_id = (select auth.uid()));
+drop policy if exists "quiz_collection_rounds: insert own" on public.quiz_collection_rounds;
+create policy "quiz_collection_rounds: insert own" on public.quiz_collection_rounds
+  for insert to authenticated with check (user_id = (select auth.uid()));
+drop policy if exists "quiz_collection_rounds: update own" on public.quiz_collection_rounds;
+create policy "quiz_collection_rounds: update own" on public.quiz_collection_rounds
+  for update to authenticated
+  using (user_id = (select auth.uid())) with check (user_id = (select auth.uid()));
+
 -- =============================================================================
 -- Privileges: no anonymous access, and no hard deletes for anyone via the API
 -- =============================================================================
@@ -891,20 +936,20 @@ create policy "review_events: update own" on public.review_events
 revoke all on
   public.languages, public.profiles, public.vocabularies, public.words,
   public.vocabulary_subscriptions, public.vocabulary_reviews,
-  public.quiz_sessions, public.word_progress, public.review_events
+  public.quiz_sessions, public.word_progress, public.review_events, public.quiz_collection_rounds
 from anon, authenticated;
 
 grant select on public.languages to authenticated;
 grant select, insert, update on
   public.profiles, public.vocabularies, public.words,
   public.vocabulary_subscriptions, public.vocabulary_reviews,
-  public.quiz_sessions, public.word_progress, public.review_events
+  public.quiz_sessions, public.word_progress, public.review_events, public.quiz_collection_rounds
 to authenticated;
 
-revoke all on function public.record_review(uuid, uuid, uuid, text, text, timestamptz, timestamptz, integer, jsonb) from public, anon;
+revoke all on function public.record_review(uuid, uuid, uuid, text, text, timestamptz, timestamptz, integer, jsonb, text) from public, anon;
 revoke all on function public.reset_learning_progress(uuid[]) from public, anon;
 revoke all on function public.restart_quiz_cycle(uuid[]) from public, anon;
-grant execute on function public.record_review(uuid, uuid, uuid, text, text, timestamptz, timestamptz, integer, jsonb) to authenticated;
+grant execute on function public.record_review(uuid, uuid, uuid, text, text, timestamptz, timestamptz, integer, jsonb, text) to authenticated;
 grant execute on function public.reset_learning_progress(uuid[]) to authenticated;
 grant execute on function public.restart_quiz_cycle(uuid[]) to authenticated;
 
@@ -916,3 +961,6 @@ select u.id,
        left(coalesce(nullif(btrim(split_part(coalesce(u.email, ''), '@', 1)), ''), 'user'), 60)
   from auth.users u
 on conflict (id) do nothing;
+
+-- Make the API see new tables and functions right away.
+notify pgrst, 'reload schema';

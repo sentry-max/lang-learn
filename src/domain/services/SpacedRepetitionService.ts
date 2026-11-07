@@ -117,7 +117,6 @@ export function scheduleNextReview(
     lastReviewedAt: now.toISOString(),
     nextReviewAt: nextReviewAt.toISOString(),
     avgResponseMs: nextAverageResponse(current.avgResponseMs, responseMs),
-    seenInCycle: true,
     modeStats: nextModeStats(current.modeStats, signal.mode, isSuccess),
   };
 }

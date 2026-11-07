@@ -5,11 +5,7 @@
   "type": "array",
   "items": {
     "type": "object",
-    "required": [
-      "wordType",
-      "headword",
-      "translations"
-    ],
+    "required": ["wordType", "headword", "translations"],
     "properties": {
       "id": {
         "type": "string",
@@ -68,23 +64,12 @@
         "description": "Optional. German nouns need 'article' for their case tables and 'plural' for their plural tables. An English noun without a stored plural gets a derived one.",
         "properties": {
           "article": {
-            "type": [
-              "string",
-              "null"
-            ],
-            "enum": [
-              "der",
-              "die",
-              "das",
-              null
-            ],
+            "type": ["string", "null"],
+            "enum": ["der", "die", "das", null],
             "description": "German only: der, die or das. Ignored in languages without articles."
           },
           "plural": {
-            "type": [
-              "string",
-              "null"
-            ],
+            "type": ["string", "null"],
             "description": "Dictionary notation or the full word: '-e' (Tag → Tage), '-s', '-' (unchanged), '¨-er' (Haus → Häuser), '¨' (Apfel → Äpfel), 'Kinder', 'cacti'. Null: no plural."
           }
         }
@@ -110,10 +95,7 @@
             "description": "With or without the auxiliary: 'hat angefangen', 'ist gefahren', 'gone'."
           },
           "passive": {
-            "type": [
-              "string",
-              "null"
-            ],
+            "type": ["string", "null"],
             "description": "e.g. 'wird gemacht', 'is written'. Any value turns on the passive tables, which are built from the past participle; null or absent means the verb has none."
           },
           "auxiliaryIsSein": {
@@ -159,32 +141,17 @@
           },
           "anyOf": [
             {
-              "required": [
-                "text"
-              ]
+              "required": ["text"]
             },
             {
-              "required": [
-                "german"
-              ]
+              "required": ["german"]
             }
           ]
         }
       },
       "level": {
-        "type": [
-          "string",
-          "null"
-        ],
-        "enum": [
-          "A1",
-          "A2",
-          "B1",
-          "B2",
-          "C1",
-          "C2",
-          null
-        ]
+        "type": ["string", "null"],
+        "enum": ["A1", "A2", "B1", "B2", "C1", "C2", null]
       },
       "tags": {
         "type": "array",

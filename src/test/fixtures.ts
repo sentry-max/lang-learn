@@ -27,7 +27,6 @@ export function makeProgress(wordId: string, overrides: Partial<WordProgress> = 
     repetitions: 1,
     lastRating: "good",
     lastReviewedAt: new Date(NOW.getTime() - 2 * 24 * 3600 * 1000).toISOString(),
-    seenInCycle: true,
     ...overrides,
   };
 }

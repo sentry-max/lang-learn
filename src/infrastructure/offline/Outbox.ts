@@ -5,7 +5,7 @@ import { QuizSessionRecord } from "@domain/repositories/LearningRepository";
 export type OutboxOperation =
   | { kind: "startSession"; userId: string; session: QuizSessionRecord }
   | { kind: "recordReview"; userId: string; event: ReviewEvent; progress: WordProgress }
-  | { kind: "restartCycle"; userId: string; wordIds: string[] }
+  | { kind: "startRound"; userId: string; collectionKey: string; startedAt: string }
   | { kind: "completeSession"; userId: string; sessionId: string };
 
 interface Entry {

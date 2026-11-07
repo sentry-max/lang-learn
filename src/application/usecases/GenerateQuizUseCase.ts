@@ -1,7 +1,7 @@
 import { randomId } from "@application/util/randomId";
 import { VocabularyService } from "@application/services/VocabularyService";
 import { WordProgress } from "@domain/entities/Learning";
-import { QuizSettings, clampQuestionCount } from "@domain/entities/QuizSettings";
+import { QuizSettings, collectionKeyOf, questionQuota } from "@domain/entities/QuizSettings";
 import { filterByLetters } from "@domain/services/LetterService";
 import { QuizCandidate, chooseMode, selectQuizWords } from "@domain/services/QuizSelectionService";
 import { QuizItem } from "@domain/services/QuizSession";
@@ -40,32 +40,32 @@ export class GenerateQuizUseCase {
     const chosen = wanted.size > 0 ? library.filter((vocabulary) => wanted.has(vocabulary.id)) : library;
     if (chosen.length === 0) return emptyQuiz();
 
-    const [words, progressList] = await Promise.all([
+    const collectionKey = collectionKeyOf(settings.letters);
+    const [words, progressList, askedWordIds] = await Promise.all([
       this.words.listByVocabularies(chosen.map((vocabulary) => vocabulary.id)),
       this.learning.getAllProgress(userId),
+      this.learning.getAskedInRound(userId, collectionKey),
     ]);
 
     const pool = filterByLetters(words, (word) => word.headword, settings.letters);
     if (pool.length === 0) return emptyQuiz();
 
     const progressById = new Map(progressList.map((progress) => [progress.wordId, progress]));
-    const candidates: QuizCandidate[] = pool.map((word) => ({ word, progress: progressById.get(word.id) ?? null }));
+    const asked = new Set(askedWordIds);
+    const candidates: QuizCandidate[] = pool.map((word) => ({
+      word,
+      progress: progressById.get(word.id) ?? null,
+      askedInRound: asked.has(word.id),
+    }));
 
     const now = this.clock();
     const selection = selectQuizWords({
       candidates,
-      quota: clampQuestionCount(settings.questionCount),
+      quota: questionQuota(settings, pool.length),
       now,
       rng: this.randomSource,
     });
-
-    if (selection.releasedWordIds.length > 0) {
-      await this.learning.restartCycle(userId, selection.releasedWordIds);
-      for (const id of selection.releasedWordIds) {
-        const progress = progressById.get(id);
-        if (progress) progressById.set(id, { ...progress, seenInCycle: false });
-      }
-    }
+    if (selection.cycleRestarted) await this.learning.startRound(userId, collectionKey, now.toISOString());
 
     const languageByVocabulary = new Map(chosen.map((vocabulary) => [vocabulary.id, vocabulary.sourceLanguage]));
     const items: QuizItem[] = selection.selected.map((candidate, index) => ({

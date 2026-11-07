@@ -17,6 +17,8 @@ export interface SubmitAnswerInput {
   rating: DifficultyRating;
   shownAt: Date;
   answeredAt: Date;
+  /** The quiz's letter collection (`collectionKeyOf`) */
+  collectionKey: string | null;
   /**
    * The word's latest known progress, if the caller already has it (the
    * quiz does). `undefined` means "unknown — load it".
@@ -49,6 +51,7 @@ export class SubmitAnswerUseCase {
       shownAt: input.shownAt.toISOString(),
       answeredAt: input.answeredAt.toISOString(),
       responseMs,
+      collectionKey: input.collectionKey,
     };
     await this.learning.recordReview(input.userId, event, updated);
     return updated;

@@ -24,8 +24,10 @@ export interface LearningRepository {
 
   /** Soft-resets progress and history; `null` resets everything. Returns words reset. */
   resetProgress(userId: string, wordIds: string[] | null): Promise<number>;
-  /** Starts a new round for these words: parked words become eligible again. */
-  restartCycle(userId: string, wordIds: string[]): Promise<void>;
+  /** Words answered in this letter collection since its current round began. */
+  getAskedInRound(userId: string, collectionKey: string): Promise<string[]>;
+  /** Begins a new round for the collection: answers before `startedAt` no longer count as asked. */
+  startRound(userId: string, collectionKey: string, startedAt: string): Promise<void>;
 
   startSession(userId: string, session: QuizSessionRecord): Promise<void>;
   completeSession(userId: string, sessionId: string): Promise<void>;

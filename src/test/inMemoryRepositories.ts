@@ -113,7 +113,7 @@ export class InMemoryLearningRepository implements LearningRepository {
   readonly progress = new Map<string, WordProgress>();
   readonly events: ReviewEvent[] = [];
   readonly sessions: QuizSessionRecord[] = [];
-  restartedCycles: string[][] = [];
+  readonly roundStartByCollection = new Map<string, string>();
 
   constructor(progress: WordProgress[] = []) {
     for (const currentProgress of progress) this.progress.set(currentProgress.wordId, currentProgress);
@@ -143,12 +143,14 @@ export class InMemoryLearningRepository implements LearningRepository {
     return count;
   }
 
-  async restartCycle(_userId: string, wordIds: string[]): Promise<void> {
-    this.restartedCycles.push(wordIds);
-    for (const id of wordIds) {
-      const progress = this.progress.get(id);
-      if (progress) this.progress.set(id, { ...progress, seenInCycle: false });
-    }
+  async getAskedInRound(_userId: string, collectionKey: string): Promise<string[]> {
+    const startedAt = this.roundStartByCollection.get(collectionKey) ?? "";
+    const asked = this.events.filter((reviewEvent) => reviewEvent.collectionKey === collectionKey && reviewEvent.answeredAt >= startedAt);
+    return Array.from(new Set(asked.map((reviewEvent) => reviewEvent.wordId)));
+  }
+
+  async startRound(_userId: string, collectionKey: string, startedAt: string): Promise<void> {
+    this.roundStartByCollection.set(collectionKey, startedAt);
   }
 
   async startSession(_userId: string, session: QuizSessionRecord): Promise<void> {

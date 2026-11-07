@@ -5,33 +5,19 @@ import { difficultyScore, isDue, isSlowAnswer, modeErrorRate, overdueDays } from
 import { RandomSource, shuffle, weightedSample } from "@domain/services/Random";
 
 /**
- * Adaptive quiz word selection.
- *
- * Every word in the pool (the chosen vocabularies, optionally narrowed to
- * some starting letters) is in exactly one bucket:
- *
- *   weak    last rated bad / very bad. Always eligible and prioritized —
- *           the user keeps practicing what they struggle with.
- *   fresh   never shown, or not yet shown in the current round.
- *   parked  rated good / easy / very easy during the current round. Not
- *           shown again until every word in the pool has been shown once.
- *
- * When no fresh words are left, the round is complete: parked words are
- * released and a new round starts (the caller persists this via
- * `releasedWordIds`). If the fresh words run out part-way through filling a
- * session, the new round starts immediately so the session is still full.
- *
- * Within each bucket words are drawn by weighted random sampling across the
- * whole pool — never alphabetically — with weights learned from the user's
- * answers (severity, lapses, hesitation, overdue-ness, recency). How much
- * of a session goes to weak words adapts to the user's recent performance.
+ * Adaptive quiz word selection within one letter collection's round. A word asked in the round is parked until
+ * every word of the pool was asked; then a new round starts, mid-session if needed so the session stays full.
+ * Unasked words are weak (last rated bad / very bad, prioritized) or fresh, and drawn by weighted random sampling.
  */
 
 export type WordBucket = "weak" | "fresh" | "parked";
 
 export interface QuizCandidate {
   word: Word;
+  /** Learning state across every collection */
   progress: WordProgress | null;
+  /** Already asked in this collection's current round */
+  askedInRound: boolean;
 }
 
 export interface SelectionInput {
@@ -43,30 +29,27 @@ export interface SelectionInput {
 
 export interface SelectionResult {
   selected: QuizCandidate[];
-  /** True when this selection completed a round and started the next one */
+  /** True when this selection completed the collection's round and started the next one */
   cycleRestarted: boolean;
-  /** Words whose "seen this round" flag must be cleared (new round) */
-  releasedWordIds: string[];
 }
 
 const RECENT_WINDOW_MS = 7 * 24 * 60 * 60 * 1000;
 const MIN_RECENT_SAMPLE = 5;
 
-export function bucketOf(progress: WordProgress | null): WordBucket {
-  if (!progress || progress.timesSeen === 0 || progress.lastRating === null) return "fresh";
-  if (isWeakRating(progress.lastRating)) return "weak";
-  return progress.seenInCycle ? "parked" : "fresh";
+export function bucketOf({ progress, askedInRound }: Pick<QuizCandidate, "progress" | "askedInRound">): WordBucket {
+  if (askedInRound) return "parked";
+  return progress?.lastRating && isWeakRating(progress.lastRating) ? "weak" : "fresh";
 }
 
 export function selectQuizWords({ candidates, quota, now, rng }: SelectionInput): SelectionResult {
   const target = Math.min(Math.max(0, Math.floor(quota)), candidates.length);
-  if (target === 0) return { selected: [], cycleRestarted: false, releasedWordIds: [] };
+  if (target === 0) return { selected: [], cycleRestarted: false };
 
   const weak: QuizCandidate[] = [];
   let fresh: QuizCandidate[] = [];
   let parked: QuizCandidate[] = [];
   for (const candidate of candidates) {
-    const bucket = bucketOf(candidate.progress);
+    const bucket = bucketOf(candidate);
     if (bucket === "weak") weak.push(candidate);
     else if (bucket === "fresh") fresh.push(candidate);
     else parked.push(candidate);
@@ -79,8 +62,8 @@ export function selectQuizWords({ candidates, quota, now, rng }: SelectionInput)
     parked = [];
   };
 
-  // Every word has been shown this round -> start the next round.
-  if (fresh.length === 0 && parked.length > 0) startNewRound();
+  // Every word was asked this round -> start the next round.
+  if (fresh.length === 0 && weak.length === 0 && parked.length > 0) startNewRound();
 
   const weakShare = adaptiveWeakShare(candidates, weak.length, target, now);
   const weakTarget = weak.length === 0 ? 0 : Math.min(weak.length, Math.max(1, Math.round(target * weakShare)));
@@ -105,11 +88,7 @@ export function selectQuizWords({ candidates, quota, now, rng }: SelectionInput)
     take(releasedPool, target - selected.size, freshWeightAt);
   }
 
-  const releasedWordIds = cycleRestarted
-    ? candidates.filter((candidate) => candidate.progress?.seenInCycle).map((candidate) => candidate.word.id)
-    : [];
-
-  return { selected: shuffle(Array.from(selected), rng), cycleRestarted, releasedWordIds };
+  return { selected: shuffle(Array.from(selected), rng), cycleRestarted };
 }
 
 /**
@@ -177,7 +156,7 @@ export interface ModeOptions {
  * user gets wrong more often for this word is asked more often. Writing a
  * sentence is only asked for words the user already knows at least a bit.
  */
-export function chooseMode(candidate: QuizCandidate, options: ModeOptions, randomSource: RandomSource): QuestionMode {
+export function chooseMode(candidate: Pick<QuizCandidate, "word" | "progress">, options: ModeOptions, randomSource: RandomSource): QuestionMode {
   const { word, progress } = candidate;
   if (translationLanguages(word).length === 0) return "source_to_target";
 

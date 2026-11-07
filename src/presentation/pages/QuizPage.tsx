@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { DIFFICULTY_RATINGS, DifficultyRating, WordProgress, isStrongRating } from "@domain/entities/Learning";
 import { afterRating } from "@domain/entities/Preferences";
-import { QuizSettings } from "@domain/entities/QuizSettings";
+import { QuizSettings, collectionKeyOf } from "@domain/entities/QuizSettings";
 import {
   EndReason,
   QuizItem,
@@ -193,6 +193,7 @@ export default function QuizPage() {
         rating,
         shownAt,
         answeredAt,
+        collectionKey: collectionKeyOf(activeQuiz.settings.letters),
         previous,
       });
       progressRef.current.set(item.word.id, updated);

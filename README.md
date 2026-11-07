@@ -65,18 +65,28 @@ Rules enforced in the database (not just the UI):
 Implemented in `src/domain/services/QuizSelectionService.ts`,
 `SpacedRepetitionService.ts` and `QuizSession.ts`.
 
-Each word in the chosen pool (selected vocabularies, optionally narrowed to
-some starting letters) is in one bucket:
+Every quiz belongs to a **letter collection**: `all` when no starting letter
+is chosen, otherwise the chosen letters (`B`, `A,B`). A new letter choice is a
+new collection. Each collection keeps its own rounds and its own answer
+history (`review_events.collection_key`); the learning progress of a word
+(`word_progress`: spaced repetition, last rating, stats) is shared by all of
+them, and the dashboard and History count every answer.
 
-- **weak** – last rated *bad* or *very bad*. Always eligible and prioritized.
-- **fresh** – never shown, or not shown yet in the current round.
-- **parked** – rated *good*, *easy* or *very easy* this round. Not shown again
-  until every other word in the pool has been shown once.
+Each word in the chosen pool (selected vocabularies, narrowed to the
+collection's letters) is in one bucket:
 
-When the pool runs out of fresh words, the round is complete: parked words
-are released and a new round starts (persisted per word as
-`word_progress.seen_in_cycle`). If fresh words run out part-way through a
+- **parked** – already asked in this collection's current round, whatever the
+  rating. Not asked again until every word in the pool has been asked.
+- **weak** – not asked this round, last rated *bad* or *very bad*. Prioritized.
+- **fresh** – every other word.
+
+When the pool has no weak or fresh words left, the round is complete and a new
+one starts (`quiz_collection_rounds.started_at`; a word answered in the
+collection since then counts as asked). If they run out part-way through a
 session, the new round starts immediately so the session is still full.
+**Clear test history** on the quiz screen starts a new round for the current
+collection by hand; answers and progress are kept. "All" asks every word of
+the chosen letters; without letters it is capped at 200.
 
 Within a bucket, words are drawn by **weighted random sampling across the
 whole pool** — never alphabetically, and also random within a single chosen

@@ -1,5 +1,5 @@
 import { ReviewEvent, WordProgress } from "@domain/entities/Learning";
-import { AppError, isNetworkError, offlineError, toAppError } from "@domain/errors/AppError";
+import { isNetworkError, offlineError, toAppError } from "@domain/errors/AppError";
 import { LearningRepository, QuizSessionRecord } from "@domain/repositories/LearningRepository";
 import { Connectivity } from "@infrastructure/offline/Connectivity";
 import { Outbox, OutboxOperation } from "@infrastructure/offline/Outbox";
@@ -17,7 +17,7 @@ export interface LearningSyncState {
 /**
  * Offline-first decorator for learning data.
  *
- * - Progress is mirrored in memory. Answers, new rounds and quiz sessions
+ * - Progress and each letter collection's round are mirrored in memory. Answers, new rounds and quiz sessions
  *   are applied to that mirror immediately and queued in the Outbox, so a
  *   quiz keeps working — and keeps learning — with no connection.
  * - The Outbox is sent in order whenever the connection allows, and
@@ -31,6 +31,7 @@ export class OfflineLearningRepository implements LearningRepository {
   /** Operations made while a progress fetch is in flight, re-applied on top of its result */
   private madeDuringFetch: OutboxOperation[] | null = null;
   private readonly eventsByWord = new Map<string, ReviewEvent[]>();
+  private readonly askedByCollection = new Map<string, Set<string>>();
   private readonly listeners = new Set<() => void>();
   private flushing: Promise<void> | null = null;
   private retryTimer: ReturnType<typeof setTimeout> | null = null;
@@ -88,14 +89,38 @@ export class OfflineLearningRepository implements LearningRepository {
     return [...cached, ...this.pendingEvents(wordIds)];
   }
 
+  async getAskedInRound(userId: string, collectionKey: string): Promise<string[]> {
+    let asked: Set<string> | null = null;
+    if (this.connectivity.isOnline()) {
+      await this.flush();
+      try {
+        asked = new Set(await this.remote.getAskedInRound(userId, collectionKey));
+      } catch (error) {
+        if (!isNetworkError(error)) throw error;
+      }
+    }
+    if (!asked) {
+      const cached = this.askedByCollection.get(collectionKey);
+      if (cached) return Array.from(cached);
+      // shortcut: a collection never loaded in this tab starts offline from the queued answers only, so words asked
+      // on another day may repeat; upgrade by preloading every collection's round in PrepareOfflineUseCase.
+      asked = new Set();
+    }
+    const roundByCollection = new Map([[collectionKey, asked]]);
+    for (const operation of this.outbox.operations()) applyToRounds(roundByCollection, operation);
+    const current = roundByCollection.get(collectionKey)!;
+    this.askedByCollection.set(collectionKey, current);
+    return Array.from(current);
+  }
+
   // --------------------------------------------------------------- writes
 
   async recordReview(userId: string, event: ReviewEvent, progress: WordProgress): Promise<void> {
     this.enqueue({ kind: "recordReview", userId, event, progress });
   }
 
-  async restartCycle(userId: string, wordIds: string[]): Promise<void> {
-    if (wordIds.length > 0) this.enqueue({ kind: "restartCycle", userId, wordIds });
+  async startRound(userId: string, collectionKey: string, startedAt: string): Promise<void> {
+    this.enqueue({ kind: "startRound", userId, collectionKey, startedAt });
   }
 
   async startSession(userId: string, session: QuizSessionRecord): Promise<void> {
@@ -113,6 +138,8 @@ export class OfflineLearningRepository implements LearningRepository {
     if (this.outbox.size > 0) throw offlineError();
 
     const count = await this.remote.resetProgress(userId, wordIds);
+    // Reset answers no longer count as asked; the next read reloads each round.
+    this.askedByCollection.clear();
     if (wordIds === null) {
       this.progress?.clear();
       this.eventsByWord.clear();
@@ -185,17 +212,19 @@ export class OfflineLearningRepository implements LearningRepository {
         return this.remote.startSession(operation.userId, operation.session);
       case "recordReview":
         return this.remote.recordReview(operation.userId, operation.event, operation.progress);
-      case "restartCycle":
-        return this.remote.restartCycle(operation.userId, operation.wordIds);
+      case "startRound":
+        return this.remote.startRound(operation.userId, operation.collectionKey, operation.startedAt);
       case "completeSession":
         return this.remote.completeSession(operation.userId, operation.sessionId);
       default:
-        throw new AppError("unknown", "Unknown change type.");
+        // A change saved by an older app version that no longer exists (the global "restartCycle"): nothing to send.
+        return Promise.resolve();
     }
   }
 
   private enqueue(operation: OutboxOperation): void {
     if (this.progress) applyLocally(this.progress, operation);
+    applyToRounds(this.askedByCollection, operation);
     this.madeDuringFetch?.push(operation);
     this.outbox.push(operation);
     this.notify();
@@ -224,12 +253,14 @@ export class OfflineLearningRepository implements LearningRepository {
 
 /** The local effect of a queued operation on the progress mirror. */
 function applyLocally(progress: Map<string, WordProgress>, operation: OutboxOperation): void {
-  if (operation.kind === "recordReview") {
-    progress.set(operation.progress.wordId, operation.progress);
-  } else if (operation.kind === "restartCycle") {
-    for (const id of operation.wordIds) {
-      const current = progress.get(id);
-      if (current) progress.set(id, { ...current, seenInCycle: false });
-    }
+  if (operation.kind === "recordReview") progress.set(operation.progress.wordId, operation.progress);
+}
+
+/** The local effect of a queued operation on the mirrored rounds of letter collections. */
+function applyToRounds(askedByCollection: Map<string, Set<string>>, operation: OutboxOperation): void {
+  if (operation.kind === "startRound") {
+    askedByCollection.set(operation.collectionKey, new Set());
+  } else if (operation.kind === "recordReview" && operation.event.collectionKey) {
+    askedByCollection.get(operation.event.collectionKey)?.add(operation.event.wordId);
   }
 }

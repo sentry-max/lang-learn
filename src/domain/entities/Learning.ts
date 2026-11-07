@@ -7,13 +7,10 @@ export type DifficultyRating = "very_easy" | "easy" | "good" | "bad" | "very_bad
 
 export const DIFFICULTY_RATINGS: DifficultyRating[] = ["very_easy", "easy", "good", "bad", "very_bad"];
 
-/**
- * "Known" ratings: a word rated like this is parked until every other word
- * in the pool has been shown once in the current round.
- */
+/** "Known" ratings. */
 export const STRONG_RATINGS: readonly DifficultyRating[] = ["very_easy", "easy", "good"];
 
-/** "Still struggling" ratings: always eligible, prioritized, retried in-session. */
+/** "Still struggling" ratings: prioritized in a round and retried in-session. */
 export const WEAK_RATINGS: readonly DifficultyRating[] = ["bad", "very_bad"];
 
 export function isStrongRating(rating: DifficultyRating): boolean {
@@ -64,8 +61,6 @@ export interface WordProgress {
   nextReviewAt: string;
   /** Exponential moving average of how long the user takes to answer */
   avgResponseMs: number | null;
-  /** Shown during the current round (see QuizSelectionService) */
-  seenInCycle: boolean;
   modeStats: ModeStats;
 }
 
@@ -79,6 +74,8 @@ export interface ReviewEvent {
   shownAt: string;
   answeredAt: string;
   responseMs: number | null;
+  /** The letter collection it was answered in (`collectionKeyOf`); null before collections existed */
+  collectionKey: string | null;
 }
 
 export function createInitialProgress(wordId: string, now: Date = new Date()): WordProgress {
@@ -96,7 +93,6 @@ export function createInitialProgress(wordId: string, now: Date = new Date()): W
     lastReviewedAt: null,
     nextReviewAt: now.toISOString(),
     avgResponseMs: null,
-    seenInCycle: false,
     modeStats: {},
   };
 }

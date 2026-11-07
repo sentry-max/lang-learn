@@ -1120,6 +1120,17 @@ input[type="checkbox"] { width: 1.05rem; height: 1.05rem; accent-color: var(--pr
   animation: slide-down var(--normal) var(--ease);
 }
 
+.letter-history {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem;
+  margin-top: 0.75rem;
+}
+
+.letter-history .btn { min-height: 44px; }
+
 @media (max-width: 480px) {
   .mode-option { padding: 0.7rem 0.25rem; }
   .mode-option span { display: none; }

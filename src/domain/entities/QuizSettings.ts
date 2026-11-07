@@ -38,6 +38,15 @@ export interface QuizSettings {
   wordTimerSeconds: number;
 }
 
+export const ALL_LETTERS_COLLECTION = "all";
+
+/** The collection a quiz belongs to: "all", or its letters sorted ("B", "A,B"). Each collection has its own rounds. */
+export function collectionKeyOf(letters: readonly string[]): string {
+  if (letters.length === 0) return ALL_LETTERS_COLLECTION;
+  // Code-point order, the same as the backfill migration's collate "C".
+  return Array.from(new Set(letters.map((letter) => letter.toLocaleUpperCase()))).sort().join(",");
+}
+
 export const DEFAULT_QUIZ_SETTINGS: QuizSettings = {
   questionCount: 20,
   direction: "mix",
@@ -52,6 +61,12 @@ export const DEFAULT_QUIZ_SETTINGS: QuizSettings = {
 export function clampQuestionCount(value: number): number {
   if (!Number.isFinite(value)) return DEFAULT_QUIZ_SETTINGS.questionCount;
   return Math.min(MAX_QUESTION_COUNT, Math.max(MIN_QUESTION_COUNT, Math.round(value)));
+}
+
+// "All" is stored as MAX_QUESTION_COUNT; in a letter quiz it means every word of those letters, with no cap.
+export function questionQuota(settings: Pick<QuizSettings, "questionCount" | "letters">, poolSize: number): number {
+  if (settings.letters.length > 0 && settings.questionCount >= MAX_QUESTION_COUNT) return poolSize;
+  return Math.min(clampQuestionCount(settings.questionCount), poolSize);
 }
 
 export function isValidTimerSeconds(value: number): boolean {

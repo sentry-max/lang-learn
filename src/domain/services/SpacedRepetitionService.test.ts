@@ -38,9 +38,8 @@ describe("scheduleNextReview", () => {
     expect(failed.easeFactor).toBeLessThan(known.easeFactor);
   });
 
-  it("marks the word as seen in the current round and tracks per-direction stats", () => {
+  it("counts the answer and tracks per-direction stats", () => {
     const progress = scheduleNextReview(createInitialProgress("w", NOW), signal("bad"), NOW);
-    expect(progress.seenInCycle).toBe(true);
     expect(progress.timesSeen).toBe(1);
     expect(progress.modeStats.source_to_target).toEqual({ correct: 0, incorrect: 1 });
   });

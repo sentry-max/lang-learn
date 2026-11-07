@@ -1,6 +1,6 @@
 import { describe, it, expect, vi } from "vitest";
 import { AppError } from "@domain/errors/AppError";
-import { DEFAULT_QUIZ_SETTINGS } from "@domain/entities/QuizSettings";
+import { DEFAULT_QUIZ_SETTINGS, collectionKeyOf } from "@domain/entities/QuizSettings";
 import { ReviewEvent, WordProgress } from "@domain/entities/Learning";
 import { createSeededRandomSource } from "@domain/services/Random";
 import { VocabularyService } from "@application/services/VocabularyService";
@@ -37,8 +37,11 @@ class MemoryStorage {
   }
 }
 
-function event(wordId: string, id = `e-${wordId}`): ReviewEvent {
-  return { id, wordId, sessionId: null, mode: "source_to_target", rating: "good", shownAt: NOW.toISOString(), answeredAt: NOW.toISOString(), responseMs: 1000 };
+function event(wordId: string, id = `e-${wordId}`, collectionKey: string | null = null): ReviewEvent {
+  return {
+    id, wordId, sessionId: null, mode: "source_to_target", rating: "good",
+    shownAt: NOW.toISOString(), answeredAt: NOW.toISOString(), responseMs: 1000, collectionKey,
+  };
 }
 
 function setupLearning(online = true) {
@@ -103,18 +106,29 @@ describe("OfflineLearningRepository", () => {
     await learning.getAllProgress(USER);
     connectivity.set(false);
 
-    await learning.recordReview(USER, event("w2"), makeProgress("w2", { lastRating: "bad" }));
-    await learning.restartCycle(USER, ["w1"]);
+    await learning.recordReview(USER, event("w1", "e-w1", "B"), makeProgress("w1"));
+    await learning.startRound(USER, "B", NOW.toISOString());
+    await learning.recordReview(USER, event("w2", "e-w2", "B"), makeProgress("w2", { lastRating: "bad" }));
 
     const local = await learning.getAllProgress(USER);
     expect(local.find((progress) => progress.wordId === "w2")?.lastRating).toBe("bad");
-    expect(local.find((progress) => progress.wordId === "w1")?.seenInCycle).toBe(false);
+    // The new round forgot w1; only w2 was asked after it.
+    expect(await learning.getAskedInRound(USER, "B")).toEqual(["w2"]);
+    expect(await learning.getAskedInRound(USER, "all")).toEqual([]);
     expect(remote.events).toHaveLength(0);
-    expect(learning.getSyncState().pending).toBe(2);
+    expect(learning.getSyncState().pending).toBe(3);
 
     // A reload while offline must not lose anything.
     const reloaded = new Outbox("outbox", storage);
-    expect(reloaded.operations().map((operation) => operation.kind)).toEqual(["recordReview", "restartCycle"]);
+    expect(reloaded.operations().map((operation) => operation.kind)).toEqual(["recordReview", "startRound", "recordReview"]);
+  });
+
+  it("skips a queued change from an older app version instead of blocking the queue", async () => {
+    const storage = new MemoryStorage() as unknown as Storage;
+    storage.setItem("outbox", JSON.stringify([{ operation: { kind: "restartCycle", userId: USER, wordIds: ["w1"] }, attempts: 0 }]));
+    const learning = new OfflineLearningRepository(new InMemoryLearningRepository(), new ManualConnectivity(true), new Outbox("outbox", storage));
+    await learning.flush();
+    expect(learning.getSyncState().pending).toBe(0);
   });
 
   it("sends queued changes in order once back online", async () => {
@@ -212,7 +226,8 @@ describe("offline quiz, end to end", () => {
     for (const item of first.items) {
       await submit.execute({
         userId: USER, sessionId: first.sessionId, wordId: item.word.id, mode: item.mode,
-        rating: "easy", shownAt: NOW, answeredAt: NOW, previous: first.progressByWordId.get(item.word.id),
+        rating: "easy", shownAt: NOW, answeredAt: NOW, collectionKey: collectionKeyOf(scope.letters),
+        previous: first.progressByWordId.get(item.word.id),
       });
     }
 

@@ -1,7 +1,7 @@
 import { VocabularyService } from "@application/services/VocabularyService";
 import { DifficultyRating, WordProgress, accuracyOf } from "@domain/entities/Learning";
+import { ALL_LETTERS_COLLECTION } from "@domain/entities/QuizSettings";
 import { Word } from "@domain/entities/Word";
-import { bucketOf } from "@domain/services/QuizSelectionService";
 import { isDue, weaknessScore } from "@domain/services/SpacedRepetitionService";
 import { LearningRepository } from "@domain/repositories/LearningRepository";
 import { WordRepository } from "@domain/repositories/WordRepository";
@@ -17,7 +17,7 @@ export interface StatsSummary {
   wordsStarted: number;
   dueToday: number;
   overallAccuracy: number | null;
-  /** Words shown in the current round, out of all quiz words */
+  /** Words asked in the current round of the all-letters collection, out of all quiz words */
   seenThisRound: number;
   byLastRating: Record<DifficultyRating, number>;
   strongestWords: WordStat[];
@@ -34,10 +34,12 @@ export class GetStatsUseCase {
 
   async execute(userId: string, now: Date = new Date()): Promise<StatsSummary> {
     const library = await this.vocabularyService.listQuizLibrary(userId);
-    const [words, progressList] = await Promise.all([
+    const [words, progressList, askedWordIds] = await Promise.all([
       this.words.listByVocabularies(library.map((vocabulary) => vocabulary.id)),
       this.learning.getAllProgress(userId),
+      this.learning.getAskedInRound(userId, ALL_LETTERS_COLLECTION),
     ]);
+    const askedInRound = new Set(askedWordIds);
     const progressById = new Map(progressList.map((progress) => [progress.wordId, progress]));
 
     const byLastRating: Record<DifficultyRating, number> = { very_easy: 0, easy: 0, good: 0, bad: 0, very_bad: 0 };
@@ -45,12 +47,10 @@ export class GetStatsUseCase {
     let totalCorrect = 0;
     let totalAttempts = 0;
     let dueToday = 0;
-    let seenThisRound = 0;
 
     for (const word of words) {
       const progress = progressById.get(word.id);
       if (!progress || progress.timesSeen === 0) continue;
-      if (bucketOf(progress) !== "fresh") seenThisRound += 1;
       if (progress.lastRating) byLastRating[progress.lastRating] += 1;
       totalCorrect += progress.totalCorrect;
       totalAttempts += progress.totalCorrect + progress.totalIncorrect;
@@ -65,7 +65,7 @@ export class GetStatsUseCase {
       wordsStarted: attempted.length,
       dueToday,
       overallAccuracy: totalAttempts === 0 ? null : totalCorrect / totalAttempts,
-      seenThisRound,
+      seenThisRound: words.filter((word) => askedInRound.has(word.id)).length,
       byLastRating,
       strongestWords: [...byWeakness].reverse().slice(0, 10),
       weakestWords: byWeakness.slice(0, 10),
