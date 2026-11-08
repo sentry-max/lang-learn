@@ -8,6 +8,14 @@ export type QuizDirection = "source_to_target" | "target_to_source" | "mix";
 export const QUIZ_DIRECTIONS: QuizDirection[] = ["source_to_target", "target_to_source", "mix"];
 
 /**
+ * - recall: the user recalls the answer and rates themselves
+ * - multiple_choice: the user picks the answer from four options and the app rates it
+ */
+export type AnswerFormat = "recall" | "multiple_choice";
+
+export const ANSWER_FORMATS: AnswerFormat[] = ["recall", "multiple_choice"];
+
+/**
  * - none: classic, no time limit
  * - quiz: one countdown for the whole quiz; words not reached stay untouched
  * - word: a countdown per word; running out counts as "very bad"
@@ -24,6 +32,7 @@ export const MIN_TIMER_SECONDS = 1;
 export const MAX_TIMER_SECONDS = 5 * 60 * 60;
 
 export interface QuizSettings {
+  answerFormat: AnswerFormat;
   questionCount: number;
   direction: QuizDirection;
   includeSentenceWriting: boolean;
@@ -48,6 +57,7 @@ export function collectionKeyOf(letters: readonly string[]): string {
 }
 
 export const DEFAULT_QUIZ_SETTINGS: QuizSettings = {
+  answerFormat: "recall",
   questionCount: 20,
   direction: "mix",
   includeSentenceWriting: true,
@@ -91,6 +101,7 @@ export function normalizeQuizSettings(value: unknown): QuizSettings {
   const raw = value as Record<string, unknown>;
   const defaults = DEFAULT_QUIZ_SETTINGS;
   return {
+    answerFormat: ANSWER_FORMATS.includes(raw.answerFormat as AnswerFormat) ? (raw.answerFormat as AnswerFormat) : defaults.answerFormat,
     questionCount: clampQuestionCount(Number(raw.questionCount ?? defaults.questionCount)),
     direction: QUIZ_DIRECTIONS.includes(raw.direction as QuizDirection) ? (raw.direction as QuizDirection) : defaults.direction,
     includeSentenceWriting:

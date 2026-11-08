@@ -1,13 +1,16 @@
 import { randomId } from "@application/util/randomId";
 import { VocabularyService } from "@application/services/VocabularyService";
-import { WordProgress } from "@domain/entities/Learning";
+import { LanguageCode } from "@domain/entities/Language";
+import { QuestionMode, WordProgress } from "@domain/entities/Learning";
 import { QuizSettings, collectionKeyOf, questionQuota } from "@domain/entities/QuizSettings";
 import { filterByLetters } from "@domain/services/LetterService";
+import { ChoiceAnswer, choiceAnswerOf, pickChoiceOptions } from "@domain/services/MultipleChoiceService";
 import { QuizCandidate, chooseMode, selectQuizWords } from "@domain/services/QuizSelectionService";
 import { QuizItem } from "@domain/services/QuizSession";
 import { RandomSource, defaultRandomSource } from "@domain/services/Random";
 import { LearningRepository } from "@domain/repositories/LearningRepository";
 import { WordRepository } from "@domain/repositories/WordRepository";
+import { Word } from "@domain/entities/Word";
 
 export interface GeneratedQuiz {
   sessionId: string | null;
@@ -34,7 +37,8 @@ export class GenerateQuizUseCase {
     private readonly clock: () => Date = () => new Date()
   ) {}
 
-  async execute(userId: string, settings: QuizSettings): Promise<GeneratedQuiz> {
+  /** `primaryLanguage` is the language translations are shown in, needed for multiple-choice options. */
+  async execute(userId: string, settings: QuizSettings, primaryLanguage: LanguageCode): Promise<GeneratedQuiz> {
     const library = await this.vocabularyService.listQuizLibrary(userId);
     const wanted = new Set(settings.vocabularyIds);
     const chosen = wanted.size > 0 ? library.filter((vocabulary) => wanted.has(vocabulary.id)) : library;
@@ -68,13 +72,22 @@ export class GenerateQuizUseCase {
     if (selection.cycleRestarted) await this.learning.startRound(userId, collectionKey, now.toISOString());
 
     const languageByVocabulary = new Map(chosen.map((vocabulary) => [vocabulary.id, vocabulary.sourceLanguage]));
-    const items: QuizItem[] = selection.selected.map((candidate, index) => ({
-      key: `${candidate.word.id}:${index}`,
-      word: candidate.word,
-      sourceLanguage: languageByVocabulary.get(candidate.word.vocabularyId)!,
-      mode: chooseMode(candidate, settings, this.randomSource),
-      attempt: 0,
-    }));
+    const isMultipleChoice = settings.answerFormat === "multiple_choice";
+    // A written sentence has no options to pick from.
+    const modeOptions = { ...settings, includeSentenceWriting: settings.includeSentenceWriting && !isMultipleChoice };
+    const dictionary = isMultipleChoice ? new ChoiceDictionary(words, languageByVocabulary, primaryLanguage) : null;
+    const items: QuizItem[] = selection.selected.map((candidate, index) => {
+      const sourceLanguage = languageByVocabulary.get(candidate.word.vocabularyId)!;
+      const mode = chooseMode(candidate, modeOptions, this.randomSource);
+      return {
+        key: `${candidate.word.id}:${index}`,
+        word: candidate.word,
+        sourceLanguage,
+        mode,
+        attempt: 0,
+        choices: dictionary?.optionsFor(candidate.word, mode, sourceLanguage, this.randomSource) ?? null,
+      };
+    });
 
     const sessionId = randomId();
     await this.learning.startSession(userId, {
@@ -93,6 +106,34 @@ export class GenerateQuizUseCase {
       cycleRestarted: selection.cycleRestarted,
       poolSize: pool.length,
     };
+  }
+}
+
+/** Every word of the chosen vocabularies as a possible answer, worked out once per direction. */
+class ChoiceDictionary {
+  private readonly answersByMode = new Map<QuestionMode, ChoiceAnswer[]>();
+
+  constructor(
+    private readonly words: readonly Word[],
+    private readonly languageByVocabulary: Map<string, LanguageCode>,
+    private readonly primaryLanguage: LanguageCode
+  ) {}
+
+  optionsFor(word: Word, mode: QuestionMode, sourceLanguage: LanguageCode, randomSource: RandomSource) {
+    const correct = choiceAnswerOf(word, mode, sourceLanguage, this.primaryLanguage);
+    return correct ? pickChoiceOptions(correct, this.answersFor(mode), randomSource) : null;
+  }
+
+  private answersFor(mode: QuestionMode): ChoiceAnswer[] {
+    let answers = this.answersByMode.get(mode);
+    if (!answers) {
+      answers = this.words.flatMap((word) => {
+        const answer = choiceAnswerOf(word, mode, this.languageByVocabulary.get(word.vocabularyId)!, this.primaryLanguage);
+        return answer ? [answer] : [];
+      });
+      this.answersByMode.set(mode, answers);
+    }
+    return answers;
   }
 }
 

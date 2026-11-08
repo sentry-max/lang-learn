@@ -14,6 +14,7 @@ import {
   summarize,
   willRetry,
 } from "@domain/services/QuizSession";
+import { choiceRating, choiceTimeSliceMs } from "@domain/services/MultipleChoiceService";
 import { useCurrentUser } from "@presentation/context/AuthContext";
 import { useServices } from "@presentation/context/ServicesContext";
 import { useLanguage } from "@presentation/context/LanguageContext";
@@ -26,6 +27,7 @@ import { useSwipe } from "@presentation/hooks/useSwipe";
 import QuizSettingsPanel from "@presentation/components/QuizSettingsPanel";
 import QuizCard, { CardFeedback } from "@presentation/components/quiz/QuizCard";
 import QuizSummary from "@presentation/components/quiz/QuizSummary";
+import ChoiceOptions from "@presentation/components/quiz/ChoiceOptions";
 import ErrorBanner from "@presentation/components/ErrorBanner";
 import CountdownBar, { AutoAdvanceBar } from "@presentation/components/ui/CountdownBar";
 import DifficultyRatingPicker from "@presentation/components/DifficultyRatingPicker";
@@ -54,6 +56,8 @@ interface Shown extends CardFeedback {
   /** Epoch ms when it moves on by itself, or null to wait for "Next" */
   advanceAt: number | null;
   advanceTotalMs: number;
+  /** The option picked in a multiple-choice question; null when rated by the user or timed out */
+  chosenIndex: number | null;
 }
 
 export default function QuizPage() {
@@ -92,6 +96,8 @@ export default function QuizPage() {
   const [error, setError] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
   const [wordDeadline, setWordDeadline] = useState<number | null>(null);
+  // The current question's own time limit: the word timer, or a multiple-choice share of the quiz timer.
+  const [questionLimitMs, setQuestionLimitMs] = useState<number | null>(null);
   const [paused, setPaused] = useState(false);
 
   // Refs mirror state for timer callbacks that fire outside React's render cycle.
@@ -110,6 +116,14 @@ export default function QuizPage() {
   const displayed = shown?.item ?? current;
   const timerMode = quiz?.settings.timerMode ?? "none";
   const wordLimitMs = (quiz?.settings.wordTimerSeconds ?? 0) * 1000;
+
+  function questionTimeLimitMs(activeQuiz: ActiveQuiz, item: QuizItem): number | null {
+    if (timerMode === "word") return wordLimitMs;
+    if (timerMode === "quiz" && item.choices && activeQuiz.quizDeadline !== null) {
+      return choiceTimeSliceMs(activeQuiz.quizDeadline - Date.now(), activeQuiz.session.items.length - activeQuiz.session.index);
+    }
+    return null;
+  }
 
   // ------------------------------------------------------------ lifecycle
 
@@ -139,7 +153,7 @@ export default function QuizPage() {
       // Remembering settings is a convenience (and needs a connection); the quiz still starts.
     });
     try {
-      const generated = await generateQuiz.execute(user.id, settings);
+      const generated = await generateQuiz.execute(user.id, settings, profile.primaryLanguage);
       progressRef.current = generated.progressByWordId;
       const now = Date.now();
       setQuiz({
@@ -163,7 +177,9 @@ export default function QuizPage() {
     if (!current || shown) return;
     shownAtRef.current = new Date();
     setHintOpen(preferences.autoShowHint);
-    setWordDeadline(timerMode === "word" ? Date.now() + wordLimitMs : null);
+    const limitMs = quizRef.current ? questionTimeLimitMs(quizRef.current, current) : null;
+    setQuestionLimitMs(limitMs);
+    setWordDeadline(limitMs === null ? null : Date.now() + limitMs);
     if (preferences.autoPronounce && current.mode !== "target_to_source") {
       say(current.word.headword, current.sourceLanguage);
     }
@@ -172,7 +188,7 @@ export default function QuizPage() {
 
   // ------------------------------------------------------------- answering
 
-  async function rate(rating: DifficultyRating, timedOut = false) {
+  async function rate(rating: DifficultyRating, timedOut = false, chosenIndex: number | null = null) {
     const activeQuiz = quizRef.current;
     const item = activeQuiz ? currentItem(activeQuiz.session) : null;
     if (!activeQuiz || !item || shown || savingRef.current) return;
@@ -182,7 +198,7 @@ export default function QuizPage() {
     setWordDeadline(null);
 
     const shownAt = shownAtRef.current;
-    const answeredAt = timedOut ? new Date(shownAt.getTime() + wordLimitMs) : new Date();
+    const answeredAt = timedOut ? new Date(shownAt.getTime() + (questionLimitMs ?? 0)) : new Date();
     try {
       const previous = progressRef.current.has(item.word.id) ? progressRef.current.get(item.word.id)! : undefined;
       const updated = await submitAnswer.execute({
@@ -199,7 +215,7 @@ export default function QuizPage() {
       progressRef.current.set(item.word.id, updated);
     } catch (error) {
       setError(errorMessage(error, "saveAnswerError"));
-      if (timerMode === "word") setWordDeadline(Date.now() + wordLimitMs);
+      if (questionLimitMs !== null) setWordDeadline(Date.now() + questionLimitMs);
       return;
     } finally {
       savingRef.current = false;
@@ -230,7 +246,14 @@ export default function QuizPage() {
       willRetry: willRetry(item, rating),
       advanceAt: plan.advanceAfterMs === null ? null : Date.now() + plan.advanceAfterMs,
       advanceTotalMs: plan.advanceAfterMs ?? 0,
+      chosenIndex,
     });
+  }
+
+  function choose(index: number) {
+    const option = current?.choices?.[index];
+    if (!option) return;
+    rate(choiceRating(option.isCorrect, Date.now() - shownAtRef.current.getTime(), questionLimitMs), false, index);
   }
 
   const next = useCallback(() => {
@@ -287,7 +310,10 @@ export default function QuizPage() {
         return;
       }
       const digit = Number(event.key);
-      if (digit >= 1 && digit <= 5) {
+      if (current?.choices && digit >= 1 && digit <= current.choices.length) {
+        event.preventDefault();
+        choose(digit - 1);
+      } else if (!current?.choices && digit >= 1 && digit <= 5) {
         event.preventDefault();
         rate(DIFFICULTY_RATINGS[digit - 1]);
       } else if (event.key.toLowerCase() === "h") {
@@ -337,6 +363,7 @@ export default function QuizPage() {
           summary={summarize(quiz.session)}
           elapsedMs={(quiz.endedAt ?? Date.now()) - quiz.startedAt}
           cycleRestarted={quiz.cycleRestarted}
+          isMultipleChoice={quiz.settings.answerFormat === "multiple_choice"}
           onAgain={() => startQuiz(lastSettings)}
           onSettings={() => setStage("settings")}
         />
@@ -382,12 +409,12 @@ export default function QuizPage() {
           label={t("timeLeftQuiz")}
         />
       )}
-      {timerMode === "word" && (
+      {questionLimitMs !== null && (
         <CountdownBar
           deadline={wordDeadline}
           running={wordClockRunning}
           expired={shown?.timedOut}
-          totalMs={wordLimitMs}
+          totalMs={questionLimitMs}
           label={t("timeLeftWord")}
         />
       )}
@@ -418,6 +445,17 @@ export default function QuizPage() {
 
       {/* Answer buttons live at the bottom, in easy reach of the thumb on phones. */}
       <div className="quiz-dock">
+        {displayed.choices && (
+          <ChoiceOptions
+            key={displayed.key}
+            choices={displayed.choices}
+            isAnswered={shown !== null}
+            chosenIndex={shown?.chosenIndex ?? null}
+            disabled={saving}
+            showShortcuts={false}
+            onChoose={choose}
+          />
+        )}
         {shown ? (
           <div className="next-row" key="next">
             <button className="btn btn-block btn-large" onClick={next} autoFocus>
@@ -427,6 +465,8 @@ export default function QuizPage() {
               <AutoAdvanceBar deadline={shown.advanceAt} totalMs={shown.advanceTotalMs} running={advanceRunning} />
             )}
           </div>
+        ) : displayed.choices ? (
+          preferences.keyboardShortcuts && <p className="shortcut-tip muted small">{t("shortcutTipChoice")}</p>
         ) : (
           <>
             <DifficultyRatingPicker value={null} onChange={(rating) => rate(rating)} disabled={saving} />

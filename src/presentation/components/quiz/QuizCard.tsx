@@ -103,10 +103,13 @@ export default function QuizCard({
 
       {feedback && (
         <div className="feedback">
-          <div className={`feedback-badge ${feedback.timedOut ? "timeout" : feedback.rating}`}>
-            <Icon name={feedback.timedOut ? "timer" : isStrongRating(feedback.rating) ? "check" : "close"} size={18} />
-            {feedback.timedOut ? t("timeUpWord") : t(RATING_KEYS[feedback.rating])}
-          </div>
+          {/* A multiple-choice result shows on its options; the rating behind it stays hidden. */}
+          {(feedback.timedOut || !item.choices) && (
+            <div className={`feedback-badge ${feedback.timedOut ? "timeout" : feedback.rating}`}>
+              <Icon name={feedback.timedOut ? "timer" : isStrongRating(feedback.rating) ? "check" : "close"} size={18} />
+              {feedback.timedOut ? t("timeUpWord") : t(RATING_KEYS[feedback.rating])}
+            </div>
+          )}
           {feedback.reveal && (
             <div className="answer-box" dir="auto">
               {mode === "source_to_target" && (

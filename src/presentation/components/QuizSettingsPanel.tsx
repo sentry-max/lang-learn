@@ -2,6 +2,7 @@ import { useMemo, useState } from "react";
 import { Link } from "react-router-dom";
 import { languageLabel } from "@domain/entities/Language";
 import {
+  AnswerFormat,
   MAX_QUESTION_COUNT,
   QuizDirection,
   QuizSettings,
@@ -45,6 +46,11 @@ const TIME_PRESETS: Record<"quiz" | "word", number[]> = {
   quiz: [2 * 60, 5 * 60, 10 * 60, 20 * 60],
   word: [5, 10, 20, 30],
 };
+
+const ANSWER_FORMATS: { value: AnswerFormat; key: UiStringKey }[] = [
+  { value: "recall", key: "answerFormatRecall" },
+  { value: "multiple_choice", key: "answerFormatChoice" },
+];
 
 const DIRECTIONS: { value: QuizDirection; key: UiStringKey }[] = [
   { value: "source_to_target", key: "directionForward" },
@@ -162,7 +168,9 @@ export default function QuizSettingsPanel({ initial, onStart }: Props) {
   const presets = settings.timerMode === "none" ? [] : TIME_PRESETS[settings.timerMode];
   const showCustom = timed && (customTime || !presets.includes(timerSeconds));
   const timerValid = !timed || isValidTimerSeconds(timerSeconds);
-  const extrasCount = (validLetters.length > 0 ? 1 : 0) + (settings.direction !== "mix" ? 1 : 0) + (settings.includeSentenceWriting ? 0 : 1);
+  const isMultipleChoice = settings.answerFormat === "multiple_choice";
+  const extrasCount =
+    (validLetters.length > 0 ? 1 : 0) + (settings.direction !== "mix" ? 1 : 0) + (settings.includeSentenceWriting || isMultipleChoice ? 0 : 1);
 
   return (
     <div className="card start-card">
@@ -230,6 +238,17 @@ export default function QuizSettingsPanel({ initial, onStart }: Props) {
       </section>
 
       <section className="start-section">
+        <span className="field-label">{t("answerFormatLabel")}</span>
+        <Segmented
+          options={ANSWER_FORMATS.map(({ value, key }) => ({ value, label: t(key) }))}
+          value={settings.answerFormat}
+          onChange={(answerFormat) => set("answerFormat", answerFormat)}
+          ariaLabel={t("answerFormatLabel")}
+        />
+        <p className="muted small">{isMultipleChoice ? t("answerFormatChoiceNote") : t("answerFormatRecallNote")}</p>
+      </section>
+
+      <section className="start-section">
         <span className="field-label">{t("quizModeLabel")}</span>
         <div className="mode-grid" role="radiogroup" aria-label={t("quizModeLabel")}>
           {MODES.map((mode) => (
@@ -273,6 +292,7 @@ export default function QuizSettingsPanel({ initial, onStart }: Props) {
             </div>
             {showCustom && <DurationPicker seconds={timerSeconds} onChange={(value) => set(timerKey, value)} presets={[]} />}
             <p className="muted small">{settings.timerMode === "quiz" ? t("quizTimerNote") : t("wordTimerNote")}</p>
+            {isMultipleChoice && settings.timerMode === "quiz" && <p className="muted small">{t("choiceQuizTimerNote")}</p>}
           </div>
         )}
       </section>
@@ -298,11 +318,13 @@ export default function QuizSettingsPanel({ initial, onStart }: Props) {
               ariaLabel={t("directionLabel")}
             />
           </div>
-          <Switch
-            checked={settings.includeSentenceWriting}
-            onChange={(isChecked) => set("includeSentenceWriting", isChecked)}
-            label={t("sentenceToggleLabel")}
-          />
+          {!isMultipleChoice && (
+            <Switch
+              checked={settings.includeSentenceWriting}
+              onChange={(isChecked) => set("includeSentenceWriting", isChecked)}
+              label={t("sentenceToggleLabel")}
+            />
+          )}
         </div>
       )}
 

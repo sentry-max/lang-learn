@@ -1,6 +1,7 @@
 import { DifficultyRating, QuestionMode, isWeakRating } from "@domain/entities/Learning";
 import { LanguageCode } from "@domain/entities/Language";
 import { Word } from "@domain/entities/Word";
+import { ChoiceOption } from "@domain/services/MultipleChoiceService";
 
 /**
  * In-session behaviour, as immutable state + pure transitions (React
@@ -16,6 +17,8 @@ export interface QuizItem {
   mode: QuestionMode;
   /** 0 for the first time in this session, 1 for the in-session retry */
   attempt: number;
+  /** The options of a multiple-choice question; null when the user recalls the answer and rates themselves */
+  choices: ChoiceOption[] | null;
 }
 
 export interface QuizAnswer {
@@ -97,6 +100,9 @@ export interface SessionSummary {
   uniqueWords: number;
   byRating: Record<DifficultyRating, number>;
   timedOut: number;
+  /** Answers rated good or better (a right choice in a multiple-choice quiz), and the rest */
+  correct: number;
+  incorrect: number;
   /** Questions never reached because the session ended early */
   notReached: number;
   /** Share of answers rated good or better, 0..1 (null with no answers) */
@@ -114,6 +120,8 @@ export function summarize(state: QuizSessionState): SessionSummary {
     uniqueWords: new Set(state.answers.map((answer) => answer.wordId)).size,
     byRating,
     timedOut: state.answers.filter((answer) => answer.timedOut).length,
+    correct: good,
+    incorrect: answered - good,
     notReached: Math.max(0, state.items.length - state.index),
     successRate: answered === 0 ? null : good / answered,
     endedEarly: state.endedEarly,

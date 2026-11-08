@@ -18,6 +18,7 @@ function items(count: number): QuizItem[] {
     sourceLanguage: "de" as const,
     mode: "source_to_target" as const,
     attempt: 0,
+    choices: null,
   }));
 }
 
@@ -63,6 +64,7 @@ describe("QuizSession", () => {
     expect(summary.answered).toBe(3);
     expect(summary.uniqueWords).toBe(3);
     expect(summary.byRating.bad).toBe(1);
+    expect(summary).toMatchObject({ correct: 2, incorrect: 1 });
   });
 
   it("ends early when time is up, leaving unreached words untouched", () => {

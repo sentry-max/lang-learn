@@ -11,13 +11,15 @@ interface Props {
   summary: SessionSummary;
   elapsedMs: number;
   cycleRestarted: boolean;
+  /** Shows right and wrong counts instead of the ratings */
+  isMultipleChoice: boolean;
   onAgain: () => void;
   onSettings: () => void;
 }
 
 const CELEBRATE_AT = 0.7;
 
-export default function QuizSummary({ summary, elapsedMs, cycleRestarted, onAgain, onSettings }: Props) {
+export default function QuizSummary({ summary, elapsedMs, cycleRestarted, isMultipleChoice, onAgain, onSettings }: Props) {
   const { t, language } = useLanguage();
   const percent = summary.successRate === null ? null : Math.round(summary.successRate * 100);
   const celebrate = summary.endedEarly === null && summary.successRate !== null && summary.successRate >= CELEBRATE_AT;
@@ -55,14 +57,27 @@ export default function QuizSummary({ summary, elapsedMs, cycleRestarted, onAgai
         )}
       </div>
 
-      <div className="summary-grid">
-        {DIFFICULTY_RATINGS.map((rating, index) => (
-          <div key={rating} className={`summary-cell rating-pill ${rating}`} style={{ animationDelay: `${index * 60}ms` }}>
-            <strong>{formatNumber(summary.byRating[rating], language)}</strong>
-            <span>{t(RATING_KEYS[rating])}</span>
+      {isMultipleChoice ? (
+        <div className="summary-grid choice-summary">
+          <div className="summary-cell correct">
+            <strong>{formatNumber(summary.correct, language)}</strong>
+            <span>{t("choiceCorrectCount")}</span>
           </div>
-        ))}
-      </div>
+          <div className="summary-cell wrong" style={{ animationDelay: "60ms" }}>
+            <strong>{formatNumber(summary.incorrect, language)}</strong>
+            <span>{t("choiceWrongCount")}</span>
+          </div>
+        </div>
+      ) : (
+        <div className="summary-grid">
+          {DIFFICULTY_RATINGS.map((rating, index) => (
+            <div key={rating} className={`summary-cell rating-pill ${rating}`} style={{ animationDelay: `${index * 60}ms` }}>
+              <strong>{formatNumber(summary.byRating[rating], language)}</strong>
+              <span>{t(RATING_KEYS[rating])}</span>
+            </div>
+          ))}
+        </div>
+      )}
 
       {summary.notReached > 0 && <p className="muted">{t("notReachedNote", { count: summary.notReached })}</p>}
       {cycleRestarted && <p className="muted">{t("roundRestartedNote")}</p>}
