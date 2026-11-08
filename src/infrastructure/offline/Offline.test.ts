@@ -221,7 +221,7 @@ describe("offline quiz, end to end", () => {
     expect(sync.getStatus().online).toBe(false);
 
     const scope = { ...DEFAULT_QUIZ_SETTINGS, includeSentenceWriting: false, letters: ["A", "B", "C", "D", "E", "F"], questionCount: 5 };
-    const first = await generate.execute(USER, scope);
+    const first = await generate.execute(USER, scope, "en");
     expect(first.items).toHaveLength(5);
     for (const item of first.items) {
       await submit.execute({
@@ -232,7 +232,7 @@ describe("offline quiz, end to end", () => {
     }
 
     // Still offline: a new quiz knows those 5 words are parked for this round.
-    const second = await generate.execute(USER, { ...scope, questionCount: 5 });
+    const second = await generate.execute(USER, { ...scope, questionCount: 5 }, "en");
     const answered = new Set(first.items.map((item) => item.word.id));
     expect(second.items).toHaveLength(5);
     expect(second.cycleRestarted).toBe(false);

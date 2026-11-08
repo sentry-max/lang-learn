@@ -47,7 +47,7 @@ const settings = (overrides: Partial<QuizSettings> = {}): QuizSettings => ({
 describe("GenerateQuizUseCase", () => {
   it("uses own published and downloaded vocabularies, never drafts", async () => {
     const { useCase } = setup();
-    const quiz = await useCase.execute(USER, settings({ questionCount: 200 }));
+    const quiz = await useCase.execute(USER, settings({ questionCount: 200 }), "en");
     const ids = quiz.items.map((item) => item.word.id);
     expect(ids).toContain("dl-apple");
     expect(ids).not.toContain("draft-word");
@@ -57,7 +57,7 @@ describe("GenerateQuizUseCase", () => {
 
   it("restricts to chosen vocabularies and letters", async () => {
     const { useCase } = setup();
-    const quiz = await useCase.execute(USER, settings({ vocabularyIds: ["v1"], letters: ["B", "Q"] }));
+    const quiz = await useCase.execute(USER, settings({ vocabularyIds: ["v1"], letters: ["B", "Q"] }), "en");
     expect(quiz.poolSize).toBe(4);
     expect(quiz.items.every((item) => /^[BQ]/.test(item.word.headword))).toBe(true);
   });
@@ -73,15 +73,38 @@ describe("GenerateQuizUseCase", () => {
       createSeededRandomSource(1),
       () => NOW
     );
-    const letterQuiz = await useCase.execute(USER, settings({ letters: ["A"], questionCount: MAX_QUESTION_COUNT }));
+    const letterQuiz = await useCase.execute(USER, settings({ letters: ["A"], questionCount: MAX_QUESTION_COUNT }), "en");
     expect(letterQuiz.items).toHaveLength(250);
-    const plainQuiz = await useCase.execute(USER, settings({ questionCount: MAX_QUESTION_COUNT }));
+    const plainQuiz = await useCase.execute(USER, settings({ questionCount: MAX_QUESTION_COUNT }), "en");
     expect(plainQuiz.items).toHaveLength(MAX_QUESTION_COUNT);
+  });
+
+  it("gives multiple-choice questions four options from the dictionary, one correct, and no sentence writing", async () => {
+    const { useCase, learning, words } = setup();
+    for (const word of words.words.values()) learning.progress.set(word.id, makeProgress(word.id));
+    const quiz = await useCase.execute(
+      USER,
+      settings({ answerFormat: "multiple_choice", includeSentenceWriting: true, vocabularyIds: ["v1"], questionCount: 20 }),
+      "en"
+    );
+    expect(quiz.items).toHaveLength(20);
+    for (const item of quiz.items) {
+      expect(item.mode).not.toBe("sentence_writing");
+      expect(item.choices).toHaveLength(4);
+      expect(item.choices!.filter((choice) => choice.isCorrect)).toHaveLength(1);
+      expect(new Set(item.choices!.map((choice) => choice.text)).size).toBe(4);
+    }
+  });
+
+  it("asks recall questions without options", async () => {
+    const { useCase } = setup();
+    const quiz = await useCase.execute(USER, settings({ vocabularyIds: ["v1"] }), "en");
+    expect(quiz.items.every((item) => item.choices === null)).toBe(true);
   });
 
   it("ignores a drafted vocabulary even when explicitly selected", async () => {
     const { useCase } = setup();
-    const quiz = await useCase.execute(USER, settings({ vocabularyIds: ["draft"] }));
+    const quiz = await useCase.execute(USER, settings({ vocabularyIds: ["draft"] }), "en");
     expect(quiz.items).toEqual([]);
     expect(quiz.sessionId).toBeNull();
   });
@@ -94,7 +117,7 @@ describe("GenerateQuizUseCase", () => {
       learning.events.push({ ...answerEvent(word.id, "A"), answeredAt: earlier });
     }
 
-    const quiz = await useCase.execute(USER, settings({ vocabularyIds: ["v1"], letters: ["A"] }));
+    const quiz = await useCase.execute(USER, settings({ vocabularyIds: ["v1"], letters: ["A"] }), "en");
     expect(quiz.cycleRestarted).toBe(true);
     expect(learning.roundStartByCollection.get("A")).toBe(NOW.toISOString());
     expect(learning.roundStartByCollection.has("all")).toBe(false);
@@ -106,7 +129,7 @@ describe("GenerateQuizUseCase", () => {
     const submit = new SubmitAnswerUseCase(learning);
     const lettersBCD = settings({ vocabularyIds: ["v1"], letters: ["B", "C", "D"], questionCount: 5 });
 
-    const first = await useCase.execute(USER, lettersBCD);
+    const first = await useCase.execute(USER, lettersBCD, "en");
     const [item] = first.items;
     await submit.execute({
       userId: USER, sessionId: first.sessionId, wordId: item.word.id, mode: item.mode, rating: "bad",
@@ -114,12 +137,12 @@ describe("GenerateQuizUseCase", () => {
     });
     expect(learning.events[0].collectionKey).toBe("B,C,D");
 
-    const secondBCD = await useCase.execute(USER, lettersBCD);
+    const secondBCD = await useCase.execute(USER, lettersBCD, "en");
     expect(secondBCD.items.map((quizItem) => quizItem.word.id)).not.toContain(item.word.id);
     expect(secondBCD.cycleRestarted).toBe(false);
 
     for (const otherCollection of [settings({ vocabularyIds: ["v1"], questionCount: MAX_QUESTION_COUNT }), settings({ vocabularyIds: ["v1"], letters: ["A", "B", "C", "D"], questionCount: MAX_QUESTION_COUNT })]) {
-      const quiz = await useCase.execute(USER, otherCollection);
+      const quiz = await useCase.execute(USER, otherCollection, "en");
       expect(quiz.items.map((quizItem) => quizItem.word.id)).toContain(item.word.id);
       expect(quiz.progressByWordId.get(item.word.id)?.lastRating).toBe("bad");
     }
@@ -130,7 +153,7 @@ describe("GenerateQuizUseCase", () => {
     const submit = new SubmitAnswerUseCase(learning);
     const scope = settings({ vocabularyIds: ["v1"], questionCount: 5 });
 
-    const first = await useCase.execute(USER, scope);
+    const first = await useCase.execute(USER, scope, "en");
     expect(first.items).toHaveLength(5);
     const [easyItem, badItem] = first.items;
     const answer = (item: typeof easyItem, rating: "easy" | "bad") =>
@@ -141,7 +164,7 @@ describe("GenerateQuizUseCase", () => {
     await answer(easyItem, "easy");
     await answer(badItem, "bad");
 
-    const second = await useCase.execute(USER, scope);
+    const second = await useCase.execute(USER, scope, "en");
     const ids = second.items.map((item) => item.word.id);
     expect(second.cycleRestarted).toBe(false);
     expect(ids).not.toContain(easyItem.word.id);

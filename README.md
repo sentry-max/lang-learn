@@ -112,6 +112,23 @@ It adapts to what the user does:
 
 ## Quiz modes and settings
 
+Before the timer mode, the quiz asks for the **test type**:
+
+- **Recall** – recall the answer from memory, then rate yourself (very easy … very bad).
+- **Multiple choice** – pick the answer from four options and the app rates it
+  (`src/domain/services/MultipleChoiceService.ts`). Sentence writing is not asked.
+  The three wrong options come from the chosen vocabularies, closest first: words
+  sharing a tag with the answer, then words spelled similarly, then words sharing
+  the most first or last letters (3, then 2, then 1), then any word at random.
+  Synonyms of the answer are never offered, and the correct answer is always there.
+  - Classic: correct is *easy*, wrong is *very bad*.
+  - Quiz timer: each question gets the time left divided by the questions left
+    (at the start, the whole time divided by the number of questions), so every
+    question fits. Word timer: each question gets the word timer.
+  - Timed, a correct choice in the first 55% of the question's time is *very easy*,
+    in the next 25% *easy*, later *good*. A wrong choice or running out of time is
+    *very bad*.
+
 The quiz settings have three tabs, each with a short explanation:
 
 - **Classic** – no time limit.
