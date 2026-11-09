@@ -1,5 +1,6 @@
 import { GrammaticalCase, PrincipalPartName, TenseName } from "@domain/entities/Inflection";
 import { WordType } from "@domain/entities/Word";
+import { SentenceExerciseKind, TransformTask } from "@domain/entities/SentenceExercise";
 import { UiStringKey } from "@presentation/i18n/translations";
 
 export const WORD_TYPE_KEYS: Record<WordType, UiStringKey> = {
@@ -58,4 +59,23 @@ export const TENSE_KEYS: Record<TenseName, UiStringKey> = {
   passivePresent: "tensePassivePresent",
   passivePast: "tensePassivePast",
   passivePerfect: "tensePassivePerfect",
+};
+
+export const SENTENCE_KIND_KEYS: Record<SentenceExerciseKind, { label: UiStringKey; note: UiStringKey; prompt: UiStringKey }> = {
+  fill_blank: { label: "sentenceKindFillBlank", note: "sentenceKindFillBlankNote", prompt: "sentenceFillBlankPrompt" },
+  jumble: { label: "sentenceKindJumble", note: "sentenceKindJumbleNote", prompt: "sentenceJumblePrompt" },
+  transform: { label: "sentenceKindTransform", note: "sentenceKindTransformNote", prompt: "sentenceKindTransformNote" },
+};
+
+export const TRANSFORM_TASK_KEYS: Record<TransformTask, UiStringKey> = {
+  present: "transformTaskPresent",
+  simple_past: "transformTaskSimplePast",
+  present_perfect: "transformTaskPresentPerfect",
+  past_perfect: "transformTaskPastPerfect",
+  future: "transformTaskFuture",
+  future_perfect: "transformTaskFuturePerfect",
+  negative: "transformTaskNegative",
+  question: "transformTaskQuestion",
+  passive: "transformTaskPassive",
+  active: "transformTaskActive",
 };

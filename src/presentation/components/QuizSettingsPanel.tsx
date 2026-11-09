@@ -6,11 +6,10 @@ import {
   MAX_QUESTION_COUNT,
   QuizDirection,
   QuizSettings,
-  TimerMode,
+  activeTimerSeconds,
   isValidTimerSeconds,
   questionQuota,
 } from "@domain/entities/QuizSettings";
-import { splitDuration } from "@domain/services/Duration";
 import { countByLetter, filterByLetters } from "@domain/services/LetterService";
 import { useServices, useSyncStatus } from "@presentation/context/ServicesContext";
 import { useLanguage } from "@presentation/context/LanguageContext";
@@ -21,10 +20,10 @@ import { useAsync } from "@presentation/hooks/useAsync";
 import { useErrorMessage } from "@presentation/hooks/useErrorMessage";
 import ErrorBanner from "@presentation/components/ErrorBanner";
 import LetterPicker from "@presentation/components/LetterPicker";
-import VocabularyPicker from "@presentation/components/VocabularyPicker";
-import DurationPicker from "@presentation/components/ui/DurationPicker";
+import CollectionPicker from "@presentation/components/CollectionPicker";
+import TimerModePicker from "@presentation/components/TimerModePicker";
 import { Spinner } from "@presentation/components/ui/Loader";
-import Icon, { IconName } from "@presentation/components/ui/Icon";
+import Icon from "@presentation/components/ui/Icon";
 import { Segmented, Switch } from "@presentation/components/ui/Controls";
 import { UiStringKey } from "@presentation/i18n/translations";
 import { formatNumber } from "@presentation/format";
@@ -35,17 +34,6 @@ interface Props {
 }
 
 const QUESTION_CHOICES = [10, 20, 50, 100];
-
-const MODES: { value: TimerMode; icon: IconName; title: UiStringKey; subtitle: UiStringKey }[] = [
-  { value: "none", icon: "infinity", title: "modeClassic", subtitle: "modeClassicShort" },
-  { value: "quiz", icon: "hourglass", title: "modeQuizTimer", subtitle: "modeQuizTimerShort" },
-  { value: "word", icon: "timer", title: "modeWordTimer", subtitle: "modeWordTimerShort" },
-];
-
-const TIME_PRESETS: Record<"quiz" | "word", number[]> = {
-  quiz: [2 * 60, 5 * 60, 10 * 60, 20 * 60],
-  word: [5, 10, 20, 30],
-};
 
 const ANSWER_FORMATS: { value: AnswerFormat; key: UiStringKey }[] = [
   { value: "recall", key: "answerFormatRecall" },
@@ -70,7 +58,6 @@ export default function QuizSettingsPanel({ initial, onStart }: Props) {
   const toast = useToast();
 
   const [settings, setSettings] = useState<QuizSettings>(initial);
-  const [customTime, setCustomTime] = useState(false);
   const [moreOpen, setMoreOpen] = useState(false);
   const [isClearingHistory, setIsClearingHistory] = useState(false);
   const set = <K extends keyof QuizSettings>(key: K, value: QuizSettings[K]) =>
@@ -129,9 +116,9 @@ export default function QuizSettingsPanel({ initial, onStart }: Props) {
   if (library.loading && !library.data) {
     return (
       <div className="card">
-        <div className="skeleton" style={{ height: 28, width: "40%" }} />
-        <div className="skeleton" style={{ height: 44, marginTop: 16 }} />
-        <div className="skeleton" style={{ height: 88, marginTop: 16 }} />
+        <div className="skeleton skeleton-title" />
+        <div className="skeleton skeleton-field" />
+        <div className="skeleton skeleton-card short" />
       </div>
     );
   }
@@ -163,11 +150,7 @@ export default function QuizSettingsPanel({ initial, onStart }: Props) {
   const effectiveCount = questionQuota({ ...settings, letters: validLetters }, poolSize);
   const choices = QUESTION_CHOICES.filter((questionCount) => questionCount < poolSize);
   const timed = settings.timerMode !== "none";
-  const timerKey = settings.timerMode === "quiz" ? "quizTimerSeconds" : "wordTimerSeconds";
-  const timerSeconds = settings.timerMode === "quiz" ? settings.quizTimerSeconds : settings.wordTimerSeconds;
-  const presets = settings.timerMode === "none" ? [] : TIME_PRESETS[settings.timerMode];
-  const showCustom = timed && (customTime || !presets.includes(timerSeconds));
-  const timerValid = !timed || isValidTimerSeconds(timerSeconds);
+  const timerValid = !timed || isValidTimerSeconds(activeTimerSeconds(settings) ?? 0);
   const isMultipleChoice = settings.answerFormat === "multiple_choice";
   const extrasCount =
     (validLetters.length > 0 ? 1 : 0) + (settings.direction !== "mix" ? 1 : 0) + (settings.includeSentenceWriting || isMultipleChoice ? 0 : 1);
@@ -179,8 +162,9 @@ export default function QuizSettingsPanel({ initial, onStart }: Props) {
       <section className="start-section">
         <span className="field-label">{t("quizVocabulariesLabel")}</span>
         <div className="picker-row">
-          <VocabularyPicker
-            vocabularies={library.data}
+          <CollectionPicker
+            kind="vocabulary"
+            items={library.data}
             selected={selectedIds}
             onChange={(ids) => setSettings((settings) => ({ ...settings, vocabularyIds: ids, letters: [] }))}
             currentUserId={user.id}
@@ -199,7 +183,7 @@ export default function QuizSettingsPanel({ initial, onStart }: Props) {
         {selectedIds.length === 0 ? (
           <p className="muted small">{t("chooseVocabularyFirst")}</p>
         ) : poolWords.loading && !poolWords.data ? (
-          <div className="skeleton" style={{ height: 36 }} />
+          <div className="skeleton skeleton-field" />
         ) : (
           <div className="chip-grid" role="radiogroup" aria-label={t("questionsLabel")}>
             {choices.map((questionCount) => (
@@ -248,54 +232,13 @@ export default function QuizSettingsPanel({ initial, onStart }: Props) {
         <p className="muted small">{isMultipleChoice ? t("answerFormatChoiceNote") : t("answerFormatRecallNote")}</p>
       </section>
 
-      <section className="start-section">
-        <span className="field-label">{t("quizModeLabel")}</span>
-        <div className="mode-grid" role="radiogroup" aria-label={t("quizModeLabel")}>
-          {MODES.map((mode) => (
-            <button
-              key={mode.value}
-              type="button"
-              role="radio"
-              aria-checked={settings.timerMode === mode.value}
-              className={`mode-option${settings.timerMode === mode.value ? " selected" : ""}`}
-              onClick={() => {
-                set("timerMode", mode.value);
-                setCustomTime(false);
-              }}
-            >
-              <Icon name={mode.icon} size={22} />
-              <strong>{t(mode.title)}</strong>
-              <span>{t(mode.subtitle)}</span>
-            </button>
-          ))}
-        </div>
-
-        {timed && (
-          <div className="time-limit" key={settings.timerMode}>
-            <div className="chip-grid">
-              {presets.map((seconds) => (
-                <button
-                  key={seconds}
-                  type="button"
-                  className={`chip${!showCustom && timerSeconds === seconds ? " selected" : ""}`}
-                  onClick={() => {
-                    set(timerKey, seconds);
-                    setCustomTime(false);
-                  }}
-                >
-                  {presetLabel(seconds, t)}
-                </button>
-              ))}
-              <button type="button" className={`chip${showCustom ? " selected" : ""}`} onClick={() => setCustomTime(true)}>
-                {t("customTime")}
-              </button>
-            </div>
-            {showCustom && <DurationPicker seconds={timerSeconds} onChange={(value) => set(timerKey, value)} presets={[]} />}
-            <p className="muted small">{settings.timerMode === "quiz" ? t("quizTimerNote") : t("wordTimerNote")}</p>
-            {isMultipleChoice && settings.timerMode === "quiz" && <p className="muted small">{t("choiceQuizTimerNote")}</p>}
-          </div>
-        )}
-      </section>
+      <TimerModePicker
+        unit="word"
+        label={t("quizModeLabel")}
+        value={settings}
+        onChange={(change) => setSettings((settings) => ({ ...settings, ...change }))}
+        extraNote={isMultipleChoice && settings.timerMode === "quiz" ? t("choiceQuizTimerNote") : undefined}
+      />
 
       <button type="button" className="more-toggle" aria-expanded={moreOpen} onClick={() => setMoreOpen((isOpen) => !isOpen)}>
         <Icon name="chevronDown" size={16} className={moreOpen ? "rotated" : undefined} />
@@ -343,11 +286,4 @@ export default function QuizSettingsPanel({ initial, onStart }: Props) {
       </div>
     </div>
   );
-}
-
-function presetLabel(seconds: number, t: ReturnType<typeof useLanguage>["t"]): string {
-  const { hours, minutes, seconds: currentSeconds } = splitDuration(seconds);
-  if (hours) return t("presetHours", { count: hours });
-  if (minutes) return t("presetMinutes", { count: minutes });
-  return t("presetSeconds", { count: currentSeconds });
 }

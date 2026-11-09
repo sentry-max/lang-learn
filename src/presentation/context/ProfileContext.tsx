@@ -1,7 +1,7 @@
 import { ReactNode, createContext, useCallback, useContext, useEffect, useMemo, useState } from "react";
 import { Profile, ProfilePatch } from "@domain/entities/Profile";
 import { useCurrentUser } from "@presentation/context/AuthContext";
-import { useServices } from "@presentation/context/ServicesContext";
+import { useServices, useSyncStatus } from "@presentation/context/ServicesContext";
 import { useLanguage } from "@presentation/context/LanguageContext";
 import { useErrorMessage } from "@presentation/hooks/useErrorMessage";
 import ErrorBanner from "@presentation/components/ErrorBanner";
@@ -21,6 +21,8 @@ const ProfileContext = createContext<ProfileState | null>(null);
 export function ProfileProvider({ children }: { children: ReactNode }) {
   const user = useCurrentUser();
   const { profiles } = useServices();
+  // A background refresh that changed the profile (e.g. edited on another device) bumps the version.
+  const { version } = useSyncStatus();
   const { language, setLanguage } = useLanguage();
   const errorMessage = useErrorMessage();
   const [profile, setProfile] = useState<Profile | null>(null);
@@ -43,7 +45,7 @@ export function ProfileProvider({ children }: { children: ReactNode }) {
       active = false;
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [user.id, attempt]);
+  }, [user.id, attempt, version]);
 
   // Switching the UI language from the nav bar is remembered in the profile too.
   useEffect(() => {

@@ -257,6 +257,110 @@ create table if not exists public.quiz_collection_rounds (
   primary key (user_id, collection_key)
 );
 
+-- -----------------------------------------------------------------------------
+-- Sentence exercises first lived inside vocabularies, in a build that was never released. If that version was
+-- run, its tables are kept aside under new names (nothing is deleted) so the collection-based ones can be made.
+-- -----------------------------------------------------------------------------
+do $$
+begin
+  if exists (select 1 from information_schema.columns
+              where table_schema = 'public' and table_name = 'sentence_exercises' and column_name = 'vocabulary_id') then
+    alter table public.sentence_attempts rename to sentence_attempts_vocabulary_era;
+    alter table public.sentence_attempts_vocabulary_era rename constraint sentence_attempts_pkey to sentence_attempts_vocabulary_era_pkey;
+    alter index if exists public.sentence_attempts_user_idx rename to sentence_attempts_vocabulary_era_user_idx;
+    alter index if exists public.sentence_attempts_exercise_idx rename to sentence_attempts_vocabulary_era_exercise_idx;
+    alter table public.sentence_exercises rename to sentence_exercises_vocabulary_era;
+    alter table public.sentence_exercises_vocabulary_era rename constraint sentence_exercises_pkey to sentence_exercises_vocabulary_era_pkey;
+    drop trigger if exists sentence_exercises_guard on public.sentence_exercises_vocabulary_era;
+    revoke all on public.sentence_attempts_vocabulary_era, public.sentence_exercises_vocabulary_era from anon, authenticated;
+  end if;
+end;
+$$;
+
+-- -----------------------------------------------------------------------------
+-- Sentence collections (named sets of sentence exercises; draft or published)
+-- -----------------------------------------------------------------------------
+create table if not exists public.sentence_collections (
+  id             uuid primary key default gen_random_uuid(),
+  owner_id       uuid not null default auth.uid() references public.profiles (id) on delete restrict,
+  name           text not null check (char_length(btrim(name)) between 1 and 120),
+  description    text not null default '' check (char_length(description) <= 2000),
+  language       text not null references public.languages (code),
+  status         text not null default 'draft' check (status in ('draft', 'published')),
+  exercise_count integer not null default 0 check (exercise_count >= 0),
+  published_at   timestamptz,
+  created_at     timestamptz not null default now(),
+  updated_at     timestamptz not null default now(),
+  deleted_at     timestamptz
+);
+
+create index if not exists sentence_collections_owner_idx
+  on public.sentence_collections (owner_id) where deleted_at is null;
+create index if not exists sentence_collections_feed_idx
+  on public.sentence_collections (status, published_at desc) where deleted_at is null;
+
+-- Downloads of published sentence collections
+create table if not exists public.sentence_collection_subscriptions (
+  user_id       uuid not null default auth.uid() references public.profiles (id) on delete restrict,
+  collection_id uuid not null references public.sentence_collections (id) on delete restrict,
+  created_at    timestamptz not null default now(),
+  updated_at    timestamptz not null default now(),
+  deleted_at    timestamptz,
+  primary key (user_id, collection_id)
+);
+
+-- -----------------------------------------------------------------------------
+-- Sentence exercises (every exercise belongs to exactly one collection).
+-- `content` holds the kind's own fields; the app validates them on import.
+-- -----------------------------------------------------------------------------
+create table if not exists public.sentence_exercises (
+  id            uuid primary key default gen_random_uuid(),
+  collection_id uuid not null references public.sentence_collections (id) on delete restrict,
+  owner_id      uuid not null references public.profiles (id) on delete restrict,
+  external_id   text check (char_length(external_id) <= 200),
+  kind          text not null check (kind in ('fill_blank', 'jumble', 'transform')),
+  content       jsonb not null check (jsonb_typeof(content) = 'object' and content ->> 'kind' = kind
+                                      and octet_length(content::text) <= 20000),
+  translations  jsonb not null default '{}'::jsonb check (jsonb_typeof(translations) = 'object'),
+  hint          text not null default '' check (char_length(hint) <= 500),
+  level         text check (level in ('A1', 'A2', 'B1', 'B2', 'C1', 'C2')),
+  tags          text[] not null default '{}' check (cardinality(tags) <= 20),
+  created_at    timestamptz not null default now(),
+  updated_at    timestamptz not null default now(),
+  deleted_at    timestamptz
+);
+
+create index if not exists sentence_exercises_collection_idx
+  on public.sentence_exercises (collection_id, id) where deleted_at is null;
+create unique index if not exists sentence_exercises_collection_external_uq
+  on public.sentence_exercises (collection_id, external_id) where deleted_at is null and external_id is not null;
+
+-- -----------------------------------------------------------------------------
+-- Every answered sentence exercise (append-only). The score is derived from
+-- error_count / max_errors, so it is not stored.
+-- -----------------------------------------------------------------------------
+create table if not exists public.sentence_attempts (
+  id          uuid primary key,
+  user_id     uuid not null default auth.uid() references public.profiles (id) on delete restrict,
+  exercise_id uuid not null references public.sentence_exercises (id) on delete restrict,
+  session_id  uuid not null,
+  kind        text not null check (kind in ('fill_blank', 'jumble', 'transform')),
+  timer_mode  text not null check (timer_mode in ('none', 'quiz', 'word')),
+  error_count integer not null check (error_count between 0 and 1000),
+  max_errors  integer not null check (max_errors between 1 and 1000),
+  timed_out   boolean not null default false,
+  answer      jsonb not null default '{}'::jsonb check (jsonb_typeof(answer) = 'object' and octet_length(answer::text) <= 5000),
+  shown_at    timestamptz not null,
+  answered_at timestamptz not null,
+  response_ms integer check (response_ms between 0 and 18000000),
+  created_at  timestamptz not null default now(),
+  deleted_at  timestamptz
+);
+
+create index if not exists sentence_attempts_user_idx
+  on public.sentence_attempts (user_id, answered_at) where deleted_at is null;
+create index if not exists sentence_attempts_exercise_idx on public.sentence_attempts (exercise_id);
+
 -- =============================================================================
 -- Trigger functions
 -- =============================================================================
@@ -375,6 +479,97 @@ begin
   end if;
   new.updated_at := now();
   return new;
+end;
+$$;
+
+-- Sentence collections: protects the counter and enforces the publish rule (at least one exercise).
+-- pg_trigger_depth() > 1 means the write comes from the exercise counter trigger.
+create or replace function private.sentence_collections_guard()
+returns trigger language plpgsql set search_path = '' as $$
+declare
+  v_is_internal boolean := pg_trigger_depth() > 1;
+begin
+  if not exists (select 1 from public.languages l where l.code = new.language and l.is_enabled) then
+    raise exception 'VOCABULARY_INVALID_LANGUAGE' using errcode = 'P0001';
+  end if;
+
+  if tg_op = 'INSERT' then
+    new.exercise_count := 0;
+    new.status := 'draft';
+    new.published_at := null;
+    new.created_at := now();
+    new.updated_at := now();
+    new.deleted_at := null;
+    return new;
+  end if;
+
+  new.id := old.id;
+  new.owner_id := old.owner_id;
+  new.created_at := old.created_at;
+  if not v_is_internal then
+    new.exercise_count := old.exercise_count;
+    new.published_at := old.published_at;
+    if new.deleted_at is not null then
+      new.status := 'draft';
+    end if;
+    if new.status = 'published' and old.status <> 'published' then
+      if new.exercise_count < 1 then
+        raise exception 'SENTENCE_COLLECTION_EMPTY' using errcode = 'P0001';
+      end if;
+      new.published_at := now();
+    end if;
+  end if;
+  new.updated_at := now();
+  return new;
+end;
+$$;
+
+-- Sentence exercises: owner is always the collection owner; the collection must be live and hold at most 2000.
+create or replace function private.sentence_exercises_guard()
+returns trigger language plpgsql set search_path = '' as $$
+declare
+  v_owner uuid;
+begin
+  select c.owner_id into v_owner
+  from public.sentence_collections c
+  where c.id = new.collection_id and c.deleted_at is null;
+
+  if v_owner is null then
+    raise exception 'SENTENCE_COLLECTION_NOT_FOUND' using errcode = 'P0001';
+  end if;
+
+  new.owner_id := v_owner;
+
+  if tg_op = 'INSERT' then
+    if (select count(*) from public.sentence_exercises s
+         where s.collection_id = new.collection_id and s.deleted_at is null) >= 2000 then
+      raise exception 'SENTENCE_EXERCISE_LIMIT' using errcode = 'P0001';
+    end if;
+    new.created_at := now();
+  else
+    new.id := old.id;
+    new.created_at := old.created_at;
+  end if;
+  new.updated_at := now();
+  return new;
+end;
+$$;
+
+-- Statement-level: recounts live exercises of the touched collections; an emptied collection goes back to draft.
+create or replace function private.sentence_exercises_after_change()
+returns trigger language plpgsql security definer set search_path = '' as $$
+begin
+  update public.sentence_collections c
+     set exercise_count = counted.total,
+         status = case when counted.total = 0 then 'draft' else c.status end
+    from (
+      select ids.collection_id,
+             (select count(*) from public.sentence_exercises e
+               where e.collection_id = ids.collection_id and e.deleted_at is null)::integer as total
+        from (select distinct collection_id from new_rows) ids
+    ) counted
+   where c.id = counted.collection_id;
+  return null;
 end;
 $$;
 
@@ -574,6 +769,43 @@ create trigger quiz_collection_rounds_set_updated_at
   before update on public.quiz_collection_rounds
   for each row execute function private.set_updated_at();
 
+drop trigger if exists sentence_collections_guard on public.sentence_collections;
+create trigger sentence_collections_guard
+  before insert or update on public.sentence_collections
+  for each row execute function private.sentence_collections_guard();
+
+drop trigger if exists sentence_collection_subscriptions_guard on public.sentence_collection_subscriptions;
+create trigger sentence_collection_subscriptions_guard
+  before update on public.sentence_collection_subscriptions
+  for each row execute function private.user_rows_guard();
+
+drop trigger if exists sentence_collection_subscriptions_set_updated_at on public.sentence_collection_subscriptions;
+create trigger sentence_collection_subscriptions_set_updated_at
+  before update on public.sentence_collection_subscriptions
+  for each row execute function private.set_updated_at();
+
+drop trigger if exists sentence_exercises_guard on public.sentence_exercises;
+create trigger sentence_exercises_guard
+  before insert or update on public.sentence_exercises
+  for each row execute function private.sentence_exercises_guard();
+
+drop trigger if exists sentence_exercises_after_insert on public.sentence_exercises;
+create trigger sentence_exercises_after_insert
+  after insert on public.sentence_exercises
+  referencing new table as new_rows
+  for each statement execute function private.sentence_exercises_after_change();
+
+drop trigger if exists sentence_exercises_after_update on public.sentence_exercises;
+create trigger sentence_exercises_after_update
+  after update on public.sentence_exercises
+  referencing new table as new_rows
+  for each statement execute function private.sentence_exercises_after_change();
+
+drop trigger if exists sentence_attempts_guard on public.sentence_attempts;
+create trigger sentence_attempts_guard
+  before update on public.sentence_attempts
+  for each row execute function private.user_rows_guard();
+
 -- =============================================================================
 -- RPC functions (SECURITY INVOKER: RLS still applies)
 -- =============================================================================
@@ -730,6 +962,10 @@ alter table public.quiz_sessions            enable row level security;
 alter table public.word_progress            enable row level security;
 alter table public.review_events            enable row level security;
 alter table public.quiz_collection_rounds   enable row level security;
+alter table public.sentence_collections     enable row level security;
+alter table public.sentence_collection_subscriptions enable row level security;
+alter table public.sentence_exercises       enable row level security;
+alter table public.sentence_attempts        enable row level security;
 
 -- languages -------------------------------------------------------------------
 drop policy if exists "languages: read" on public.languages;
@@ -929,6 +1165,96 @@ create policy "quiz_collection_rounds: update own" on public.quiz_collection_rou
   for update to authenticated
   using (user_id = (select auth.uid())) with check (user_id = (select auth.uid()));
 
+-- sentence_collections: like vocabularies ---------------------------------------
+drop policy if exists "sentence_collections: read own or published" on public.sentence_collections;
+create policy "sentence_collections: read own or published" on public.sentence_collections
+  for select to authenticated
+  using (owner_id = (select auth.uid()) or (status = 'published' and deleted_at is null));
+
+drop policy if exists "sentence_collections: insert own" on public.sentence_collections;
+create policy "sentence_collections: insert own" on public.sentence_collections
+  for insert to authenticated
+  with check (owner_id = (select auth.uid()));
+
+drop policy if exists "sentence_collections: update own" on public.sentence_collections;
+create policy "sentence_collections: update own" on public.sentence_collections
+  for update to authenticated
+  using (owner_id = (select auth.uid()))
+  with check (owner_id = (select auth.uid()));
+
+-- sentence_collection_subscriptions: only published collections of someone else ---
+drop policy if exists "sentence_collection_subscriptions: read own" on public.sentence_collection_subscriptions;
+create policy "sentence_collection_subscriptions: read own" on public.sentence_collection_subscriptions
+  for select to authenticated
+  using (user_id = (select auth.uid()));
+
+drop policy if exists "sentence_collection_subscriptions: insert own" on public.sentence_collection_subscriptions;
+create policy "sentence_collection_subscriptions: insert own" on public.sentence_collection_subscriptions
+  for insert to authenticated
+  with check (
+    user_id = (select auth.uid())
+    and exists (
+      select 1 from public.sentence_collections c
+       where c.id = collection_id and c.status = 'published' and c.deleted_at is null and c.owner_id <> (select auth.uid())
+    )
+  );
+
+drop policy if exists "sentence_collection_subscriptions: update own" on public.sentence_collection_subscriptions;
+create policy "sentence_collection_subscriptions: update own" on public.sentence_collection_subscriptions
+  for update to authenticated
+  using (user_id = (select auth.uid()))
+  with check (
+    user_id = (select auth.uid())
+    and (
+      deleted_at is not null
+      or exists (
+        select 1 from public.sentence_collections c
+         where c.id = collection_id and c.status = 'published' and c.deleted_at is null and c.owner_id <> (select auth.uid())
+      )
+    )
+  );
+
+-- sentence_exercises: visible with their collection ----------------------------
+drop policy if exists "sentence_exercises: read own or published" on public.sentence_exercises;
+create policy "sentence_exercises: read own or published" on public.sentence_exercises
+  for select to authenticated
+  using (
+    owner_id = (select auth.uid())
+    or (
+      deleted_at is null
+      and exists (
+        select 1 from public.sentence_collections c
+         where c.id = sentence_exercises.collection_id
+           and c.status = 'published'
+           and c.deleted_at is null
+      )
+    )
+  );
+
+-- owner_id is set from the collection by the guard trigger, so this proves the caller owns the collection.
+drop policy if exists "sentence_exercises: insert into own collection" on public.sentence_exercises;
+create policy "sentence_exercises: insert into own collection" on public.sentence_exercises
+  for insert to authenticated
+  with check (owner_id = (select auth.uid()));
+
+drop policy if exists "sentence_exercises: update own" on public.sentence_exercises;
+create policy "sentence_exercises: update own" on public.sentence_exercises
+  for update to authenticated
+  using (owner_id = (select auth.uid()))
+  with check (owner_id = (select auth.uid()));
+
+-- sentence_attempts: strictly private ------------------------------------------
+drop policy if exists "sentence_attempts: own" on public.sentence_attempts;
+create policy "sentence_attempts: own" on public.sentence_attempts
+  for select to authenticated using (user_id = (select auth.uid()));
+drop policy if exists "sentence_attempts: insert own" on public.sentence_attempts;
+create policy "sentence_attempts: insert own" on public.sentence_attempts
+  for insert to authenticated with check (user_id = (select auth.uid()));
+drop policy if exists "sentence_attempts: update own" on public.sentence_attempts;
+create policy "sentence_attempts: update own" on public.sentence_attempts
+  for update to authenticated
+  using (user_id = (select auth.uid())) with check (user_id = (select auth.uid()));
+
 -- =============================================================================
 -- Privileges: no anonymous access, and no hard deletes for anyone via the API
 -- =============================================================================
@@ -936,14 +1262,18 @@ create policy "quiz_collection_rounds: update own" on public.quiz_collection_rou
 revoke all on
   public.languages, public.profiles, public.vocabularies, public.words,
   public.vocabulary_subscriptions, public.vocabulary_reviews,
-  public.quiz_sessions, public.word_progress, public.review_events, public.quiz_collection_rounds
+  public.quiz_sessions, public.word_progress, public.review_events, public.quiz_collection_rounds,
+  public.sentence_collections, public.sentence_collection_subscriptions,
+  public.sentence_exercises, public.sentence_attempts
 from anon, authenticated;
 
 grant select on public.languages to authenticated;
 grant select, insert, update on
   public.profiles, public.vocabularies, public.words,
   public.vocabulary_subscriptions, public.vocabulary_reviews,
-  public.quiz_sessions, public.word_progress, public.review_events, public.quiz_collection_rounds
+  public.quiz_sessions, public.word_progress, public.review_events, public.quiz_collection_rounds,
+  public.sentence_collections, public.sentence_collection_subscriptions,
+  public.sentence_exercises, public.sentence_attempts
 to authenticated;
 
 revoke all on function public.record_review(uuid, uuid, uuid, text, text, timestamptz, timestamptz, integer, jsonb, text) from public, anon;

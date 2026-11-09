@@ -25,6 +25,11 @@ src/
                    presentation/context/ServicesContext.tsx)
 ```
 
+Reads are cached (`src/infrastructure/cache/QueryCache.ts`): data loaded in the last 90 seconds is shown without a
+request, older data is shown at once and refreshed in the background, writes refresh what they changed, and the
+lists are kept per user between visits so the app opens with data on screen. A thin bar under the top bar shows
+when anything is loading.
+
 The domain and application layers have no React or Supabase imports, so the
 quiz algorithm and all business rules are unit-tested in isolation
 (`src/test/inMemoryRepositories.ts` provides in-memory ports for tests).
@@ -42,6 +47,10 @@ quiz algorithm and all business rules are unit-tested in isolation
 | `quiz_sessions` | One row per quiz started |
 | `word_progress` | What the app has learned per (user, word) |
 | `review_events` | Every answer: when shown, how long it took, direction, rating |
+| `sentence_collections` | Named sets of sentence exercises: name, description, language, draft/published, exercise counter |
+| `sentence_collection_subscriptions` | Downloads of published sentence collections |
+| `sentence_exercises` | Sentence exercises; each belongs to one collection (`kind` plus its fields in `content`) |
+| `sentence_attempts` | Every answered sentence: errors, allowed errors, timer mode, the answer, timing |
 
 Rules enforced in the database (not just the UI):
 
@@ -181,6 +190,58 @@ tab stays open (`src/infrastructure/offline/`):
   need a connection and say so when you're offline.
 - A reload or a new visit starts with an empty memory cache, so it needs to
   be online to load data again.
+
+## Sentence practice
+
+Sentences are a section of their own, next to words. The **Sentences** tab
+(`src/presentation/pages/SentencePracticePage.tsx`) practices them, and **Vocabularies**, **Explore**,
+**History** and **Progress** each have a *Words | Sentences* switch (`?section=sentences` in the URL):
+
+- **Vocabularies → Sentences** – your sentence collections (create, edit, import JSON with ⬆, publish,
+  delete) and the ones you downloaded. A collection starts as a private draft; one with at least one exercise
+  can be published. Import format: `data/sentences.schema.json`; `data/sentences.sample.json` (German) and
+  `data/sentences.sample.en.json` (English) show every kind and field.
+- **Explore → Sentences** – other people's published collections, searchable, to download.
+- **History → Sentences** – every answered sentence, newest first by day; tap one for the graded answer.
+- **Progress → Sentences** – overall score, the last 7 days against the 7 before, weak areas, a score per
+  exercise type and per grammar topic, kinds of mistakes, words to review, and 14 days of activity.
+- **Settings → Sentences** – default collections, forgive typos, show translation and hint right away, extra
+  words in word order by default.
+
+Practice draws from your own collections (drafts too) and downloaded ones; the dropdown lists only collections
+that have exercises. The task is shown in a highlighted banner.
+
+- **Fill in** – one or two blanks (`___`). A tapped word goes into the chosen blank (tap a blank to choose it),
+  else the first empty one, else the last one, replacing the word there; with one blank a new word simply
+  replaces the old. **Submit** turns on when every blank is filled.
+- **Word order** – tapped words fly onto the answer line in tap order. Drag a placed word to move it (touch or
+  mouse; the arrow keys move it too), tap it to send it back. **Extra words** mixes in distractors. Other
+  accepted orders (`alternatives`) count as correct.
+- **Rewrite** – turn the sentence into another tense, a negative, a question, or active ↔ passive. The answer
+  is compared word by word with the closest accepted sentence. With **Forgive typos** on, a misspelt word is
+  marked (amber, with the right spelling) but not counted: up to 1 letter off (2 for words of 8+ letters,
+  ß/ä/ö/ü typed as ss/ae/oe/ue are fine), never for words under 4 letters, never when the last two letters
+  differ (that is where grammar lives: *spielt/spielte*, *den/dem*), and capitals only on the first word.
+
+Each mode runs **Classic** (untimed), with a **Total time**, or with a **Time per sentence** (when it runs out,
+what you have is graded as it is; when the total time runs out, sentences not reached aren't recorded).
+
+**Scoring** (`src/domain/services/SentenceGrading.ts`): every exercise has a most-errors benchmark (blanks,
+words in the sentence, or words in the accepted answer), and the score is `1 − errors ÷ benchmark`, never
+below 0. A run's score is all its errors against all its benchmarks. Results show a score ring, a chip per kind
+of mark (correct, wrong, missing, not needed, typo), the answer word by word and the correct sentence; the run
+summary lists the topics and words to practice more.
+
+**Insights** (`src/domain/services/SentenceInsights.ts`) are worked out from the stored attempts, re-grading
+each answer against its exercise: scores per exercise type, per tag and per transformation task, mistake types,
+words missed at least twice, the weekly trend and daily activity. Nothing extra is stored.
+
+Every answer goes to `sentence_attempts` through the offline outbox. **Choosing sentences**
+(`src/domain/services/SentenceSelectionService.ts`) is weighted random sampling with weights learned from
+those attempts: low last and recent scores raise an exercise's weight, as does a weak topic (a tag or a
+transformation task) and each word you keep getting wrong that the exercise contains; mastered exercises
+(90%+) rest 1, 2, 4, 8 … days; slow answers come back a bit more often; untried exercises get a steady share;
+one answered in the last few minutes almost never repeats.
 
 ## Phones
 

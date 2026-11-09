@@ -1,5 +1,6 @@
 import { ReviewEvent, WordProgress } from "@domain/entities/Learning";
 import { QuizSettings } from "@domain/entities/QuizSettings";
+import { SentenceAttempt } from "@domain/entities/SentencePractice";
 
 export interface QuizSessionRecord {
   id: string;
@@ -31,4 +32,8 @@ export interface LearningRepository {
 
   startSession(userId: string, session: QuizSessionRecord): Promise<void>;
   completeSession(userId: string, sessionId: string): Promise<void>;
+
+  /** Stores one answered sentence exercise; sending the same attempt id again changes nothing. */
+  recordSentenceAttempt(userId: string, attempt: SentenceAttempt): Promise<void>;
+  getSentenceAttempts(userId: string): Promise<SentenceAttempt[]>;
 }

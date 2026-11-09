@@ -1,3 +1,4 @@
+import { SentenceCollection } from "@domain/entities/SentenceCollection";
 import { WordProgress, createInitialProgress } from "@domain/entities/Learning";
 import { Vocabulary } from "@domain/entities/Vocabulary";
 import { Word } from "@domain/entities/Word";
@@ -60,4 +61,21 @@ export function alphabetWords(perLetter: number): Word[] {
     for (let index = 0; index < perLetter; index++) words.push(makeWord(`${letter}${letter.toLowerCase()}${index}`));
   }
   return words;
+}
+
+export function makeCollection(id: string, overrides: Partial<SentenceCollection> = {}): SentenceCollection {
+  return {
+    id,
+    ownerId: "u1",
+    ownerName: "owner",
+    name: `Collection ${id}`,
+    description: "",
+    language: "de",
+    status: "draft",
+    exerciseCount: 0,
+    createdAt: "2026-01-01T00:00:00.000Z",
+    updatedAt: "2026-01-01T00:00:00.000Z",
+    publishedAt: null,
+    ...overrides,
+  };
 }

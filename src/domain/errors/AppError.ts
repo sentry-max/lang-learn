@@ -18,6 +18,9 @@ export type AppErrorCode =
 export type AppErrorReason =
   | "publish_word_limit"
   | "vocabulary_word_limit"
+  | "sentence_exercise_limit"
+  | "collection_empty"
+  | "collection_not_found"
   | "vocabulary_language_locked"
   | "vocabulary_not_found"
   | "duplicate_word"

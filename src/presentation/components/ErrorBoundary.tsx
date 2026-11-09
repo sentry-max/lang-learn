@@ -1,4 +1,5 @@
 import { Component, ReactNode } from "react";
+import { finishSplash } from "@presentation/splash";
 
 interface Props {
   children: ReactNode;
@@ -27,6 +28,7 @@ export class ErrorBoundary extends Component<Props, State> {
   componentDidCatch(error: unknown, info: { componentStack: string }): void {
      
     console.error("Unhandled UI error:", error, info.componentStack);
+    finishSplash();
   }
 
   render() {
@@ -34,7 +36,7 @@ export class ErrorBoundary extends Component<Props, State> {
       return (
         <div className="app-main center-text">
           <div className="card">
-            <h2 style={{ marginTop: 0 }}>{this.props.title}</h2>
+            <h2>{this.props.title}</h2>
             <p className="muted">{this.props.body}</p>
             <button className="btn" onClick={() => window.location.reload()}>
               {this.props.reloadLabel}

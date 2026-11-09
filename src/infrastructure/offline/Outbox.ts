@@ -1,12 +1,14 @@
 import { ReviewEvent, WordProgress } from "@domain/entities/Learning";
 import { QuizSessionRecord } from "@domain/repositories/LearningRepository";
+import { SentenceAttempt } from "@domain/entities/SentencePractice";
 
 /** A learning write waiting to be sent to the server. Every kind is safe to send twice. */
 export type OutboxOperation =
   | { kind: "startSession"; userId: string; session: QuizSessionRecord }
   | { kind: "recordReview"; userId: string; event: ReviewEvent; progress: WordProgress }
   | { kind: "startRound"; userId: string; collectionKey: string; startedAt: string }
-  | { kind: "completeSession"; userId: string; sessionId: string };
+  | { kind: "completeSession"; userId: string; sessionId: string }
+  | { kind: "recordSentenceAttempt"; userId: string; attempt: SentenceAttempt };
 
 interface Entry {
   operation: OutboxOperation;

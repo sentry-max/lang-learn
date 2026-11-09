@@ -235,6 +235,92 @@ Interface languages: English (the reference, its keys define `UiStringKey`) and 
 - **Finding hardcoded strings:**
   `grep -rnE ">[A-Z][a-z]+ ?[a-z]*<|(title|label|placeholder|aria-label)=\"[A-Za-z]" src/presentation --include=*.tsx`
 
+## Interface copy (enterprise standard)
+
+UI text reads like a professional product (Microsoft, Atlassian, IBM Carbon): neutral, precise, consistent.
+
+- **No direct address.** No "you", "your", "my", "me" in English; no «شما», «ـتان» or second-person verbs
+  («کنید», «دارید», «کرده‌اید») in Persian. Describe the system state or the object: "Answers are saved", "The quiz
+  couldn't be loaded", «پاسخ‌ها ذخیره شده‌اند». Persian actions and instructions use noun or infinitive phrases
+  («انتخاب واژه‌نامه برای شروع», «تلاش دوباره»), never imperatives.
+- **Tone.** Calm and factual. No exclamation marks, jokes, slang or praise ("Perfect!", "Oops", «آفرین!»). Results
+  are stated as facts ("No errors", "Time limit reached").
+- **Sentence case** for titles, labels, buttons and tabs. Titles and labels have no final period; full sentences do.
+- **Buttons and menu items** start with a verb and name the object: "Start quiz", "Clear round history",
+  «ذخیرهٔ تنظیمات». Never "OK", "Yes" or "Click here". A destructive confirm button repeats the action ("Delete").
+- **Errors** say what failed, then the way forward, without blame: "The quiz couldn't be loaded." plus a Retry
+  action; "This action requires a connection. Retry once the device is back online." Never "Failed to…" alone.
+- **Confirmations** ask about the object ("Unpublish this vocabulary?") and say what changes and what is kept.
+- **Empty states** state what is missing and when it appears: "No history yet. History appears after the first
+  quiz." Optionally one action.
+- **Placeholders** name the content ("Search words"), never instructions, and have no ellipsis. An ellipsis marks
+  only work in progress ("Saving…").
+- **One term per concept**, the same in both languages: vocabulary (واژه‌نامه), word (واژه), quiz (آزمون), round
+  (دور), collection (مجموعه), Explore (کاوش), download (دریافت, never «دانلود»), load (بارگذاری, never «بارگیری»).
+  The ratings are Very easy, Easy, Good, Hard, Very hard (خیلی آسان … خیلی سخت).
+- **Short.** One idea per sentence, hints at most two sentences. Lead with what matters. Numbers as digits with
+  units; the same value is written the same way everywhere ("5,000 words", «۵۰۰۰ واژه»).
+- **Persian typography.** Persian «ی» and «ک», a zero-width non-joiner in compounds (می‌شود، واژه‌ها), «» quotes,
+  «،» and «؛», Persian digits in text.
+
+## Data loading, caching and speed
+
+The app must feel instant. Reads go through caches; screens never wait for data they already have.
+
+- **One read cache.** `infrastructure/cache/QueryCache.ts` is shared by every repository that reads lists from the
+  server (vocabularies, reviews, sentence collections and exercises, the profile). A result younger than 90 s is
+  returned without a request; an older one is returned at once and refreshed in the background, and only a real
+  change bumps the sync `version` so open pages re-read it. Results are kept per user in localStorage, so a reload
+  starts with data on screen. Words have their own cache (`CachingWordRepository`); learning data is mirrored in
+  `OfflineLearningRepository` and served from memory while fresh.
+- **Keys and invalidation.** Cache keys start with the repository's prefix (`vocabularies:`, `reviews:`,
+  `collections:`, `exercises:`, `profile:`). Every write calls `cache.invalidate(prefix)` for each kind of data it
+  changes (a new word changes a vocabulary's word count; an import changes a collection's exercise count), or
+  `cache.put` with what the server returned. A new repository that reads from the server goes through the cache
+  the same way; never call Supabase directly from a screen.
+- **Loading states.** `useAsync` reports every load to the spinner in the top bar (`LoadingIndicator`), so background
+  refreshes are visible without blocking. Show `PageLoader` (a skeleton) only when there is no data yet
+  (`loading && !data`); keep showing old data while it reloads. Skeletons have the size of the content they stand
+  for, so nothing jumps when data arrives. Both indicators appear after a short delay, so fast loads show nothing.
+- **Speed rules.** Load what a screen needs in parallel (`Promise.all`), never in a loop of requests. Don't fetch in
+  render or on every keystroke (debounce searches). Work out derived data once with `useMemo`, not in JSX.
+  Pages are lazy-loaded except the quiz, which is the landing page.
+
+## Visual style
+
+The app should look like a calm, professional product (think Linear, GitHub, Atlassian), not a generated
+demo. The default style lives in `src/index.css`; the opt-in Liquid Glass style (`html[data-style="liquid"]`)
+has its own rules at the end of the file and may keep its translucency and gradients.
+
+- **Tokens only.** Colours, radii, shadows and timings come from the variables at the top of `index.css`
+  (`--surface`, `--border`, `--primary`, `--radius`, `--shadow`, `--fast` …), redefined for dark mode. Never a
+  fixed colour in a rule or a component (white text or a switch thumb on a solid fill is the one exception);
+  add a token if one is missing.
+- **Colour means something.** Neutral surfaces and one accent (`--primary`). Green, amber and red only for
+  state and results (correct, warning, wrong). No gradients, glows, coloured shadows, gradient text or
+  background washes.
+- **Shape.** Radii 4 / 6 / 8px (`--radius-sm`, `--radius`, `--radius-lg`); fully round only for switches,
+  progress bars, avatars and count badges. 1px borders. Shadows are barely there (`--shadow`); depth comes from
+  borders and surface colour. Popovers and dialogs may use `--shadow-lg`.
+- **Type.** System font stack; weights 400 to 650, never heavier. One clear hierarchy per screen. Numbers use
+  `font-variant-numeric: tabular-nums`.
+- **Motion is functional.** Short (`--fast`, `--normal`) with `--ease`, no overshoot, bounce, scale-on-press,
+  hover lifts, floating icons or confetti. Movement only to show where something went (a tile flying to its
+  slot, a sheet opening) or to introduce a result (the finish screen's blocks fade in in order with `.reveal`,
+  the score ring fills and key figures count up with `useCountUp`). Distances are 4–8px. Respect reduced motion.
+- **Controls line up.** Buttons, inputs and selects use the `--control-h*` heights (taller on touch screens), so
+  controls in one row have the same height. Spacing comes in steps of 0.25rem; cards use 1.25rem padding (1rem on
+  phones), page headers 1.25rem below.
+- **Finish screens** are built from `components/ResultSummary.tsx`: `SummaryHeader`, `SummaryOverview` with a
+  `ScoreRing` and `Kpi`s, `SummarySection`s (a `DistributionBar` for how answers spread) and `SummaryActions`.
+- **States are explicit.** Hover darkens or outlines, selected uses `--primary-soft` with a `--primary`
+  border, focus uses `--ring`, disabled is 50% opacity. Never rely on animation alone to show a state.
+- **Content, not decoration.** No emoji in UI strings or labels. Empty states are one short sentence and one
+  action. Icons come from `Icon` and support the text, never replace a label a person needs.
+- **Reuse before styling.** Use the existing classes (`card`, `btn`, `btn-secondary`, `pill`, `chip`, `tabs`,
+  `segmented`, `vocab-row`, `insight-row`, `score-pill` …) before writing new CSS. New CSS uses logical
+  properties and works at 320px, in RTL and in dark mode.
+
 ## Testing
 
 - **Layout.** A test sits next to its code as `<Name>.test.ts`. Group related tests with `describe`.

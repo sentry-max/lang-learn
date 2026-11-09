@@ -1,68 +1,56 @@
-import { useId } from "react";
+import "@presentation/components/ui/logo/LogoSweepLoader";
+import "@presentation/components/ui/logo/LogoProgressIndicator";
 import { useLanguage } from "@presentation/context/LanguageContext";
-import { useLiquidGlass } from "@presentation/hooks/useLiquidGlass";
 
 /**
- * The app logo (violet square, ring, dot) as a friendly character: the ring
- * is its face, watching the dot bounce like a ball. Same shapes and colours
- * as the logo, only animated.
+ * Full-area loading state: a skeleton of a page (title, figures, two cards) so the layout doesn't jump when the data
+ * arrives, plus a caption. It fades in after a short delay, so a fast load shows nothing at all.
  */
-export function LogoMascot({ size = 76 }: { size?: number }) {
-  const gradientId = useId();
-  // Liquid Glass: the same character in the glass app icon's blue, with a sheen.
-  const liquid = useLiquidGlass();
-  const [from, to] = liquid ? ["#1a8cff", "#5e5ce6"] : ["#5a44e5", "#7b3aeb"];
-  return (
-    <svg className="mascot" width={size} height={size} viewBox="0 0 100 100" aria-hidden="true">
-      <defs>
-        <linearGradient id={gradientId} x1="0" y1="0" x2="1" y2="1">
-          <stop offset="0" stopColor={from} />
-          <stop offset="1" stopColor={to} />
-        </linearGradient>
-        <linearGradient id={`${gradientId}s`} x1="0" y1="0" x2="0" y2="1">
-          <stop offset="0" stopColor="#fff" stopOpacity="0.4" />
-          <stop offset="0.5" stopColor="#fff" stopOpacity="0" />
-        </linearGradient>
-      </defs>
-      <rect width="100" height="100" rx="24" fill={`url(#${gradientId})`} />
-      {liquid && <rect width="100" height="100" rx="24" fill={`url(#${gradientId}s)`} />}
-      <ellipse className="mascot-shadow" cx="25.4" cy="86" rx="7.5" ry="1.8" fill="rgba(20, 8, 60, 0.28)" />
-      <g className="mascot-face">
-        <circle cx="53.3" cy="44.3" r="21.7" fill="none" stroke="#fff" strokeWidth="8.5" />
-        <g className="mascot-eyes">
-          <ellipse className="mascot-eye" cx="47" cy="41.5" rx="2.5" ry="3.3" fill="#fff" />
-          <ellipse className="mascot-eye" cx="59.6" cy="41.5" rx="2.5" ry="3.3" fill="#fff" />
-        </g>
-        <path d="M47.3 49.8 Q53.3 55.2 59.3 49.8" fill="none" stroke="#fff" strokeWidth="2.6" strokeLinecap="round" />
-      </g>
-      <circle className="mascot-ball" cx="25.4" cy="72.4" r="8.6" fill="#fff" />
-    </svg>
-  );
-}
-
-/** Full-area loading state: the mascot plus a caption for screen readers and sighted users. */
 export function PageLoader({ label }: { label?: string }) {
   const { t } = useLanguage();
   return (
-    <div className="page-loader" role="status" aria-live="polite">
-      <LogoMascot />
-      <span className="loader-caption">{label ?? t("loading")}</span>
+    <div className="page-loader app-main" role="status" aria-live="polite">
+      <div className="page-loader-caption">
+        <Spinner size={16} />
+        <span>{label ?? t("loading")}</span>
+      </div>
+      <div className="skeleton skeleton-title" />
+      <div className="skeleton-grid">
+        <div className="skeleton skeleton-box" />
+        <div className="skeleton skeleton-box" />
+        <div className="skeleton skeleton-box" />
+      </div>
+      <div className="skeleton skeleton-card" />
+      <div className="skeleton skeleton-card short" />
     </div>
   );
 }
 
-/** Small ring-and-dot spinner (the logo's shapes) for inline and in-button loading. */
-export function Spinner({ size = 18, label }: { size?: number; label?: string }) {
+/** The logo sweep: for loading of unknown length, inline and in buttons. Hidden from screen readers without a label. */
+export function Spinner({ size = 18, label, isPaused = false }: { size?: number; label?: string; isPaused?: boolean }) {
   return (
-    <span className="spinner" role={label ? "status" : undefined} aria-label={label} style={{ width: size, height: size }}>
-      <svg viewBox="0 0 24 24" width={size} height={size} aria-hidden="true">
-        <circle cx="12" cy="12" r="8" fill="none" stroke="currentColor" strokeOpacity="0.2" strokeWidth="3" />
-        <g className="spinner-orbit">
-          <circle cx="12" cy="12" r="8" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeDasharray="14 60" />
-          <circle cx="12" cy="1.5" r="1.9" fill="currentColor" />
-        </g>
-      </svg>
-    </span>
+    <logo-sweep-loader
+      className="spinner"
+      size={String(size)}
+      paused={isPaused ? "" : undefined}
+      role={label ? "status" : undefined}
+      aria-label={label}
+      aria-hidden={label ? undefined : "true"}
+    />
+  );
+}
+
+/** The logo filling up with a known share of work done (0..1). Without a label it is decoration next to a visible count. */
+export function ProgressIndicator({ value, size = 28, label }: { value: number; size?: number; label?: string }) {
+  return (
+    <logo-progress-indicator
+      className="progress-indicator"
+      size={String(size)}
+      value={String(Math.round(value * 1000) / 10)}
+      track=""
+      aria-label={label}
+      aria-hidden={label ? undefined : "true"}
+    />
   );
 }
 
@@ -75,4 +63,16 @@ export function InlineLoader({ label }: { label?: string }) {
       <span>{label ?? t("loading")}</span>
     </div>
   );
+}
+
+type LogoElementProps = { className?: string; size?: string; role?: string; "aria-label"?: string; "aria-hidden"?: "true" };
+
+declare global {
+  namespace JSX {
+    interface IntrinsicElements {
+      "logo-sweep-loader": LogoElementProps & { paused?: string };
+      "logo-progress-indicator": LogoElementProps & { value: string; track?: string };
+      "logo-splash-loader": LogoElementProps;
+    }
+  }
 }

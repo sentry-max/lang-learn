@@ -35,7 +35,7 @@ import Icon from "@presentation/components/ui/Icon";
 import { playCue } from "@presentation/sound";
 import { vibrate } from "@presentation/haptics";
 import { speak, stopSpeaking } from "@presentation/speech";
-import { PageLoader } from "@presentation/components/ui/Loader";
+import { PageLoader, ProgressIndicator } from "@presentation/components/ui/Loader";
 
 type Stage = "settings" | "loading" | "running" | "done" | "empty";
 
@@ -383,9 +383,7 @@ export default function QuizPage() {
         <button type="button" className="icon-btn" onClick={requestExit} aria-label={t("exitQuiz")} title={t("exitQuiz")}>
           <Icon name="close" />
         </button>
-        <div className="progress-bar" aria-hidden="true">
-          <div style={{ transform: `scaleX(${total ? answered / total : 0})` }} />
-        </div>
+        <ProgressIndicator value={total ? answered / total : 0} />
         <span className="quiz-counter" aria-label={t("questionOf", { current: Math.min(position, total), total })}>
           {Math.min(position, total)}/{total}
         </span>

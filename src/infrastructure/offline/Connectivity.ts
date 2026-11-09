@@ -1,3 +1,5 @@
+import { offlineError } from "@domain/errors/AppError";
+
 /** Whether the app should try the network, and notifications when that changes. */
 export interface Connectivity {
   isOnline(): boolean;
@@ -57,4 +59,9 @@ export class ManualConnectivity implements Connectivity {
     this.listeners.add(listener);
     return () => this.listeners.delete(listener);
   }
+}
+
+/** Throws the offline error when there is no connection; writes call it before trying the server. */
+export function assertOnline(connectivity: Connectivity): void {
+  if (!connectivity.isOnline()) throw offlineError();
 }

@@ -5,19 +5,27 @@ import { SupabaseWordRepository } from "@infrastructure/supabase/SupabaseWordRep
 import { SupabaseLearningRepository } from "@infrastructure/supabase/SupabaseLearningRepository";
 import { SupabaseVocabularyReviewRepository } from "@infrastructure/supabase/SupabaseVocabularyReviewRepository";
 import { SupabaseProfileRepository } from "@infrastructure/supabase/SupabaseProfileRepository";
+import { SupabaseSentenceExerciseRepository } from "@infrastructure/supabase/SupabaseSentenceExerciseRepository";
+import { SupabaseSentenceCollectionRepository } from "@infrastructure/supabase/SupabaseSentenceCollectionRepository";
 import { CachingWordRepository } from "@infrastructure/cache/CachingWordRepository";
+import { QueryCache } from "@infrastructure/cache/QueryCache";
 import { BrowserConnectivity } from "@infrastructure/offline/Connectivity";
 import { Outbox } from "@infrastructure/offline/Outbox";
 import { OfflineLearningRepository } from "@infrastructure/offline/OfflineLearningRepository";
 import { OfflineVocabularyRepository } from "@infrastructure/offline/OfflineVocabularyRepository";
 import { OfflineVocabularyReviewRepository } from "@infrastructure/offline/OfflineVocabularyReviewRepository";
 import { OfflineSyncManager } from "@infrastructure/offline/OfflineSyncManager";
+import { OfflineSentenceExerciseRepository } from "@infrastructure/offline/OfflineSentenceExerciseRepository";
+import { OfflineSentenceCollectionRepository } from "@infrastructure/offline/OfflineSentenceCollectionRepository";
+import { OfflineProfileRepository } from "@infrastructure/offline/OfflineProfileRepository";
 import { SyncGateway, SyncStatus } from "@application/ports/SyncGateway";
 import { VocabularyService } from "@application/services/VocabularyService";
 import { WordService } from "@application/services/WordService";
 import { LearningHistoryService } from "@application/services/LearningHistoryService";
 import { VocabularyReviewService } from "@application/services/VocabularyReviewService";
 import { ProfileService } from "@application/services/ProfileService";
+import { SentencePracticeService } from "@application/services/SentencePracticeService";
+import { SentenceCollectionService } from "@application/services/SentenceCollectionService";
 import { GenerateQuizUseCase } from "@application/usecases/GenerateQuizUseCase";
 import { SubmitAnswerUseCase } from "@application/usecases/SubmitAnswerUseCase";
 import { CompleteQuizSessionUseCase } from "@application/usecases/CompleteQuizSessionUseCase";
@@ -31,6 +39,8 @@ export interface Services {
   history: LearningHistoryService;
   reviews: VocabularyReviewService;
   profiles: ProfileService;
+  sentences: SentencePracticeService;
+  sentenceCollections: SentenceCollectionService;
   generateQuiz: GenerateQuizUseCase;
   submitAnswer: SubmitAnswerUseCase;
   completeQuizSession: CompleteQuizSessionUseCase;
@@ -50,29 +60,47 @@ export interface Services {
 export function createServices(userId: string): Services {
   const connectivity = new BrowserConnectivity();
 
-  const vocabularyRepository = new OfflineVocabularyRepository(new SupabaseVocabularyRepository(supabase), connectivity);
+  // One read cache for every list the app loads, kept per user between visits.
+  const queryCache = new QueryCache(connectivity, { storage: safeLocalStorage(), storageKey: `lang-learn:cache:${userId}` });
+  const vocabularyRepository = new OfflineVocabularyRepository(new SupabaseVocabularyRepository(supabase), connectivity, queryCache);
   const wordRepository = new CachingWordRepository(
     new SupabaseWordRepository(supabase),
     5 * 60 * 1000,
     () => Date.now(),
-    connectivity
+    connectivity,
+    // Word counts live on the vocabulary.
+    () => queryCache.invalidate("vocabularies:")
   );
   const learningRepository = new OfflineLearningRepository(
     new SupabaseLearningRepository(supabase),
     connectivity,
     new Outbox(`lang-learn:outbox:${userId}`)
   );
-  const sync = new OfflineSyncManager(connectivity, learningRepository, () => wordRepository.invalidate());
+  const sync = new OfflineSyncManager(connectivity, learningRepository, () => {
+    wordRepository.invalidate();
+    queryCache.markAllStale();
+    learningRepository.markStale();
+  });
+  queryCache.subscribe(sync.markDataChanged);
 
   const vocabularies = new VocabularyService(vocabularyRepository);
+  const sentenceCollections = new SentenceCollectionService(
+    new OfflineSentenceCollectionRepository(new SupabaseSentenceCollectionRepository(supabase), connectivity, queryCache)
+  );
   return {
     vocabularies,
     words: new WordService(wordRepository, vocabularyRepository),
     history: new LearningHistoryService(learningRepository, wordRepository),
     reviews: new VocabularyReviewService(
-      new OfflineVocabularyReviewRepository(new SupabaseVocabularyReviewRepository(supabase), connectivity)
+      new OfflineVocabularyReviewRepository(new SupabaseVocabularyReviewRepository(supabase), connectivity, queryCache)
     ),
-    profiles: new ProfileService(new SupabaseProfileRepository(supabase)),
+    profiles: new ProfileService(new OfflineProfileRepository(new SupabaseProfileRepository(supabase), queryCache)),
+    sentences: new SentencePracticeService(
+      new OfflineSentenceExerciseRepository(new SupabaseSentenceExerciseRepository(supabase), connectivity, queryCache),
+      learningRepository,
+      sentenceCollections
+    ),
+    sentenceCollections,
     generateQuiz: new GenerateQuizUseCase(vocabularies, wordRepository, learningRepository),
     submitAnswer: new SubmitAnswerUseCase(learningRepository),
     completeQuizSession: new CompleteQuizSessionUseCase(learningRepository),
@@ -117,4 +145,12 @@ export function useServices(): Services {
 export function useSyncStatus(): SyncStatus {
   const { sync } = useServices();
   return useSyncExternalStore(sync.subscribe, sync.getStatus);
+}
+
+function safeLocalStorage(): Storage | null {
+  try {
+    return typeof window === "undefined" ? null : window.localStorage;
+  } catch {
+    return null;
+  }
 }

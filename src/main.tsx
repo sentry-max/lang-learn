@@ -1,3 +1,5 @@
+// First, so the splash animates as soon as this bundle runs.
+import "@presentation/components/ui/logo/LogoSplashLoader";
 import React from "react";
 import ReactDOM from "react-dom/client";
 import App from "./App";

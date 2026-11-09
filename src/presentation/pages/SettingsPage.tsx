@@ -25,7 +25,7 @@ import RatingPill from "@presentation/components/RatingPill";
 import Icon from "@presentation/components/ui/Icon";
 import { Segmented, Switch } from "@presentation/components/ui/Controls";
 import { InlineLoader } from "@presentation/components/ui/Loader";
-import VocabularyPicker from "@presentation/components/VocabularyPicker";
+import CollectionPicker from "@presentation/components/CollectionPicker";
 import { useCurrentUser } from "@presentation/context/AuthContext";
 import { useServices } from "@presentation/context/ServicesContext";
 import { useAsync } from "@presentation/hooks/useAsync";
@@ -51,8 +51,9 @@ function toPayload(draft: Draft): Draft {
 export default function SettingsPage() {
   const { profile, updateProfile } = useProfile();
   const user = useCurrentUser();
-  const { vocabularies } = useServices();
+  const { vocabularies, sentenceCollections } = useServices();
   const library = useAsync(() => vocabularies.listQuizLibrary(user.id), [user.id]);
+  const sentenceLibrary = useAsync(() => sentenceCollections.listLibrary(user.id), [user.id]);
   const { t, setLanguage } = useLanguage();
   const errorMessage = useErrorMessage();
 
@@ -383,8 +384,9 @@ export default function SettingsPage() {
         <div className="form-field">
           <span className="field-label">{t("defaultVocabulariesLabel")}</span>
           {library.data ? (
-            <VocabularyPicker
-              vocabularies={library.data}
+            <CollectionPicker
+              kind="vocabulary"
+              items={library.data}
               selected={preferences.defaultVocabularyIds.filter((id) => library.data!.some((vocabulary) => vocabulary.id === id))}
               onChange={(ids) => setPref("defaultVocabularyIds", ids)}
               currentUserId={user.id}
@@ -403,6 +405,48 @@ export default function SettingsPage() {
           onChange={(isChecked) => setPref("keyboardShortcuts", isChecked)}
           label={t("keyboardShortcutsLabel")}
           description={t("keyboardShortcutsHint")}
+        />
+      </section>
+
+      <section className="card">
+        <h3 className="card-title">
+          <Icon name="sentence" /> {t("settingsSentences")}
+        </h3>
+        <div className="form-field">
+          <span className="field-label">{t("defaultSentenceCollectionsLabel")}</span>
+          {sentenceLibrary.data ? (
+            <CollectionPicker
+              kind="sentenceCollection"
+              items={sentenceLibrary.data}
+              selected={preferences.defaultSentenceCollectionIds.filter((id) => sentenceLibrary.data!.some((collection) => collection.id === id))}
+              onChange={(ids) => setPref("defaultSentenceCollectionIds", ids)}
+              currentUserId={user.id}
+              placeholder={t("noDefaultVocabulary")}
+            />
+          ) : sentenceLibrary.error ? (
+            <p className="muted small">{t("errorOffline")}</p>
+          ) : (
+            <InlineLoader />
+          )}
+          <p className="muted form-hint">{t("defaultSentenceCollectionsHint")}</p>
+        </div>
+        <Switch
+          checked={preferences.sentenceTolerateTypos}
+          onChange={(isChecked) => setPref("sentenceTolerateTypos", isChecked)}
+          label={t("sentenceTolerateTyposLabel")}
+          description={t("sentenceTolerateTyposHint")}
+        />
+        <Switch
+          checked={preferences.sentenceAutoShowHint}
+          onChange={(isChecked) => setPref("sentenceAutoShowHint", isChecked)}
+          label={t("sentenceAutoShowHintLabel")}
+          description={t("sentenceAutoShowHintHint")}
+        />
+        <Switch
+          checked={preferences.sentenceDistractors}
+          onChange={(isChecked) => setPref("sentenceDistractors", isChecked)}
+          label={t("sentenceDistractorsDefaultLabel")}
+          description={t("sentenceDistractorsHint")}
         />
       </section>
 

@@ -1,26 +1,67 @@
 import { KeyboardEvent, useEffect, useId, useMemo, useRef, useState } from "react";
-import { languageLabel } from "@domain/entities/Language";
+import { LanguageCode, languageLabel } from "@domain/entities/Language";
 import { Vocabulary } from "@domain/entities/Vocabulary";
+import { SentenceCollection } from "@domain/entities/SentenceCollection";
+import { UiStringKey } from "@presentation/i18n/translations";
 import { useLanguage } from "@presentation/context/LanguageContext";
 import Icon from "@presentation/components/ui/Icon";
 import { formatNumber } from "@presentation/format";
 
-interface Props {
-  vocabularies: Vocabulary[];
-  /** Selected vocabulary ids; empty means nothing selected */
+type Props = {
+  /** Selected ids; empty means nothing selected */
   selected: string[];
   onChange: (ids: string[]) => void;
   currentUserId: string;
   placeholder?: string;
+} & ({ kind: "vocabulary"; items: Vocabulary[] } | { kind: "sentenceCollection"; items: SentenceCollection[] });
+
+interface PickerEntry {
+  id: string;
+  name: string;
+  ownerId: string;
+  ownerName: string | null;
+  language: LanguageCode;
+  /** Words or exercises in it */
+  size: number;
 }
 
+const LABELS: Record<Props["kind"], Record<"field" | "choose" | "search" | "none" | "all" | "several" | "size", UiStringKey>> = {
+  vocabulary: {
+    field: "quizVocabulariesLabel",
+    choose: "chooseVocabularies",
+    search: "searchVocabularies",
+    none: "noVocabulariesMatch",
+    all: "allVocabularies",
+    several: "vocabulariesSelected",
+    size: "wordCountLabel",
+  },
+  sentenceCollection: {
+    field: "sentenceCollectionsLabel",
+    choose: "chooseSentenceCollections",
+    search: "searchSentenceCollections",
+    none: "noSentenceCollectionsMatch",
+    all: "allSentenceCollections",
+    several: "sentenceCollectionsSelected",
+    size: "exerciseCountLabel",
+  },
+};
+
 /**
- * Searchable vocabulary combobox.
+ * Searchable combobox of vocabularies or sentence collections.
  *  - Type to filter.
- *  - Tap a vocabulary's name/subtitle: choose only that one and close.
+ *  - Tap an item's name/subtitle: choose only that one and close.
  *  - Tap a checkbox (or "Select all"): choose several; the list stays open.
  */
-export default function VocabularyPicker({ vocabularies, selected, onChange, currentUserId, placeholder }: Props) {
+export default function CollectionPicker(props: Props) {
+  const { selected, onChange, currentUserId, placeholder } = props;
+  const labels = LABELS[props.kind];
+  const entries = useMemo<PickerEntry[]>(
+    () =>
+      props.kind === "vocabulary"
+        ? props.items.map((vocabulary) => ({ ...vocabulary, language: vocabulary.sourceLanguage, size: vocabulary.wordCount }))
+        : props.items.map((collection) => ({ ...collection, size: collection.exerciseCount })),
+    [props.kind, props.items]
+  );
   const { t, language } = useLanguage();
   const [open, setOpen] = useState(false);
   const [query, setQuery] = useState("");
@@ -32,13 +73,13 @@ export default function VocabularyPicker({ vocabularies, selected, onChange, cur
   const selectedSet = useMemo(() => new Set(selected), [selected]);
   const filtered = useMemo(() => {
     const currentQuery = query.trim().toLocaleLowerCase();
-    if (!currentQuery) return vocabularies;
-    return vocabularies.filter(
-      (vocabulary) => vocabulary.name.toLocaleLowerCase().includes(currentQuery) || (vocabulary.ownerName ?? "").toLocaleLowerCase().includes(currentQuery)
+    if (!currentQuery) return entries;
+    return entries.filter(
+      (entry) => entry.name.toLocaleLowerCase().includes(currentQuery) || (entry.ownerName ?? "").toLocaleLowerCase().includes(currentQuery)
     );
-  }, [vocabularies, query]);
+  }, [entries, query]);
 
-  const allFilteredSelected = filtered.length > 0 && filtered.every((vocabulary) => selectedSet.has(vocabulary.id));
+  const allFilteredSelected = filtered.length > 0 && filtered.every((entry) => selectedSet.has(entry.id));
 
   useEffect(() => {
     if (!open) {
@@ -56,11 +97,11 @@ export default function VocabularyPicker({ vocabularies, selected, onChange, cur
   const summary =
     selected.length === 0
       ? ""
-      : selected.length === vocabularies.length
-      ? t("allVocabularies", { count: vocabularies.length })
+      : selected.length === entries.length
+      ? t(labels.all, { count: entries.length })
       : selected.length === 1
-      ? vocabularies.find((vocabulary) => vocabulary.id === selected[0])?.name ?? ""
-      : t("vocabulariesSelected", { count: selected.length });
+      ? entries.find((entry) => entry.id === selected[0])?.name ?? ""
+      : t(labels.several, { count: selected.length });
 
   function chooseOnly(id: string) {
     onChange([id]);
@@ -73,7 +114,7 @@ export default function VocabularyPicker({ vocabularies, selected, onChange, cur
   }
 
   function toggleAllFiltered() {
-    const ids = filtered.map((vocabulary) => vocabulary.id);
+    const ids = filtered.map((entry) => entry.id);
     onChange(
       allFilteredSelected ? selected.filter((id) => !ids.includes(id)) : Array.from(new Set([...selected, ...ids]))
     );
@@ -105,10 +146,10 @@ export default function VocabularyPicker({ vocabularies, selected, onChange, cur
           aria-expanded={open}
           aria-controls={listId}
           aria-autocomplete="list"
-          aria-label={t("quizVocabulariesLabel")}
+          aria-label={t(labels.field)}
           dir="auto"
           value={open ? query : summary}
-          placeholder={open ? t("searchVocabularies") : placeholder ?? t("chooseVocabularies")}
+          placeholder={open ? t(labels.search) : placeholder ?? t(labels.choose)}
           onFocus={() => setOpen(true)}
           onChange={(event) => {
             setOpen(true);
@@ -121,7 +162,7 @@ export default function VocabularyPicker({ vocabularies, selected, onChange, cur
           type="button"
           className="combobox-arrow"
           tabIndex={-1}
-          aria-label={t("quizVocabulariesLabel")}
+          aria-label={t(labels.field)}
           onMouseDown={(event) => event.preventDefault()}
           onClick={(event) => {
             event.stopPropagation();
@@ -145,32 +186,32 @@ export default function VocabularyPicker({ vocabularies, selected, onChange, cur
               <span>{query ? t("selectAllMatches", { count: filtered.length }) : t("selectAll")}</span>
             </label>
           )}
-          {filtered.map((vocabulary, index) => (
+          {filtered.map((entry, index) => (
             <div
-              key={vocabulary.id}
+              key={entry.id}
               role="option"
-              aria-selected={selectedSet.has(vocabulary.id)}
-              className={`dropdown-item${index === active ? " active" : ""}${selectedSet.has(vocabulary.id) ? " checked" : ""}`}
+              aria-selected={selectedSet.has(entry.id)}
+              className={`dropdown-item${index === active ? " active" : ""}${selectedSet.has(entry.id) ? " checked" : ""}`}
               onMouseEnter={() => setActive(index)}
             >
               <input
                 type="checkbox"
-                checked={selectedSet.has(vocabulary.id)}
-                onChange={() => toggle(vocabulary.id)}
-                aria-label={t("addToSelection", { name: vocabulary.name })}
+                checked={selectedSet.has(entry.id)}
+                onChange={() => toggle(entry.id)}
+                aria-label={t("addToSelection", { name: entry.name })}
               />
-              <button type="button" className="dropdown-item-main" onClick={() => chooseOnly(vocabulary.id)}>
+              <button type="button" className="dropdown-item-main" onClick={() => chooseOnly(entry.id)}>
                 <span dir="auto" className="dropdown-item-title">
-                  {vocabulary.name}
+                  {entry.name}
                 </span>
                 <span className="muted small">
-                  {languageLabel(vocabulary.sourceLanguage)} · {t("wordCountLabel", { count: formatNumber(vocabulary.wordCount, language) })} ·{" "}
-                  {vocabulary.ownerId === currentUserId ? t("yours") : t("downloaded")}
+                  {languageLabel(entry.language)} · {t(labels.size, { count: formatNumber(entry.size, language) })} ·{" "}
+                  {entry.ownerId === currentUserId ? t("yours") : t("downloaded")}
                 </span>
               </button>
             </div>
           ))}
-          {filtered.length === 0 && <p className="dropdown-empty muted">{t("noVocabulariesMatch")}</p>}
+          {filtered.length === 0 && <p className="dropdown-empty muted">{t(labels.none)}</p>}
         </div>
       )}
     </div>

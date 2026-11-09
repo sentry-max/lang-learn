@@ -2,6 +2,12 @@ import { ReviewEvent, WordProgress } from "@domain/entities/Learning";
 import { Vocabulary, VocabularyInput, VocabularyStatus } from "@domain/entities/Vocabulary";
 import { Word } from "@domain/entities/Word";
 import { LearningRepository, QuizSessionRecord } from "@domain/repositories/LearningRepository";
+import { SentenceExercise } from "@domain/entities/SentenceExercise";
+import { SentenceAttempt } from "@domain/entities/SentencePractice";
+import { SentenceExerciseRepository } from "@domain/repositories/SentenceExerciseRepository";
+import { SentenceCollection, SentenceCollectionInput, SentenceCollectionStatus } from "@domain/entities/SentenceCollection";
+import { SentenceCollectionRepository } from "@domain/repositories/SentenceCollectionRepository";
+import { makeCollection } from "./fixtures";
 import { FeedQuery, Page, VocabularyRepository } from "@domain/repositories/VocabularyRepository";
 import { WordRepository } from "@domain/repositories/WordRepository";
 
@@ -114,6 +120,7 @@ export class InMemoryLearningRepository implements LearningRepository {
   readonly events: ReviewEvent[] = [];
   readonly sessions: QuizSessionRecord[] = [];
   readonly roundStartByCollection = new Map<string, string>();
+  readonly sentenceAttempts: SentenceAttempt[] = [];
 
   constructor(progress: WordProgress[] = []) {
     for (const currentProgress of progress) this.progress.set(currentProgress.wordId, currentProgress);
@@ -158,4 +165,72 @@ export class InMemoryLearningRepository implements LearningRepository {
   }
 
   async completeSession(): Promise<void> {}
+
+  async recordSentenceAttempt(_userId: string, attempt: SentenceAttempt): Promise<void> {
+    if (!this.sentenceAttempts.some((stored) => stored.id === attempt.id)) this.sentenceAttempts.push(attempt);
+  }
+
+  async getSentenceAttempts(): Promise<SentenceAttempt[]> {
+    return [...this.sentenceAttempts];
+  }
+}
+
+export class InMemorySentenceExerciseRepository implements SentenceExerciseRepository {
+  readonly exercises = new Map<string, SentenceExercise>();
+
+  constructor(exercises: SentenceExercise[] = []) {
+    for (const exercise of exercises) this.exercises.set(exercise.id, exercise);
+  }
+
+  async listByCollections(ids: string[]): Promise<SentenceExercise[]> {
+    return Array.from(this.exercises.values()).filter((exercise) => ids.includes(exercise.collectionId));
+  }
+
+  async saveMany(exercises: SentenceExercise[]): Promise<void> {
+    for (const exercise of exercises) this.exercises.set(exercise.id, exercise);
+  }
+}
+
+export class InMemorySentenceCollectionRepository implements SentenceCollectionRepository {
+  readonly collections = new Map<string, SentenceCollection>();
+  readonly downloadedIds = new Set<string>();
+
+  constructor(collections: SentenceCollection[] = []) {
+    for (const collection of collections) this.collections.set(collection.id, collection);
+  }
+
+  async listOwned(userId: string) {
+    return Array.from(this.collections.values()).filter((collection) => collection.ownerId === userId);
+  }
+  async listDownloaded() {
+    return Array.from(this.collections.values()).filter((collection) => this.downloadedIds.has(collection.id) && collection.status === "published");
+  }
+  async listPublished(userId: string) {
+    return Array.from(this.collections.values()).filter((collection) => collection.status === "published" && collection.ownerId !== userId);
+  }
+  async create(ownerId: string, id: string, input: SentenceCollectionInput) {
+    const collection = makeCollection(id, { ownerId, ...input });
+    this.collections.set(id, collection);
+    return collection;
+  }
+  async update(id: string, input: SentenceCollectionInput) {
+    return this.save(id, input);
+  }
+  async setStatus(id: string, status: SentenceCollectionStatus) {
+    return this.save(id, { status });
+  }
+  async softDelete(id: string) {
+    this.collections.delete(id);
+  }
+  async download(_userId: string, collectionId: string) {
+    this.downloadedIds.add(collectionId);
+  }
+  async removeDownload(_userId: string, collectionId: string) {
+    this.downloadedIds.delete(collectionId);
+  }
+  private save(id: string, change: Partial<SentenceCollection>) {
+    const updated = { ...this.collections.get(id)!, ...change };
+    this.collections.set(id, updated);
+    return updated;
+  }
 }

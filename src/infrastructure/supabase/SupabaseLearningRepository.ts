@@ -7,6 +7,9 @@ import {
   isQuestionMode,
 } from "@domain/entities/Learning";
 import { LearningRepository, QuizSessionRecord } from "@domain/repositories/LearningRepository";
+import { TIMER_MODES, TimerMode } from "@domain/entities/QuizSettings";
+import { isSentenceExerciseKind } from "@domain/entities/SentenceExercise";
+import { SentenceAttempt, normalizeSentenceAnswer } from "@domain/entities/SentencePractice";
 import { guard, throwIfSupabaseError } from "@infrastructure/supabase/supabaseErrors";
 import { ID_CHUNK_SIZE, chunk, fetchAllPages, nowIso, unique } from "@infrastructure/supabase/queryHelpers";
 
@@ -94,6 +97,42 @@ function rowToEvent(row: EventRow): ReviewEvent | null {
     answeredAt: row.answered_at,
     responseMs: row.response_ms,
     collectionKey: row.collection_key,
+  };
+}
+
+const ATTEMPT_COLUMNS =
+  "id, exercise_id, session_id, kind, timer_mode, error_count, max_errors, timed_out, answer, shown_at, answered_at, response_ms";
+
+interface AttemptRow {
+  id: string;
+  exercise_id: string;
+  session_id: string;
+  kind: string;
+  timer_mode: string;
+  error_count: number;
+  max_errors: number;
+  timed_out: boolean;
+  answer: unknown;
+  shown_at: string;
+  answered_at: string;
+  response_ms: number | null;
+}
+
+function rowToAttempt(row: AttemptRow): SentenceAttempt | null {
+  if (!isSentenceExerciseKind(row.kind)) return null;
+  return {
+    id: row.id,
+    exerciseId: row.exercise_id,
+    sessionId: row.session_id,
+    kind: row.kind,
+    timerMode: TIMER_MODES.includes(row.timer_mode as TimerMode) ? (row.timer_mode as TimerMode) : "none",
+    errorCount: row.error_count,
+    maxErrors: row.max_errors,
+    timedOut: row.timed_out,
+    answer: normalizeSentenceAnswer(row.answer, row.kind),
+    shownAt: row.shown_at,
+    answeredAt: row.answered_at,
+    responseMs: row.response_ms,
   };
 }
 
@@ -248,6 +287,51 @@ export class SupabaseLearningRepository implements LearningRepository {
         { onConflict: "id", ignoreDuplicates: true }
       );
       throwIfSupabaseError(error, "Failed to start the quiz.");
+    });
+  }
+
+  recordSentenceAttempt(userId: string, attempt: SentenceAttempt): Promise<void> {
+    return guard("Failed to save your answer.", async () => {
+      // Upsert-ignore: an attempt queued while offline may be sent twice.
+      const { error } = await this.client.from("sentence_attempts").upsert(
+        {
+          id: attempt.id,
+          user_id: userId,
+          exercise_id: attempt.exerciseId,
+          session_id: attempt.sessionId,
+          kind: attempt.kind,
+          timer_mode: attempt.timerMode,
+          error_count: attempt.errorCount,
+          max_errors: attempt.maxErrors,
+          timed_out: attempt.timedOut,
+          answer: attempt.answer,
+          shown_at: attempt.shownAt,
+          answered_at: attempt.answeredAt,
+          response_ms: attempt.responseMs,
+        },
+        { onConflict: "id", ignoreDuplicates: true }
+      );
+      throwIfSupabaseError(error, "Failed to save your answer.");
+    });
+  }
+
+  getSentenceAttempts(userId: string): Promise<SentenceAttempt[]> {
+    return guard("Failed to load your sentence history.", async () => {
+      // shortcut: reads every attempt the user ever made; upgrade to a per-exercise summary table past ~50k attempts.
+      const rows = await fetchAllPages<AttemptRow>(
+        (from, to) =>
+          this.client
+            .from("sentence_attempts")
+            .select(ATTEMPT_COLUMNS)
+            .eq("user_id", userId)
+            .is("deleted_at", null)
+            .order("answered_at")
+            .order("id")
+            .range(from, to)
+            .returns<AttemptRow[]>(),
+        "Failed to load your sentence history."
+      );
+      return rows.flatMap((row) => rowToAttempt(row) ?? []);
     });
   }
 

@@ -10,7 +10,7 @@ import { PrepareOfflineUseCase } from "@application/usecases/PrepareOfflineUseCa
 import { ManualConnectivity } from "@infrastructure/offline/Connectivity";
 import { Outbox } from "@infrastructure/offline/Outbox";
 import { OfflineLearningRepository } from "@infrastructure/offline/OfflineLearningRepository";
-import { OfflineReadCache } from "@infrastructure/offline/OfflineReadCache";
+import { QueryCache } from "@infrastructure/cache/QueryCache";
 import { OfflineSyncManager } from "@infrastructure/offline/OfflineSyncManager";
 import { OfflineVocabularyRepository } from "@infrastructure/offline/OfflineVocabularyRepository";
 import { CachingWordRepository } from "@infrastructure/cache/CachingWordRepository";
@@ -52,23 +52,69 @@ function setupLearning(online = true) {
   return { connectivity, storage, remote, learning };
 }
 
-describe("OfflineReadCache", () => {
-  it("returns fresh data online and the last result offline", async () => {
-    const connectivity = new ManualConnectivity(true);
-    const cache = new OfflineReadCache(connectivity);
-    expect(await cache.read("k", async () => 1)).toBe(1);
+describe("QueryCache", () => {
+  function setup(online = true) {
+    let now = 0;
+    const connectivity = new ManualConnectivity(online);
+    const storage = new MemoryStorage() as unknown as Storage;
+    const cache = new QueryCache(connectivity, { ttlMs: 1000, clock: () => now, storage, storageKey: "cache" });
+    return { connectivity, storage, cache, advance: (ms: number) => (now += ms) };
+  }
+
+  it("serves a fresh result without asking the server again", async () => {
+    const { cache } = setup();
+    const fetcher = vi.fn(async () => 1);
+    await cache.read("k", fetcher);
+    expect(await cache.read("k", fetcher)).toBe(1);
+    expect(fetcher).toHaveBeenCalledTimes(1);
+  });
+
+  it("shows a stale result at once, refreshes it in the background and reports only a real change", async () => {
+    const { cache, advance } = setup();
+    const changed = vi.fn();
+    cache.subscribe(changed);
+    await cache.read("k", async () => [1]);
+    advance(2000);
+    expect(await cache.read("k", async () => [1])).toEqual([1]);
+    await Promise.resolve();
+    expect(changed).not.toHaveBeenCalled();
+    advance(2000);
+    expect(await cache.read("k", async () => [2])).toEqual([1]);
+    await vi.waitFor(() => expect(changed).toHaveBeenCalledTimes(1));
+    expect(await cache.read("k", async () => [3])).toEqual([2]);
+  });
+
+  it("waits for the server after a write invalidated the key", async () => {
+    const { cache } = setup();
+    await cache.read("lists:own", async () => "before");
+    cache.invalidate("lists:");
+    expect(await cache.read("lists:own", async () => "after")).toBe("after");
+  });
+
+  it("falls back to the last result offline or on a network failure, never on other errors", async () => {
+    const { cache, connectivity } = setup();
+    await cache.read("k", async () => "cached");
+    cache.invalidate("k");
+    expect(await cache.read("k", async () => Promise.reject(networkError()))).toBe("cached");
+    await expect(cache.read("k", async () => Promise.reject(new AppError("forbidden", "no")))).rejects.toMatchObject({ code: "forbidden" });
     connectivity.set(false);
-    expect(await cache.read("k", async () => 2)).toBe(1);
+    expect(await cache.read("k", async () => "ignored")).toBe("cached");
     await expect(cache.read("other", async () => 3)).rejects.toMatchObject({ reason: "offline" });
   });
 
-  it("falls back when the request fails for network reasons only", async () => {
-    const cache = new OfflineReadCache(new ManualConnectivity(true));
-    await cache.read("k", async () => "cached");
-    expect(await cache.read("k", async () => Promise.reject(networkError()))).toBe("cached");
-    await expect(cache.read("k", async () => Promise.reject(new AppError("forbidden", "no")))).rejects.toMatchObject({
-      code: "forbidden",
-    });
+  it("keeps results between visits and refreshes them on first use", async () => {
+    vi.useFakeTimers();
+    try {
+      const { cache, storage, connectivity } = setup();
+      await cache.read("k", async () => "yesterday");
+      vi.advanceTimersByTime(1000);
+      const nextVisit = new QueryCache(connectivity, { ttlMs: 1000, clock: () => 0, storage, storageKey: "cache" });
+      const fetcher = vi.fn(async () => "today");
+      expect(await nextVisit.read("k", fetcher)).toBe("yesterday");
+      expect(fetcher).toHaveBeenCalledTimes(1);
+    } finally {
+      vi.useRealTimers();
+    }
   });
 });
 
@@ -202,7 +248,7 @@ describe("OfflineLearningRepository", () => {
 describe("offline quiz, end to end", () => {
   it("keeps quizzing and learning offline, then syncs and refetches when back online", async () => {
     const connectivity = new ManualConnectivity(true);
-    const vocabularies = new OfflineVocabularyRepository(new InMemoryVocabularyRepository([makeVocabulary("v1")]), connectivity);
+    const vocabularies = new OfflineVocabularyRepository(new InMemoryVocabularyRepository([makeVocabulary("v1")]), connectivity, new QueryCache(connectivity));
     const remoteWords = new InMemoryWordRepository(alphabetWords(2));
     const words = new CachingWordRepository(remoteWords, 60_000, () => 0, connectivity);
     const remoteLearning = new InMemoryLearningRepository();
@@ -251,5 +297,23 @@ describe("offline quiz, end to end", () => {
     const progressAfter: WordProgress[] = await learning.getAllProgress(USER);
     expect(progressAfter.filter((progress) => progress.lastRating === "easy")).toHaveLength(5);
     stop();
+  });
+});
+
+describe("sentence attempts offline", () => {
+  it("queues an attempt made offline, includes it in reads and sends it once on reconnect", async () => {
+    const { connectivity, remote, learning } = setupLearning(false);
+    const attempt = {
+      id: "a1", exerciseId: "x1", sessionId: "s1", kind: "transform" as const, timerMode: "none" as const,
+      errorCount: 1, maxErrors: 4, timedOut: false, answer: { kind: "transform" as const, text: "Geht er" },
+      shownAt: NOW.toISOString(), answeredAt: NOW.toISOString(), responseMs: 3000,
+    };
+    await learning.recordSentenceAttempt(USER, attempt);
+    expect(await learning.getSentenceAttempts(USER)).toEqual([attempt]);
+    expect(remote.sentenceAttempts).toEqual([]);
+
+    connectivity.set(true);
+    expect(await learning.getSentenceAttempts(USER)).toEqual([attempt]);
+    expect(remote.sentenceAttempts).toEqual([attempt]);
   });
 });

@@ -13,9 +13,11 @@ import SignOutButton from "@presentation/components/SignOutButton";
 import Icon, { IconName } from "@presentation/components/ui/Icon";
 import MenuSelect from "@presentation/components/ui/MenuSelect";
 import AppLogo from "@presentation/components/ui/AppLogo";
+import LoadingIndicator from "@presentation/components/ui/LoadingIndicator";
 import QuizPage from "@presentation/pages/QuizPage";
 import { UiStringKey } from "@presentation/i18n/translations";
 import { PageLoader } from "@presentation/components/ui/Loader";
+import { SplashDone } from "@presentation/splash";
 
 // The quiz is the landing page; everything else is loaded on demand.
 const pageLoaders = {
@@ -26,6 +28,7 @@ const pageLoaders = {
   vocabularyEditor: () => import("@presentation/pages/VocabularyEditorPage"),
   feed: () => import("@presentation/pages/FeedPage"),
   settings: () => import("@presentation/pages/SettingsPage"),
+  sentences: () => import("@presentation/pages/SentencePracticePage"),
 };
 const HistoryPage = lazy(pageLoaders.history);
 const DashboardPage = lazy(pageLoaders.dashboard);
@@ -34,6 +37,7 @@ const VocabularyDetailPage = lazy(pageLoaders.vocabularyDetail);
 const VocabularyEditorPage = lazy(pageLoaders.vocabularyEditor);
 const FeedPage = lazy(pageLoaders.feed);
 const SettingsPage = lazy(pageLoaders.settings);
+const SentencePracticePage = lazy(pageLoaders.sentences);
 // Signed-in visits (the common case) never need the sign-in form.
 const LoginPage = lazy(() => import("@presentation/pages/LoginPage"));
 
@@ -58,6 +62,7 @@ function usePreloadPages() {
 
 const NAV_ITEMS: { to: string; key: UiStringKey; icon: IconName; mobile: boolean }[] = [
   { to: "/quiz", key: "navQuiz", icon: "quiz", mobile: true },
+  { to: "/sentences", key: "navSentences", icon: "sentence", mobile: true },
   { to: "/history", key: "navHistory", icon: "history", mobile: true },
   { to: "/vocabularies", key: "navVocabularies", icon: "book", mobile: true },
   { to: "/feed", key: "navFeed", icon: "compass", mobile: true },
@@ -86,6 +91,7 @@ function AnimatedRoutes() {
       <Suspense fallback={<PageLoader />}>
         <Routes location={location}>
           <Route path="/quiz" element={<QuizPage />} />
+          <Route path="/sentences" element={<SentencePracticePage />} />
           <Route path="/history" element={<HistoryPage />} />
           <Route path="/vocabularies" element={<VocabulariesPage />} />
           <Route path="/vocabularies/new" element={<VocabularyEditorPage />} />
@@ -110,6 +116,7 @@ function SignedInApp() {
     <ServicesProvider>
       <ProfileProvider>
         <div className="app-shell">
+          <SplashDone />
           <header className="topbar">
             <Link to="/quiz" className="brand">
               <AppLogo className="brand-mark" size={32} />
@@ -124,6 +131,7 @@ function SignedInApp() {
               ))}
             </nav>
             <span className="nav-spacer" />
+            <LoadingIndicator />
             <SyncIndicator />
             <NavLink
               to="/settings"
@@ -161,6 +169,7 @@ function Root() {
   if (!isSupabaseConfigured) {
     return (
       <div className="app-main">
+        <SplashDone />
         <div className="card">
           <h2 className="card-title">{t("setupRequiredTitle")}</h2>
           <p className="muted">{t("setupRequiredBody")}</p>
@@ -173,6 +182,7 @@ function Root() {
     return (
       <Suspense fallback={<PageLoader />}>
         <LoginPage />
+        <SplashDone />
       </Suspense>
     );
   // Keyed by user so nothing from a previous account survives a sign-in switch.

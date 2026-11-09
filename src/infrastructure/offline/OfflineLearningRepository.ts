@@ -1,12 +1,15 @@
 import { ReviewEvent, WordProgress } from "@domain/entities/Learning";
 import { isNetworkError, offlineError, toAppError } from "@domain/errors/AppError";
 import { LearningRepository, QuizSessionRecord } from "@domain/repositories/LearningRepository";
+import { SentenceAttempt } from "@domain/entities/SentencePractice";
 import { Connectivity } from "@infrastructure/offline/Connectivity";
 import { Outbox, OutboxOperation } from "@infrastructure/offline/Outbox";
 
 /** Give up on a change the server keeps rejecting (not for connectivity reasons) after this many tries. */
 const MAX_REJECTED_ATTEMPTS = 5;
 const RETRY_DELAY_MS = 15_000;
+/** Data loaded this recently is served from memory; this tab's own changes are already in it. */
+const FRESH_FOR_MS = 90_000;
 
 export interface LearningSyncState {
   pending: number;
@@ -22,9 +25,8 @@ export interface LearningSyncState {
  *   quiz keeps working — and keeps learning — with no connection.
  * - The Outbox is sent in order whenever the connection allows, and
  *   retried automatically; every operation is idempotent server-side.
- * - Reads go to the server when online (after sending pending changes, with
- *   anything still pending laid on top), and fall back to the mirror
- *   otherwise.
+ * - Reads are served from the mirror while it is fresh (FRESH_FOR_MS); otherwise they go to the server when online
+ *   (after sending pending changes, with anything still pending laid on top), and fall back to the mirror.
  */
 export class OfflineLearningRepository implements LearningRepository {
   private progress: Map<string, WordProgress> | null = null;
@@ -32,6 +34,9 @@ export class OfflineLearningRepository implements LearningRepository {
   private madeDuringFetch: OutboxOperation[] | null = null;
   private readonly eventsByWord = new Map<string, ReviewEvent[]>();
   private readonly askedByCollection = new Map<string, Set<string>>();
+  private sentenceAttempts: SentenceAttempt[] | null = null;
+  private progressLoadedAt = Number.NEGATIVE_INFINITY;
+  private attemptsLoadedAt = Number.NEGATIVE_INFINITY;
   private readonly listeners = new Set<() => void>();
   private flushing: Promise<void> | null = null;
   private retryTimer: ReturnType<typeof setTimeout> | null = null;
@@ -41,12 +46,14 @@ export class OfflineLearningRepository implements LearningRepository {
   constructor(
     private readonly remote: LearningRepository,
     private readonly connectivity: Connectivity,
-    private readonly outbox: Outbox
+    private readonly outbox: Outbox,
+    private readonly clock: () => number = () => Date.now()
   ) {}
 
   // ---------------------------------------------------------------- reads
 
   async getAllProgress(userId: string): Promise<WordProgress[]> {
+    if (this.progress && this.isFresh(this.progressLoadedAt)) return Array.from(this.progress.values());
     if (this.connectivity.isOnline()) {
       await this.flush();
       const madeDuringFetch: OutboxOperation[] = [];
@@ -56,6 +63,7 @@ export class OfflineLearningRepository implements LearningRepository {
         const map = new Map(list.map((progress) => [progress.wordId, progress]));
         for (const operation of [...this.outbox.operations(), ...madeDuringFetch]) applyLocally(map, operation);
         this.progress = map;
+        this.progressLoadedAt = this.clock();
         return Array.from(map.values());
       } catch (error) {
         if (!isNetworkError(error)) throw error;
@@ -113,6 +121,23 @@ export class OfflineLearningRepository implements LearningRepository {
     return Array.from(current);
   }
 
+  async getSentenceAttempts(userId: string): Promise<SentenceAttempt[]> {
+    if (this.connectivity.isOnline() && !(this.sentenceAttempts && this.isFresh(this.attemptsLoadedAt))) {
+      await this.flush();
+      try {
+        this.sentenceAttempts = await this.remote.getSentenceAttempts(userId);
+        this.attemptsLoadedAt = this.clock();
+      } catch (error) {
+        if (!isNetworkError(error)) throw error;
+      }
+    }
+    const pending = this.outbox
+      .operations()
+      .flatMap((operation) => (operation.kind === "recordSentenceAttempt" ? [operation.attempt] : []));
+    const stored = (this.sentenceAttempts ?? []).filter((attempt) => !pending.some((queued) => queued.id === attempt.id));
+    return [...stored, ...pending];
+  }
+
   // --------------------------------------------------------------- writes
 
   async recordReview(userId: string, event: ReviewEvent, progress: WordProgress): Promise<void> {
@@ -129,6 +154,10 @@ export class OfflineLearningRepository implements LearningRepository {
 
   async completeSession(userId: string, sessionId: string): Promise<void> {
     this.enqueue({ kind: "completeSession", userId, sessionId });
+  }
+
+  async recordSentenceAttempt(userId: string, attempt: SentenceAttempt): Promise<void> {
+    this.enqueue({ kind: "recordSentenceAttempt", userId, attempt });
   }
 
   /** Resetting history is deliberate and destructive-looking, so it needs a live connection. */
@@ -153,6 +182,16 @@ export class OfflineLearningRepository implements LearningRepository {
   }
 
   // ----------------------------------------------------------------- sync
+
+  /** After a reconnect, data may have changed on another device: the next reads go to the server. */
+  markStale(): void {
+    this.progressLoadedAt = Number.NEGATIVE_INFINITY;
+    this.attemptsLoadedAt = Number.NEGATIVE_INFINITY;
+  }
+
+  private isFresh(loadedAt: number): boolean {
+    return this.clock() - loadedAt < FRESH_FOR_MS;
+  }
 
   getSyncState(): LearningSyncState {
     return { pending: this.outbox.size, syncing: this.syncing, lastSyncedAt: this.lastSyncedAt };
@@ -216,6 +255,8 @@ export class OfflineLearningRepository implements LearningRepository {
         return this.remote.startRound(operation.userId, operation.collectionKey, operation.startedAt);
       case "completeSession":
         return this.remote.completeSession(operation.userId, operation.sessionId);
+      case "recordSentenceAttempt":
+        return this.remote.recordSentenceAttempt(operation.userId, operation.attempt);
       default:
         // A change saved by an older app version that no longer exists (the global "restartCycle"): nothing to send.
         return Promise.resolve();
