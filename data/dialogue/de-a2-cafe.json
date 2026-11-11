@@ -1,0 +1,77 @@
+{
+  "$schema": "./dialogue.schema.json",
+  "id": "de-a2-cafe",
+  "version": 1,
+  "language": "de",
+  "level": "A2",
+  "title": "Im Café",
+  "description": "Lena und Jonas treffen sich im Café, eine Kellnerin bedient sie.",
+  "translations": {
+    "fa": { "title": "در کافه", "description": "لنا و یوناس در کافه همدیگر را می‌بینند و یک پیشخدمت از آن‌ها پذیرایی می‌کند." },
+    "en": { "title": "At the café", "description": "Lena and Jonas meet at a café, and a waitress serves them." }
+  },
+  "tags": ["Essen", "Freizeit"],
+  "roles": [
+    { "id": "lena", "name": "Lena", "gender": "female" },
+    { "id": "jonas", "name": "Jonas", "gender": "male" },
+    { "id": "waitress", "name": "Kellnerin", "gender": "female", "optional": true }
+  ],
+  "rounds": [
+    {
+      "priority": 0,
+      "lines": [
+        { "id": "r1-lena", "role": "lena", "text": "Hallo Jonas! Ist der Platz hier noch frei?", "translations": { "fa": "سلام یوناس! این جا هنوز خالی است؟", "en": "Hi Jonas! Is this seat still free?" } },
+        { "id": "r1-jonas", "role": "jonas", "text": "Hallo Lena, ja, natürlich. Wie geht es dir?", "translations": { "fa": "سلام لنا، بله، حتماً. حالت چطور است؟", "en": "Hi Lena, yes, of course. How are you?" } },
+        { "id": "r1-waitress", "role": "waitress", "text": "Guten Tag! Hier ist die Karte für Sie beide.", "translations": { "fa": "روز بخیر! این هم منو برای هر دوی شما.", "en": "Good afternoon! Here is the menu for you both." } }
+      ]
+    },
+    {
+      "priority": 1,
+      "lines": [
+        { "id": "r2-lena", "role": "lena", "text": "Ich möchte einen Kaffee mit Milch. Und du?", "translations": { "fa": "من یک قهوه با شیر می‌خواهم. تو چطور؟", "en": "I'd like a coffee with milk. And you?" } },
+        { "id": "r2-jonas", "role": "jonas", "text": "Ich nehme einen Tee, weil ich heute schon 3 Tassen Kaffee getrunken habe.", "translations": { "fa": "من چای می‌گیرم، چون امروز سه فنجان قهوه خورده‌ام.", "en": "I'll have a tea, because I've already had 3 cups of coffee today." } },
+        { "id": "r2-waitress", "role": "waitress", "text": "Gern, die Getränke kommen sofort.", "translations": { "fa": "با کمال میل، نوشیدنی‌ها الان می‌رسند.", "en": "Certainly, the drinks are coming right away." } }
+      ]
+    },
+    {
+      "priority": 3,
+      "lines": [
+        { "id": "r3-lena", "role": "lena", "text": "Ich war letzte Woche bei meiner Schwester in Wien.", "translations": { "fa": "هفتهٔ پیش پیش خواهرم در وین بودم.", "en": "Last week I was at my sister's in Vienna." } },
+        { "id": "r3-jonas", "role": "jonas", "text": "Wien finde ich sehr schön, ich war im Sommer auch dort.", "translations": { "fa": "به نظرم وین خیلی زیباست، من هم تابستان آن‌جا بودم.", "en": "I think Vienna is very beautiful, I was there in the summer too." } },
+        { "id": "r3-waitress", "role": "waitress", "text": "Möchten Sie auch etwas essen? Der Apfelkuchen ist heute frisch.", "translations": { "fa": "چیزی هم برای خوردن میل دارید؟ کیک سیب امروز تازه است.", "en": "Would you like something to eat as well? The apple cake is fresh today." } }
+      ]
+    },
+    {
+      "priority": 2,
+      "lines": [
+        { "id": "r4-lena", "role": "lena", "text": "Wie läuft es eigentlich bei deiner neuen Arbeit?", "translations": { "fa": "راستی کار جدیدت چطور پیش می‌رود؟", "en": "So how is your new job going?" } },
+        { "id": "r4-jonas", "role": "jonas", "text": "Gut, aber ich muss jeden Tag um 6 Uhr aufstehen.", "translations": { "fa": "خوب است، ولی باید هر روز ساعت شش بیدار شوم.", "en": "Good, but I have to get up at 6 o'clock every day." } },
+        { "id": "r4-waitress", "role": "waitress", "text": "So, einmal Kaffee mit Milch und einmal Tee, bitte schön.", "translations": { "fa": "بفرمایید، یک قهوه با شیر و یک چای.", "en": "Here you are, one coffee with milk and one tea." } }
+      ]
+    },
+    {
+      "priority": 4,
+      "lines": [
+        { "id": "r5-lena", "role": "lena", "text": "Hast du am Samstag Zeit? Wir könnten ins Kino gehen.", "translations": { "fa": "شنبه وقت داری؟ می‌توانیم به سینما برویم.", "en": "Are you free on Saturday? We could go to the cinema." } },
+        { "id": "r5-jonas", "role": "jonas", "text": "Am Samstag kann ich leider nicht, aber am Sonntag passt es mir.", "translations": { "fa": "شنبه متأسفانه نمی‌توانم، ولی یکشنبه برایم مناسب است.", "en": "Unfortunately I can't on Saturday, but Sunday works for me." } },
+        { "id": "r5-waitress", "role": "waitress", "text": "Entschuldigung, darf ich kurz den Tisch abwischen?", "translations": { "fa": "ببخشید، اجازه هست میز را یک لحظه تمیز کنم؟", "en": "Excuse me, may I quickly wipe the table?" } }
+      ]
+    },
+    {
+      "priority": 5,
+      "lines": [
+        { "id": "r6-lena", "role": "lena", "text": "Dieses Café ist viel gemütlicher als das Café am Bahnhof.", "translations": { "fa": "این کافه خیلی دنج‌تر از کافهٔ کنار ایستگاه است.", "en": "This café is much cosier than the café at the station." } },
+        { "id": "r6-jonas", "role": "jonas", "text": "Stimmt, und der Kuchen hier schmeckt auch besser.", "translations": { "fa": "درست است، کیک این‌جا هم خوشمزه‌تر است.", "en": "True, and the cake here tastes better too." } },
+        { "id": "r6-waitress", "role": "waitress", "text": "Vielen Dank, das freut mich sehr.", "translations": { "fa": "خیلی ممنون، خیلی خوشحالم کردید.", "en": "Thank you very much, I'm very glad to hear that." } }
+      ]
+    },
+    {
+      "priority": 0,
+      "lines": [
+        { "id": "r7-lena", "role": "lena", "text": "Oh, es ist schon spät. Ich muss jetzt leider gehen.", "translations": { "fa": "اوه، دیر شده. متأسفانه باید الان بروم.", "en": "Oh, it's already late. I'm afraid I have to go now." } },
+        { "id": "r7-jonas", "role": "jonas", "text": "Ich auch. Wir zahlen zusammen, oder?", "translations": { "fa": "من هم. با هم حساب می‌کنیم، نه؟", "en": "Me too. We'll pay together, right?" } },
+        { "id": "r7-waitress", "role": "waitress", "text": "Das macht zusammen 9 Euro, bitte.", "translations": { "fa": "روی هم می‌شود نُه یورو، لطفاً.", "en": "That comes to 9 euros altogether, please." } }
+      ]
+    }
+  ]
+}

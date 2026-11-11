@@ -4,6 +4,7 @@ import { Word } from "@domain/entities/Word";
 import { LearningRepository, QuizSessionRecord } from "@domain/repositories/LearningRepository";
 import { SentenceExercise } from "@domain/entities/SentenceExercise";
 import { SentenceAttempt } from "@domain/entities/SentencePractice";
+import { ConversationAttempt, ConversationLineResult } from "@domain/entities/Conversation";
 import { SentenceExerciseRepository } from "@domain/repositories/SentenceExerciseRepository";
 import { SentenceCollection, SentenceCollectionInput, SentenceCollectionStatus } from "@domain/entities/SentenceCollection";
 import { SentenceCollectionRepository } from "@domain/repositories/SentenceCollectionRepository";
@@ -121,6 +122,8 @@ export class InMemoryLearningRepository implements LearningRepository {
   readonly sessions: QuizSessionRecord[] = [];
   readonly roundStartByCollection = new Map<string, string>();
   readonly sentenceAttempts: SentenceAttempt[] = [];
+  readonly conversationAttempts: ConversationAttempt[] = [];
+  readonly conversationLines: ConversationLineResult[] = [];
 
   constructor(progress: WordProgress[] = []) {
     for (const currentProgress of progress) this.progress.set(currentProgress.wordId, currentProgress);
@@ -172,6 +175,18 @@ export class InMemoryLearningRepository implements LearningRepository {
 
   async getSentenceAttempts(): Promise<SentenceAttempt[]> {
     return [...this.sentenceAttempts];
+  }
+
+  async recordConversationAttempt(_userId: string, attempt: ConversationAttempt): Promise<void> {
+    if (!this.conversationAttempts.some((stored) => stored.id === attempt.id)) this.conversationAttempts.push(attempt);
+  }
+
+  async recordConversationLine(_userId: string, result: ConversationLineResult): Promise<void> {
+    if (!this.conversationLines.some((stored) => stored.id === result.id)) this.conversationLines.push(result);
+  }
+
+  async getConversationLines(): Promise<ConversationLineResult[]> {
+    return [...this.conversationLines];
   }
 }
 

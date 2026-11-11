@@ -213,6 +213,65 @@ must never crash and never show an empty label, row, table or section.
 - Tables must fit at 320px: rows stack or wrap and never scroll sideways. Long tense lists go in collapsible
   `<details>` sections, with only the first one open.
 
+## Conversations
+
+Learners pick a ready-made dialogue, choose who reads which role, and read their lines aloud. The app hears each
+line, marks wrong, missing and extra words, and scores every role on its own. A demo plays the whole dialogue with a
+female and a male voice. Every line read aloud is recorded and can be played back.
+
+### Where it lives
+
+| File | Job |
+|---|---|
+| `data/dialogue/*.json` | The shipped dialogues. `dialogue.schema.json` holds the format and the CEFR level guide |
+| `domain/entities/Conversation.ts` | Dialogue, setup, attempt and line result types, and the limits |
+| `domain/services/ConversationParser.ts` | `parseConversation`: checks a dialogue file and returns problem codes |
+| `domain/services/ConversationPlanner.ts` | Setup rules (`speakerRange`, `defaultSetup`, `assignRole`, `validateSetup`) and `planConversation` |
+| `domain/services/SpeechGrading.ts` | `gradeSpokenLine` and the per-role history (`roleScores`, `latestRecordings`) |
+| `application/services/ConversationService.ts` | Lists dialogues, starts a run, saves lines, uploads and plays recordings |
+| `infrastructure/content/BundledConversationRepository.ts` | Loads the dialogue files with `import.meta.glob`, one chunk each |
+| `infrastructure/supabase/SupabaseRecordingGateway.ts`, `infrastructure/offline/OfflineRecordingGateway.ts` | Storage bucket, in-memory playback and upload retries |
+| `presentation/hooks/useLineRecorder.ts`, `presentation/speech.ts` | Browser speech recognition, recording and the role voices |
+| `presentation/pages/ConversationPage.tsx`, `presentation/components/conversation/` | The screens |
+
+### Content rules
+
+- A dialogue has 2–6 roles (at least 2 required) and exactly 7 rounds. **Every round has exactly one line per role.**
+- Round 1 opens and round 7 closes (priority 0). The middle rounds use priorities 1–5 once each, and each must make
+  sense on its own, because only the most important ones are kept.
+- Lines of an optional role must be removable: nobody answers or names them.
+- Numbers are written as digits. Raise `version` whenever a line's text changes. Never change an `id`.
+- A new dialogue is a new file in `data/dialogue/`. The test in `ConversationPlanner.test.ts` plans every file in every
+  valid setup and fails on any problem.
+
+### Participant rules
+
+- 1–5 people and at most 1 bot. People plus bot must lie in the dialogue's `speakerRange`: all required roles, up to
+  every role. Every person reads 3–7 turns, one setting for everyone.
+- **Only `planConversation` decides which lines are read**: the cast's lines from round 1, round 7 and the
+  `turnsPerSpeaker − 2` middle rounds with the lowest priority, in order. The UI never filters or reorders lines.
+
+### Grading rules
+
+- Only `SpeechGrading` grades speech. It reuses the token alignment of `SentenceGrading` and adds: case and
+  punctuation ignored, `ß` = `ss`, Persian letter, digit, diacritic and ZWNJ variants unified, number words up to 100
+  equal to digits, fillers dropped, split or joined compounds accepted.
+- The recogniser returns up to 5 alternatives and the one with the fewest errors counts.
+- A near miss counts half an error. The score is `scoreOf(errorCount / maxErrors)`.
+- **Scores and history are per role.** A run's attempt row stores the setup; line rows store the expected text, the
+  transcript and the errors. Scores are derived, never stored.
+
+### Audio and offline rules
+
+- Browser APIs only: `speechSynthesis` for voices, `SpeechRecognition` and `MediaRecorder` on one microphone stream.
+  No paid service, key or dependency. Recognition needs a connection; without it the reader sees `offline`, while the
+  demo keeps working with local voices.
+- Attempt and line rows go through the outbox (the attempt first) and are idempotent by their client id.
+- One recording per line at `{userId}/{attemptId}/{lineId}.{webm|m4a|ogg}` in the private `conversation-recordings`
+  bucket. Recordings are never replaced or deleted. Uploads that fail for lack of a connection are retried while the
+  tab is open, and the tab plays its own recordings from memory. Others play through short-lived signed URLs.
+- Recognisers, recorders, voices and audio players stop in effect cleanup.
+
 ## Localization
 
 Interface languages: English (the reference, its keys define `UiStringKey`) and Persian (the default, RTL).

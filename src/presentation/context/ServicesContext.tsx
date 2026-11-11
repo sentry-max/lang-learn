@@ -7,6 +7,8 @@ import { SupabaseVocabularyReviewRepository } from "@infrastructure/supabase/Sup
 import { SupabaseProfileRepository } from "@infrastructure/supabase/SupabaseProfileRepository";
 import { SupabaseSentenceExerciseRepository } from "@infrastructure/supabase/SupabaseSentenceExerciseRepository";
 import { SupabaseSentenceCollectionRepository } from "@infrastructure/supabase/SupabaseSentenceCollectionRepository";
+import { SupabaseRecordingGateway } from "@infrastructure/supabase/SupabaseRecordingGateway";
+import { BundledConversationRepository } from "@infrastructure/content/BundledConversationRepository";
 import { CachingWordRepository } from "@infrastructure/cache/CachingWordRepository";
 import { QueryCache } from "@infrastructure/cache/QueryCache";
 import { BrowserConnectivity } from "@infrastructure/offline/Connectivity";
@@ -18,6 +20,7 @@ import { OfflineSyncManager } from "@infrastructure/offline/OfflineSyncManager";
 import { OfflineSentenceExerciseRepository } from "@infrastructure/offline/OfflineSentenceExerciseRepository";
 import { OfflineSentenceCollectionRepository } from "@infrastructure/offline/OfflineSentenceCollectionRepository";
 import { OfflineProfileRepository } from "@infrastructure/offline/OfflineProfileRepository";
+import { OfflineRecordingGateway } from "@infrastructure/offline/OfflineRecordingGateway";
 import { SyncGateway, SyncStatus } from "@application/ports/SyncGateway";
 import { VocabularyService } from "@application/services/VocabularyService";
 import { WordService } from "@application/services/WordService";
@@ -26,6 +29,7 @@ import { VocabularyReviewService } from "@application/services/VocabularyReviewS
 import { ProfileService } from "@application/services/ProfileService";
 import { SentencePracticeService } from "@application/services/SentencePracticeService";
 import { SentenceCollectionService } from "@application/services/SentenceCollectionService";
+import { ConversationService } from "@application/services/ConversationService";
 import { GenerateQuizUseCase } from "@application/usecases/GenerateQuizUseCase";
 import { SubmitAnswerUseCase } from "@application/usecases/SubmitAnswerUseCase";
 import { CompleteQuizSessionUseCase } from "@application/usecases/CompleteQuizSessionUseCase";
@@ -41,6 +45,7 @@ export interface Services {
   profiles: ProfileService;
   sentences: SentencePracticeService;
   sentenceCollections: SentenceCollectionService;
+  conversations: ConversationService;
   generateQuiz: GenerateQuizUseCase;
   submitAnswer: SubmitAnswerUseCase;
   completeQuizSession: CompleteQuizSessionUseCase;
@@ -101,6 +106,11 @@ export function createServices(userId: string): Services {
       sentenceCollections
     ),
     sentenceCollections,
+    conversations: new ConversationService(
+      new BundledConversationRepository(),
+      learningRepository,
+      new OfflineRecordingGateway(new SupabaseRecordingGateway(supabase), connectivity)
+    ),
     generateQuiz: new GenerateQuizUseCase(vocabularies, wordRepository, learningRepository),
     submitAnswer: new SubmitAnswerUseCase(learningRepository),
     completeQuizSession: new CompleteQuizSessionUseCase(learningRepository),

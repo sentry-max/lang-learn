@@ -361,6 +361,53 @@ create index if not exists sentence_attempts_user_idx
   on public.sentence_attempts (user_id, answered_at) where deleted_at is null;
 create index if not exists sentence_attempts_exercise_idx on public.sentence_attempts (exercise_id);
 
+-- -----------------------------------------------------------------------------
+-- Conversation reading: one attempt per run, one row per line a person read
+-- aloud (append-only). Dialogues ship with the app (data/dialogue/*.json), so
+-- they are referenced by their text id. Scores are derived, not stored.
+-- -----------------------------------------------------------------------------
+create table if not exists public.conversation_attempts (
+  id                   uuid primary key,
+  user_id              uuid not null default auth.uid() references public.profiles (id) on delete restrict,
+  conversation_id      text not null check (char_length(conversation_id) between 1 and 200),
+  conversation_version integer not null check (conversation_version >= 1),
+  human_role_ids       text[] not null check (cardinality(human_role_ids) between 1 and 5),
+  bot_role_id          text check (char_length(bot_role_id) between 1 and 100),
+  turns_per_speaker    integer not null check (turns_per_speaker between 3 and 7),
+  started_at           timestamptz not null,
+  created_at           timestamptz not null default now(),
+  deleted_at           timestamptz,
+  check (cardinality(human_role_ids) + (bot_role_id is not null)::int between 2 and 6),
+  check (bot_role_id is null or not (bot_role_id = any (human_role_ids)))
+);
+
+create index if not exists conversation_attempts_user_idx
+  on public.conversation_attempts (user_id, conversation_id, started_at) where deleted_at is null;
+
+create table if not exists public.conversation_line_results (
+  id              uuid primary key,
+  user_id         uuid not null default auth.uid() references public.profiles (id) on delete restrict,
+  attempt_id      uuid not null references public.conversation_attempts (id) on delete restrict,
+  conversation_id text not null check (char_length(conversation_id) between 1 and 200),
+  role_id         text not null check (char_length(role_id) between 1 and 100),
+  line_id         text not null check (char_length(line_id) between 1 and 100),
+  -- Kept because the shipped dialogue text may change in a later version.
+  expected_text   text not null check (char_length(expected_text) between 1 and 300),
+  transcript      text not null default '' check (char_length(transcript) <= 1000),
+  error_count     numeric(6, 1) not null check (error_count between 0 and 1000),
+  max_errors      integer not null check (max_errors between 1 and 1000),
+  confidence      real check (confidence between 0 and 1),
+  audio_path      text check (audio_path is null or audio_path like (user_id::text || '/%')),
+  duration_ms     integer check (duration_ms between 0 and 600000),
+  read_at         timestamptz not null,
+  created_at      timestamptz not null default now(),
+  deleted_at      timestamptz
+);
+
+create index if not exists conversation_line_results_user_idx
+  on public.conversation_line_results (user_id, read_at) where deleted_at is null;
+create index if not exists conversation_line_results_attempt_idx on public.conversation_line_results (attempt_id);
+
 -- =============================================================================
 -- Trigger functions
 -- =============================================================================
@@ -650,6 +697,25 @@ begin
 end;
 $$;
 
+-- A line result belongs to one of the caller's own attempts at the same dialogue.
+create or replace function private.conversation_line_results_guard()
+returns trigger language plpgsql set search_path = '' as $$
+begin
+  if tg_op = 'UPDATE' then
+    new.user_id := old.user_id;
+    new.attempt_id := old.attempt_id;
+    new.created_at := old.created_at;
+  end if;
+  if not exists (
+    select 1 from public.conversation_attempts a
+     where a.id = new.attempt_id and a.user_id = new.user_id and a.conversation_id = new.conversation_id
+  ) then
+    raise exception 'CONVERSATION_ATTEMPT_MISMATCH' using errcode = '23514';
+  end if;
+  return new;
+end;
+$$;
+
 -- Keeps owner/user columns and creation timestamps immutable.
 create or replace function private.user_rows_guard()
 returns trigger language plpgsql set search_path = '' as $$
@@ -805,6 +871,16 @@ drop trigger if exists sentence_attempts_guard on public.sentence_attempts;
 create trigger sentence_attempts_guard
   before update on public.sentence_attempts
   for each row execute function private.user_rows_guard();
+
+drop trigger if exists conversation_attempts_guard on public.conversation_attempts;
+create trigger conversation_attempts_guard
+  before update on public.conversation_attempts
+  for each row execute function private.user_rows_guard();
+
+drop trigger if exists conversation_line_results_guard on public.conversation_line_results;
+create trigger conversation_line_results_guard
+  before insert or update on public.conversation_line_results
+  for each row execute function private.conversation_line_results_guard();
 
 -- =============================================================================
 -- RPC functions (SECURITY INVOKER: RLS still applies)
@@ -966,6 +1042,8 @@ alter table public.sentence_collections     enable row level security;
 alter table public.sentence_collection_subscriptions enable row level security;
 alter table public.sentence_exercises       enable row level security;
 alter table public.sentence_attempts        enable row level security;
+alter table public.conversation_attempts    enable row level security;
+alter table public.conversation_line_results enable row level security;
 
 -- languages -------------------------------------------------------------------
 drop policy if exists "languages: read" on public.languages;
@@ -1255,6 +1333,30 @@ create policy "sentence_attempts: update own" on public.sentence_attempts
   for update to authenticated
   using (user_id = (select auth.uid())) with check (user_id = (select auth.uid()));
 
+-- conversation attempts and lines: strictly private ------------------------------
+
+drop policy if exists "conversation_attempts: own" on public.conversation_attempts;
+create policy "conversation_attempts: own" on public.conversation_attempts
+  for select to authenticated using (user_id = (select auth.uid()));
+drop policy if exists "conversation_attempts: insert own" on public.conversation_attempts;
+create policy "conversation_attempts: insert own" on public.conversation_attempts
+  for insert to authenticated with check (user_id = (select auth.uid()));
+drop policy if exists "conversation_attempts: update own" on public.conversation_attempts;
+create policy "conversation_attempts: update own" on public.conversation_attempts
+  for update to authenticated
+  using (user_id = (select auth.uid())) with check (user_id = (select auth.uid()));
+
+drop policy if exists "conversation_line_results: own" on public.conversation_line_results;
+create policy "conversation_line_results: own" on public.conversation_line_results
+  for select to authenticated using (user_id = (select auth.uid()));
+drop policy if exists "conversation_line_results: insert own" on public.conversation_line_results;
+create policy "conversation_line_results: insert own" on public.conversation_line_results
+  for insert to authenticated with check (user_id = (select auth.uid()));
+drop policy if exists "conversation_line_results: update own" on public.conversation_line_results;
+create policy "conversation_line_results: update own" on public.conversation_line_results
+  for update to authenticated
+  using (user_id = (select auth.uid())) with check (user_id = (select auth.uid()));
+
 -- =============================================================================
 -- Privileges: no anonymous access, and no hard deletes for anyone via the API
 -- =============================================================================
@@ -1264,7 +1366,8 @@ revoke all on
   public.vocabulary_subscriptions, public.vocabulary_reviews,
   public.quiz_sessions, public.word_progress, public.review_events, public.quiz_collection_rounds,
   public.sentence_collections, public.sentence_collection_subscriptions,
-  public.sentence_exercises, public.sentence_attempts
+  public.sentence_exercises, public.sentence_attempts,
+  public.conversation_attempts, public.conversation_line_results
 from anon, authenticated;
 
 grant select on public.languages to authenticated;
@@ -1273,7 +1376,8 @@ grant select, insert, update on
   public.vocabulary_subscriptions, public.vocabulary_reviews,
   public.quiz_sessions, public.word_progress, public.review_events, public.quiz_collection_rounds,
   public.sentence_collections, public.sentence_collection_subscriptions,
-  public.sentence_exercises, public.sentence_attempts
+  public.sentence_exercises, public.sentence_attempts,
+  public.conversation_attempts, public.conversation_line_results
 to authenticated;
 
 revoke all on function public.record_review(uuid, uuid, uuid, text, text, timestamptz, timestamptz, integer, jsonb, text) from public, anon;
@@ -1282,6 +1386,29 @@ revoke all on function public.restart_quiz_cycle(uuid[]) from public, anon;
 grant execute on function public.record_review(uuid, uuid, uuid, text, text, timestamptz, timestamptz, integer, jsonb, text) to authenticated;
 grant execute on function public.reset_learning_progress(uuid[]) to authenticated;
 grant execute on function public.restart_quiz_cycle(uuid[]) to authenticated;
+
+-- =============================================================================
+-- Storage: recordings of conversation lines. A private bucket with one folder
+-- per user; only the owner reads or adds files, and nobody replaces or deletes
+-- them through the API (no update or delete policy).
+-- =============================================================================
+insert into storage.buckets (id, name, public, file_size_limit, allowed_mime_types)
+values ('conversation-recordings', 'conversation-recordings', false, 2097152,
+        array['audio/webm', 'audio/ogg', 'audio/mp4', 'audio/mpeg'])
+on conflict (id) do update
+  set public = excluded.public,
+      file_size_limit = excluded.file_size_limit,
+      allowed_mime_types = excluded.allowed_mime_types;
+
+drop policy if exists "conversation recordings: read own" on storage.objects;
+create policy "conversation recordings: read own" on storage.objects
+  for select to authenticated
+  using (bucket_id = 'conversation-recordings' and (storage.foldername(name))[1] = (select auth.uid())::text);
+
+drop policy if exists "conversation recordings: insert own" on storage.objects;
+create policy "conversation recordings: insert own" on storage.objects
+  for insert to authenticated
+  with check (bucket_id = 'conversation-recordings' and (storage.foldername(name))[1] = (select auth.uid())::text);
 
 -- =============================================================================
 -- Backfill profiles for users that signed up before this schema existed

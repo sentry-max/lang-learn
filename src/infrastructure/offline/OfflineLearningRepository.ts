@@ -2,6 +2,7 @@ import { ReviewEvent, WordProgress } from "@domain/entities/Learning";
 import { isNetworkError, offlineError, toAppError } from "@domain/errors/AppError";
 import { LearningRepository, QuizSessionRecord } from "@domain/repositories/LearningRepository";
 import { SentenceAttempt } from "@domain/entities/SentencePractice";
+import { ConversationAttempt, ConversationLineResult } from "@domain/entities/Conversation";
 import { Connectivity } from "@infrastructure/offline/Connectivity";
 import { Outbox, OutboxOperation } from "@infrastructure/offline/Outbox";
 
@@ -35,6 +36,8 @@ export class OfflineLearningRepository implements LearningRepository {
   private readonly eventsByWord = new Map<string, ReviewEvent[]>();
   private readonly askedByCollection = new Map<string, Set<string>>();
   private sentenceAttempts: SentenceAttempt[] | null = null;
+  private conversationLines: ConversationLineResult[] | null = null;
+  private conversationLinesLoadedAt = Number.NEGATIVE_INFINITY;
   private progressLoadedAt = Number.NEGATIVE_INFINITY;
   private attemptsLoadedAt = Number.NEGATIVE_INFINITY;
   private readonly listeners = new Set<() => void>();
@@ -138,6 +141,23 @@ export class OfflineLearningRepository implements LearningRepository {
     return [...stored, ...pending];
   }
 
+  async getConversationLines(userId: string): Promise<ConversationLineResult[]> {
+    if (this.connectivity.isOnline() && !(this.conversationLines && this.isFresh(this.conversationLinesLoadedAt))) {
+      await this.flush();
+      try {
+        this.conversationLines = await this.remote.getConversationLines(userId);
+        this.conversationLinesLoadedAt = this.clock();
+      } catch (error) {
+        if (!isNetworkError(error)) throw error;
+      }
+    }
+    const pending = this.outbox
+      .operations()
+      .flatMap((operation) => (operation.kind === "recordConversationLine" ? [operation.result] : []));
+    const stored = (this.conversationLines ?? []).filter((result) => !pending.some((queued) => queued.id === result.id));
+    return [...stored, ...pending];
+  }
+
   // --------------------------------------------------------------- writes
 
   async recordReview(userId: string, event: ReviewEvent, progress: WordProgress): Promise<void> {
@@ -158,6 +178,14 @@ export class OfflineLearningRepository implements LearningRepository {
 
   async recordSentenceAttempt(userId: string, attempt: SentenceAttempt): Promise<void> {
     this.enqueue({ kind: "recordSentenceAttempt", userId, attempt });
+  }
+
+  async recordConversationAttempt(userId: string, attempt: ConversationAttempt): Promise<void> {
+    this.enqueue({ kind: "recordConversationAttempt", userId, attempt });
+  }
+
+  async recordConversationLine(userId: string, result: ConversationLineResult): Promise<void> {
+    this.enqueue({ kind: "recordConversationLine", userId, result });
   }
 
   /** Resetting history is deliberate and destructive-looking, so it needs a live connection. */
@@ -187,6 +215,7 @@ export class OfflineLearningRepository implements LearningRepository {
   markStale(): void {
     this.progressLoadedAt = Number.NEGATIVE_INFINITY;
     this.attemptsLoadedAt = Number.NEGATIVE_INFINITY;
+    this.conversationLinesLoadedAt = Number.NEGATIVE_INFINITY;
   }
 
   private isFresh(loadedAt: number): boolean {
@@ -257,6 +286,10 @@ export class OfflineLearningRepository implements LearningRepository {
         return this.remote.completeSession(operation.userId, operation.sessionId);
       case "recordSentenceAttempt":
         return this.remote.recordSentenceAttempt(operation.userId, operation.attempt);
+      case "recordConversationAttempt":
+        return this.remote.recordConversationAttempt(operation.userId, operation.attempt);
+      case "recordConversationLine":
+        return this.remote.recordConversationLine(operation.userId, operation.result);
       default:
         // A change saved by an older app version that no longer exists (the global "restartCycle"): nothing to send.
         return Promise.resolve();

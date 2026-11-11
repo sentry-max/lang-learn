@@ -1,6 +1,7 @@
 import { ReviewEvent, WordProgress } from "@domain/entities/Learning";
 import { QuizSessionRecord } from "@domain/repositories/LearningRepository";
 import { SentenceAttempt } from "@domain/entities/SentencePractice";
+import { ConversationAttempt, ConversationLineResult } from "@domain/entities/Conversation";
 
 /** A learning write waiting to be sent to the server. Every kind is safe to send twice. */
 export type OutboxOperation =
@@ -8,7 +9,9 @@ export type OutboxOperation =
   | { kind: "recordReview"; userId: string; event: ReviewEvent; progress: WordProgress }
   | { kind: "startRound"; userId: string; collectionKey: string; startedAt: string }
   | { kind: "completeSession"; userId: string; sessionId: string }
-  | { kind: "recordSentenceAttempt"; userId: string; attempt: SentenceAttempt };
+  | { kind: "recordSentenceAttempt"; userId: string; attempt: SentenceAttempt }
+  | { kind: "recordConversationAttempt"; userId: string; attempt: ConversationAttempt }
+  | { kind: "recordConversationLine"; userId: string; result: ConversationLineResult };
 
 interface Entry {
   operation: OutboxOperation;

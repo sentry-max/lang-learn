@@ -51,6 +51,9 @@ quiz algorithm and all business rules are unit-tested in isolation
 | `sentence_collection_subscriptions` | Downloads of published sentence collections |
 | `sentence_exercises` | Sentence exercises; each belongs to one collection (`kind` plus its fields in `content`) |
 | `sentence_attempts` | Every answered sentence: errors, allowed errors, timer mode, the answer, timing |
+| `conversation_attempts` | One row per conversation run: dialogue id and version, the roles read by people and the bot, turns per person |
+| `conversation_line_results` | Every line read aloud: role, expected text, what was heard, errors, recording path |
+| Storage `conversation-recordings` | Private bucket with one audio file per line read aloud, in a folder per user |
 
 Rules enforced in the database (not just the UI):
 
@@ -242,6 +245,27 @@ those attempts: low last and recent scores raise an exercise's weight, as does a
 transformation task) and each word you keep getting wrong that the exercise contains; mastered exercises
 (90%+) rest 1, 2, 4, 8 … days; slow answers come back a bit more often; untried exercises get a steady share;
 one answered in the last few minutes almost never repeats.
+
+## Conversations
+
+The Conversations tab offers ready-made dialogues (`data/dialogue/*.json`, format and CEFR level guide in
+`data/dialogue/dialogue.schema.json`).
+
+- **Setup.** 1–5 people read, and the bot can read one more role. A dialogue works with any number of speakers from its
+  required roles up to all roles, so optional roles drop out when fewer people take part. Each person reads 3–7 turns.
+- **Demo.** The app's voices read the whole dialogue, a female and a male voice by role. It can be paused, resumed and
+  played again.
+- **Reading.** The active line sits at the bottom of the screen with its role, its reader and its translation. The
+  browser's speech recognition hears it, and each word is marked correct, nearly right (half an error), wrong, missing
+  or extra. Fillers, case, punctuation, digits for number words and split compounds don't count. A line can be read
+  again before moving on.
+- **Scores per role.** Every role keeps its own readings, last, best and average score and words to review, because a
+  learner who always takes the same role needs that role's own progress. The latest take of each role can be played
+  back.
+- **Recordings.** Every line read aloud is stored as its own audio file in Supabase Storage, under the user's folder
+  and the run's id. Nothing is ever replaced or deleted.
+- Everything is free: browser speech synthesis, speech recognition (Chrome, Edge, Safari) and recording, plus the
+  existing Supabase project. Speech recognition needs a connection; the demo works offline when the device has voices.
 
 ## Phones
 

@@ -29,6 +29,7 @@ const pageLoaders = {
   feed: () => import("@presentation/pages/FeedPage"),
   settings: () => import("@presentation/pages/SettingsPage"),
   sentences: () => import("@presentation/pages/SentencePracticePage"),
+  conversations: () => import("@presentation/pages/ConversationPage"),
 };
 const HistoryPage = lazy(pageLoaders.history);
 const DashboardPage = lazy(pageLoaders.dashboard);
@@ -38,6 +39,7 @@ const VocabularyEditorPage = lazy(pageLoaders.vocabularyEditor);
 const FeedPage = lazy(pageLoaders.feed);
 const SettingsPage = lazy(pageLoaders.settings);
 const SentencePracticePage = lazy(pageLoaders.sentences);
+const ConversationPage = lazy(pageLoaders.conversations);
 // Signed-in visits (the common case) never need the sign-in form.
 const LoginPage = lazy(() => import("@presentation/pages/LoginPage"));
 
@@ -63,6 +65,7 @@ function usePreloadPages() {
 const NAV_ITEMS: { to: string; key: UiStringKey; icon: IconName; mobile: boolean }[] = [
   { to: "/quiz", key: "navQuiz", icon: "quiz", mobile: true },
   { to: "/sentences", key: "navSentences", icon: "sentence", mobile: true },
+  { to: "/conversations", key: "navConversations", icon: "mic", mobile: true },
   { to: "/history", key: "navHistory", icon: "history", mobile: true },
   { to: "/vocabularies", key: "navVocabularies", icon: "book", mobile: true },
   { to: "/feed", key: "navFeed", icon: "compass", mobile: true },
@@ -92,6 +95,7 @@ function AnimatedRoutes() {
         <Routes location={location}>
           <Route path="/quiz" element={<QuizPage />} />
           <Route path="/sentences" element={<SentencePracticePage />} />
+          <Route path="/conversations" element={<ConversationPage />} />
           <Route path="/history" element={<HistoryPage />} />
           <Route path="/vocabularies" element={<VocabulariesPage />} />
           <Route path="/vocabularies/new" element={<VocabularyEditorPage />} />

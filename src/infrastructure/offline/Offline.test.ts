@@ -10,6 +10,9 @@ import { PrepareOfflineUseCase } from "@application/usecases/PrepareOfflineUseCa
 import { ManualConnectivity } from "@infrastructure/offline/Connectivity";
 import { Outbox } from "@infrastructure/offline/Outbox";
 import { OfflineLearningRepository } from "@infrastructure/offline/OfflineLearningRepository";
+import { OfflineRecordingGateway } from "@infrastructure/offline/OfflineRecordingGateway";
+import { SupabaseRecordingGateway } from "@infrastructure/supabase/SupabaseRecordingGateway";
+import { SupabaseClient } from "@supabase/supabase-js";
 import { QueryCache } from "@infrastructure/cache/QueryCache";
 import { OfflineSyncManager } from "@infrastructure/offline/OfflineSyncManager";
 import { OfflineVocabularyRepository } from "@infrastructure/offline/OfflineVocabularyRepository";
@@ -315,5 +318,90 @@ describe("sentence attempts offline", () => {
     connectivity.set(true);
     expect(await learning.getSentenceAttempts(USER)).toEqual([attempt]);
     expect(remote.sentenceAttempts).toEqual([attempt]);
+  });
+});
+
+describe("conversation results offline", () => {
+  const attempt = {
+    id: "attempt-1", conversationId: "de-a2-cafe", conversationVersion: 1, humanRoleIds: ["lena"], botRoleId: "jonas",
+    turnsPerSpeaker: 3, startedAt: NOW.toISOString(),
+  };
+  const line = {
+    id: "line-1", attemptId: "attempt-1", conversationId: "de-a2-cafe", roleId: "lena", lineId: "r1-lena",
+    expectedText: "Wie geht es dir?", transcript: "wie geht es dir", errorCount: 0, maxErrors: 4, confidence: 0.9,
+    audioPath: "u1/attempt-1/r1-lena.webm", durationMs: 1500, readAt: NOW.toISOString(),
+  };
+
+  it("queues the attempt before its lines, shows queued lines in reads and sends each once on reconnect", async () => {
+    const { connectivity, remote, learning } = setupLearning(false);
+    await learning.recordConversationAttempt(USER, attempt);
+    await learning.recordConversationLine(USER, line);
+    expect(await learning.getConversationLines(USER)).toEqual([line]);
+    expect(remote.conversationLines).toEqual([]);
+
+    connectivity.set(true);
+    expect(await learning.getConversationLines(USER)).toEqual([line]);
+    await learning.recordConversationLine(USER, line);
+    await learning.flush();
+    expect(remote.conversationAttempts).toEqual([attempt]);
+    expect(remote.conversationLines).toEqual([line]);
+  });
+});
+
+describe("OfflineRecordingGateway", () => {
+  class FakeRecordings {
+    readonly uploaded: string[] = [];
+    failNext = false;
+    async upload(path: string) {
+      if (this.failNext) {
+        this.failNext = false;
+        throw networkError();
+      }
+      this.uploaded.push(path);
+    }
+    async playbackUrl(path: string) {
+      return `https://storage/${path}`;
+    }
+  }
+
+  it("keeps a recording made offline, plays it from memory and uploads it when the connection returns", async () => {
+    const connectivity = new ManualConnectivity(false);
+    const remote = new FakeRecordings();
+    const gateway = new OfflineRecordingGateway(remote, connectivity, () => "blob:local");
+    await gateway.upload("u1/a/r1.webm", new Blob(["audio"]));
+    expect(remote.uploaded).toEqual([]);
+    expect(await gateway.playbackUrl("u1/a/r1.webm")).toBe("blob:local");
+    expect(await gateway.playbackUrl("u1/a/other.webm")).toBe("https://storage/u1/a/other.webm");
+
+    connectivity.set(true);
+    await vi.waitFor(() => expect(remote.uploaded).toEqual(["u1/a/r1.webm"]));
+    expect(gateway.pendingCount).toBe(0);
+  });
+
+  it("retries an upload that failed for lack of a connection", async () => {
+    const connectivity = new ManualConnectivity(true);
+    const remote = new FakeRecordings();
+    remote.failNext = true;
+    const gateway = new OfflineRecordingGateway(remote, connectivity, () => "blob:local");
+    await gateway.upload("u1/a/r2.webm", new Blob(["audio"]));
+    expect(gateway.pendingCount).toBe(1);
+    connectivity.set(false);
+    connectivity.set(true);
+    await vi.waitFor(() => expect(remote.uploaded).toEqual(["u1/a/r2.webm"]));
+  });
+});
+
+describe("SupabaseRecordingGateway", () => {
+  const clientAnswering = (error: { message: string; statusCode?: string } | null) =>
+    ({ storage: { from: () => ({ upload: async () => ({ data: null, error }) }) } }) as unknown as SupabaseClient;
+
+  it("counts a file that already exists as uploaded", async () => {
+    const gateway = new SupabaseRecordingGateway(clientAnswering({ message: "The resource already exists", statusCode: "409" }));
+    await expect(gateway.upload("u1/a/r1.webm", new Blob(["audio"]))).resolves.toBeUndefined();
+  });
+
+  it("reports any other failure", async () => {
+    const gateway = new SupabaseRecordingGateway(clientAnswering({ message: "new row violates row-level security policy", statusCode: "403" }));
+    await expect(gateway.upload("u1/a/r1.webm", new Blob(["audio"]))).rejects.toMatchObject({ code: "forbidden" });
   });
 });
