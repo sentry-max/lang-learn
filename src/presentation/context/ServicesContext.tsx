@@ -8,7 +8,7 @@ import { SupabaseProfileRepository } from "@infrastructure/supabase/SupabaseProf
 import { SupabaseSentenceExerciseRepository } from "@infrastructure/supabase/SupabaseSentenceExerciseRepository";
 import { SupabaseSentenceCollectionRepository } from "@infrastructure/supabase/SupabaseSentenceCollectionRepository";
 import { SupabaseRecordingGateway } from "@infrastructure/supabase/SupabaseRecordingGateway";
-import { BundledConversationRepository } from "@infrastructure/content/BundledConversationRepository";
+import { SupabaseConversationRepository } from "@infrastructure/supabase/SupabaseConversationRepository";
 import { CachingWordRepository } from "@infrastructure/cache/CachingWordRepository";
 import { QueryCache } from "@infrastructure/cache/QueryCache";
 import { BrowserConnectivity } from "@infrastructure/offline/Connectivity";
@@ -21,6 +21,7 @@ import { OfflineSentenceExerciseRepository } from "@infrastructure/offline/Offli
 import { OfflineSentenceCollectionRepository } from "@infrastructure/offline/OfflineSentenceCollectionRepository";
 import { OfflineProfileRepository } from "@infrastructure/offline/OfflineProfileRepository";
 import { OfflineRecordingGateway } from "@infrastructure/offline/OfflineRecordingGateway";
+import { OfflineConversationRepository } from "@infrastructure/offline/OfflineConversationRepository";
 import { SyncGateway, SyncStatus } from "@application/ports/SyncGateway";
 import { VocabularyService } from "@application/services/VocabularyService";
 import { WordService } from "@application/services/WordService";
@@ -107,7 +108,7 @@ export function createServices(userId: string): Services {
     ),
     sentenceCollections,
     conversations: new ConversationService(
-      new BundledConversationRepository(),
+      new OfflineConversationRepository(new SupabaseConversationRepository(supabase), connectivity, queryCache),
       learningRepository,
       new OfflineRecordingGateway(new SupabaseRecordingGateway(supabase), connectivity)
     ),

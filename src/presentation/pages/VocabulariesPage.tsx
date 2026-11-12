@@ -17,6 +17,7 @@ import { InlineLoader } from "@presentation/components/ui/Loader";
 import { useSection } from "@presentation/hooks/useSection";
 import SectionTabs from "@presentation/components/SectionTabs";
 import SentenceCollectionsManager from "@presentation/components/sentence/SentenceCollectionsManager";
+import ConversationsManager from "@presentation/components/conversation/ConversationsManager";
 
 type Tab = "mine" | "downloaded";
 
@@ -62,12 +63,12 @@ export default function VocabulariesPage() {
   const owned = data.data?.owned ?? [];
   const downloaded = data.data?.downloaded ?? [];
 
-  const sectionTabs = <SectionTabs value={section} onChange={setSection} wordsLabel="navVocabularies" />;
-  if (section === "sentences") {
+  const sectionTabs = <SectionTabs value={section} onChange={setSection} wordsLabel="navVocabularies" hasConversations />;
+  if (section !== "words") {
     return (
       <div className="app-main">
         {sectionTabs}
-        <SentenceCollectionsManager />
+        {section === "sentences" ? <SentenceCollectionsManager /> : <ConversationsManager />}
       </div>
     );
   }

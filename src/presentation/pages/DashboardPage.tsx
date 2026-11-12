@@ -15,6 +15,7 @@ import Icon from "@presentation/components/ui/Icon";
 import { useSection } from "@presentation/hooks/useSection";
 import SectionTabs from "@presentation/components/SectionTabs";
 import SentenceProgress from "@presentation/components/sentence/SentenceProgress";
+import ConversationProgress from "@presentation/components/conversation/ConversationProgress";
 
 export default function DashboardPage() {
   const user = useCurrentUser();
@@ -25,12 +26,12 @@ export default function DashboardPage() {
   const { version } = useSyncStatus();
   const stats = useAsync(() => getStats.execute(user.id), [user.id, version]);
 
-  const sectionTabs = <SectionTabs value={section} onChange={setSection} wordsLabel="sectionWords" />;
-  if (section === "sentences") {
+  const sectionTabs = <SectionTabs value={section} onChange={setSection} wordsLabel="sectionWords" hasConversations />;
+  if (section !== "words") {
     return (
       <div className="app-main">
         {sectionTabs}
-        <SentenceProgress />
+        {section === "sentences" ? <SentenceProgress /> : <ConversationProgress />}
       </div>
     );
   }

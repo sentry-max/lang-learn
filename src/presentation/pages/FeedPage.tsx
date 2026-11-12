@@ -17,6 +17,7 @@ import { PageLoader, Spinner } from "@presentation/components/ui/Loader";
 import { useSection } from "@presentation/hooks/useSection";
 import SectionTabs from "@presentation/components/SectionTabs";
 import SentenceCollectionBrowser from "@presentation/components/sentence/SentenceCollectionBrowser";
+import ConversationBrowser from "@presentation/components/conversation/ConversationBrowser";
 
 const PAGE_SIZE = 20;
 
@@ -77,12 +78,12 @@ export default function FeedPage() {
 
   const items = feed.data?.items ?? [];
 
-  const sectionTabs = <SectionTabs value={section} onChange={setSection} wordsLabel="navVocabularies" />;
-  if (section === "sentences") {
+  const sectionTabs = <SectionTabs value={section} onChange={setSection} wordsLabel="navVocabularies" hasConversations />;
+  if (section !== "words") {
     return (
       <div className="app-main">
         {sectionTabs}
-        <SentenceCollectionBrowser />
+        {section === "sentences" ? <SentenceCollectionBrowser /> : <ConversationBrowser />}
       </div>
     );
   }

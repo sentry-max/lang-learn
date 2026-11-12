@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { parseConversation } from "@domain/services/ConversationParser";
+import { conversationToJson, parseConversation, parseConversationFile } from "@domain/services/ConversationParser";
 
 const round = (priority: number, number: number) => ({
   priority,
@@ -25,11 +25,12 @@ const validDialogue = () => ({
 describe("parseConversation", () => {
   it("accepts a valid dialogue, trims text and drops blank translations", () => {
     const result = parseConversation(validDialogue());
-    if (!("conversation" in result)) throw new Error(result.problems.join(", "));
-    expect(result.conversation.title).toBe("Test");
-    expect(result.conversation.description).toBe("");
-    expect(result.conversation.tags).toEqual([]);
-    expect(result.conversation.rounds[0].lines[0].translations).toEqual({ en: "Translation 1" });
+    if (!("content" in result)) throw new Error(result.problems.join(", "));
+    expect(result.content.key).toBe("en-a1-test");
+    expect(result.content.title).toBe("Test");
+    expect(result.content.description).toBe("");
+    expect(result.content.tags).toEqual([]);
+    expect(result.content.rounds[0].lines[0].translations).toEqual({ en: "Translation 1" });
   });
 
   it("rejects something that is not a dialogue", () => {
@@ -55,5 +56,23 @@ describe("parseConversation", () => {
     dialogue.rounds[1].lines[0] = { ...dialogue.rounds[1].lines[0], id: "r1-a" };
     const result = parseConversation(dialogue);
     expect("problems" in result && result.problems.sort()).toEqual(["line_duplicate", "line_role_unknown", "required_roles_too_few"]);
+  });
+
+  it("reads back the stored JSON unchanged", () => {
+    const result = parseConversation(validDialogue());
+    if (!("content" in result)) throw new Error(result.problems.join(", "));
+    expect(parseConversation(conversationToJson(result.content))).toEqual(result);
+  });
+});
+
+describe("parseConversationFile", () => {
+  it("reads a file with one dialogue or a list of them, one result per dialogue", () => {
+    expect(parseConversationFile(validDialogue())).toHaveLength(1);
+    const results = parseConversationFile([validDialogue(), { id: "broken" }]);
+    expect(results.map((result) => "content" in result)).toEqual([true, false]);
+  });
+
+  it("refuses a file with more than 50 dialogues", () => {
+    expect(parseConversationFile(Array.from({ length: 51 }, validDialogue))).toEqual([{ problems: ["file_too_many"] }]);
   });
 });

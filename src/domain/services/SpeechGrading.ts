@@ -1,4 +1,4 @@
-import { ConversationLineResult } from "@domain/entities/Conversation";
+import { Conversation, ConversationLineResult } from "@domain/entities/Conversation";
 import { LanguageCode } from "@domain/entities/Language";
 import { totalScore } from "@domain/entities/SentencePractice";
 import { SentenceGrade, TokenMark, alignTokens, isTypo, tokenizeSentence } from "@domain/services/SentenceGrading";
@@ -122,6 +122,38 @@ function gradeTranscript(expectedText: string, transcript: string, language: Lan
   return { errorCount, maxErrors: Math.max(1, expected.length), marks, correctSentence: expectedText };
 }
 
+/** How a word of the line stands while it is being read: heard, passed over, or still to come. */
+export type LiveWordState = "heard" | "skipped" | "pending";
+
+export interface LiveWord {
+  /** The word as written, with the punctuation that follows it */
+  text: string;
+  state: LiveWordState;
+}
+
+/** A heard word may jump this many words ahead, so one misheard word doesn't stall the line. */
+const LIVE_LOOKAHEAD = 1;
+
+/**
+ * Follows a reader through the line while they speak: each heard word fills the next remaining word when it matches
+ * (or is a near miss), or one word further on, which marks the word in between as skipped. Other heard words are ignored.
+ */
+export function followSpokenLine(expectedText: string, heardText: string, language: LanguageCode): { words: LiveWord[]; isComplete: boolean } {
+  const expected = expectedWords(expectedText, language);
+  const keys = expected.map((word) => word.key);
+  const states: LiveWordState[] = keys.map(() => "pending");
+  let next = 0;
+  for (const word of matchCompounds(normalizeSpoken(heardText, language), keys, language)) {
+    const offset = keys.slice(next, next + LIVE_LOOKAHEAD + 1).findIndex((key) => key === word || isTypo(word, key, false));
+    if (offset < 0) continue;
+    for (let index = next; index < next + offset; index++) states[index] = "skipped";
+    states[next + offset] = "heard";
+    next += offset + 1;
+    if (next >= keys.length) break;
+  }
+  return { words: expected.map((word, index) => ({ text: word.display, state: states[index] })), isComplete: keys.length > 0 && next >= keys.length };
+}
+
 export interface SpokenLineGrade {
   grade: SentenceGrade;
   /** The recognised alternative the grade is based on */
@@ -165,23 +197,56 @@ export function roleScores(results: readonly ConversationLineResult[], conversat
       lastScore: scores[scores.length - 1] ?? null,
       bestScore: scores.length > 0 ? Math.max(...scores) : null,
       averageScore: scores.length > 0 ? scores.reduce((sum, score) => sum + score, 0) / scores.length : null,
-      missedWords: missedWords(roleResults, language),
+      missedWords: missedWords(roleResults, () => language),
       latestAttemptId: attempts[attempts.length - 1]?.attemptId ?? null,
     };
   });
 }
 
-/** The latest score of each dialogue, over every role read in its latest attempt. */
-export function lastScoreByConversation(results: readonly ConversationLineResult[]): Map<string, number> {
+export interface DialogueScore {
+  conversation: Conversation;
+  attemptCount: number;
+  lastScore: number | null;
+  /** All lines of every attempt together */
+  score: number | null;
+  lastReadAt: string;
+}
+
+export interface ConversationProgress {
+  attemptCount: number;
+  lineCount: number;
+  score: number | null;
+  /** Most recently read first */
+  byConversation: DialogueScore[];
+  missedWords: string[];
+}
+
+/** Progress over every dialogue of the library; lines of dialogues no longer in it are left out, as their text and language are gone. */
+export function conversationProgress(results: readonly ConversationLineResult[], conversations: readonly Conversation[]): ConversationProgress {
+  const conversationById = new Map(conversations.map((conversation) => [conversation.id, conversation]));
+  const known = results.filter((result) => conversationById.has(result.conversationId));
   const byConversation = new Map<string, ConversationLineResult[]>();
-  for (const result of results) byConversation.set(result.conversationId, [...(byConversation.get(result.conversationId) ?? []), result]);
-  const scores = new Map<string, number>();
-  for (const [conversationId, conversationResults] of byConversation) {
-    const latest = groupByAttempt(conversationResults).pop();
-    const score = latest ? totalScore(latest.results) : null;
-    if (score !== null) scores.set(conversationId, score);
-  }
-  return scores;
+  for (const result of known) byConversation.set(result.conversationId, [...(byConversation.get(result.conversationId) ?? []), result]);
+
+  const scores = Array.from(byConversation, ([conversationId, lines]) => {
+    const attempts = groupByAttempt(lines);
+    const latest = attempts[attempts.length - 1].results;
+    return {
+      conversation: conversationById.get(conversationId)!,
+      attemptCount: attempts.length,
+      lastScore: totalScore(latest),
+      score: totalScore(lines),
+      lastReadAt: latest[latest.length - 1].readAt,
+    };
+  }).sort((a, b) => b.lastReadAt.localeCompare(a.lastReadAt));
+
+  return {
+    attemptCount: scores.reduce((sum, score) => sum + score.attemptCount, 0),
+    lineCount: known.length,
+    score: totalScore(known),
+    byConversation: scores,
+    missedWords: missedWords(known, (result) => conversationById.get(result.conversationId)!.language),
+  };
 }
 
 /** The lines of the latest attempt that has recordings of this role, in reading order. */
@@ -195,10 +260,10 @@ function groupByAttempt(results: readonly ConversationLineResult[]): { attemptId
   return Array.from(byAttempt, ([attemptId, attemptResults]) => ({ attemptId, results: attemptResults }));
 }
 
-function missedWords(results: readonly ConversationLineResult[], language: LanguageCode): string[] {
+function missedWords(results: readonly ConversationLineResult[], languageOf: (result: ConversationLineResult) => LanguageCode): string[] {
   const counts = new Map<string, number>();
   for (const result of results) {
-    const { grade } = gradeSpokenLine(result.expectedText, [result.transcript], language);
+    const { grade } = gradeSpokenLine(result.expectedText, [result.transcript], languageOf(result));
     for (const mark of grade.marks) {
       if ((mark.status === "wrong" || mark.status === "missing") && mark.expected) {
         const word = mark.expected.replace(/[^\p{L}\p{N}\p{M}'-]/gu, "");

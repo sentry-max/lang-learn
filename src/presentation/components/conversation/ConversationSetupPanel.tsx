@@ -1,3 +1,4 @@
+import { Link } from "react-router-dom";
 import { Conversation, ConversationLineResult, ConversationSetup, MAX_TURNS, MIN_TURNS, SetupProblem, conversationText } from "@domain/entities/Conversation";
 import { LanguageCode } from "@domain/entities/Language";
 import { assignRole, canAddBot, canSkipBot, defaultSetup, humanCountOptions, validateSetup } from "@domain/services/ConversationPlanner";
@@ -7,6 +8,8 @@ import MenuSelect from "@presentation/components/ui/MenuSelect";
 import Icon from "@presentation/components/ui/Icon";
 import { Spinner } from "@presentation/components/ui/Loader";
 import RoleHistory from "@presentation/components/conversation/RoleHistory";
+import CollectionPicker from "@presentation/components/CollectionPicker";
+import { useCurrentUser } from "@presentation/context/AuthContext";
 import { UiStringKey } from "@presentation/i18n/translations";
 import { formatNumber } from "@presentation/format";
 
@@ -21,7 +24,10 @@ const SETUP_PROBLEM_KEYS: Record<SetupProblem, UiStringKey> = {
 const TURN_CHOICES = Array.from({ length: MAX_TURNS - MIN_TURNS + 1 }, (_, offset) => String(MIN_TURNS + offset));
 
 interface Props {
+  /** Own and downloaded conversations to choose from */
+  library: Conversation[];
   conversation: Conversation;
+  onSelect: (conversationId: string) => void;
   setup: ConversationSetup;
   onChange: (setup: ConversationSetup) => void;
   history: ConversationLineResult[] | undefined;
@@ -29,13 +35,14 @@ interface Props {
   canRead: boolean;
   canSpeakOut: boolean;
   isStarting: boolean;
-  onBack: () => void;
   onDemo: () => void;
   onRead: () => void;
 }
 
-/** Who reads which role and how many turns, the per-role history, and the two ways to start. */
-export default function ConversationSetupPanel({ conversation, setup, onChange, history, primaryLanguage, canRead, canSpeakOut, isStarting, onBack, onDemo, onRead }: Props) {
+/** The conversation to read, who reads which role and how many turns, the per-role history, and the two ways to start. */
+export default function ConversationSetupPanel(props: Props) {
+  const { library, conversation, onSelect, setup, onChange, history, primaryLanguage, canRead, canSpeakOut, isStarting, onDemo, onRead } = props;
+  const user = useCurrentUser();
   const { t, language } = useLanguage();
   const problems = validateSetup(conversation, setup);
   const humanCount = setup.humanRoleIds.length;
@@ -45,17 +52,31 @@ export default function ConversationSetupPanel({ conversation, setup, onChange, 
 
   return (
     <div className="card start-card">
-      <button type="button" className="btn btn-ghost conversation-back" onClick={onBack}>
-        <Icon name="back" size={18} className="flip-rtl" /> {t("conversationBack")}
-      </button>
-      <h2 className="card-title" dir="auto">
-        {conversation.title}
-      </h2>
-      {translated.description && (
-        <p className="muted" dir="auto">
-          {translated.description}
-        </p>
-      )}
+      <h2 className="card-title">{t("conversationStartTitle")}</h2>
+
+      <section className="start-section">
+        <span className="field-label">{t("conversationPickerLabel")}</span>
+        <div className="picker-row">
+          <CollectionPicker
+            kind="conversation"
+            items={library}
+            selected={[conversation.id]}
+            onChange={(ids) => ids[0] && onSelect(ids[0])}
+            currentUserId={user.id}
+          />
+          <Link className="icon-btn bordered" to="/vocabularies?section=conversations" title={t("manageConversations")} aria-label={t("manageConversations")}>
+            <Icon name="settings" />
+          </Link>
+          <Link className="icon-btn bordered" to="/feed?section=conversations" title={t("exploreConversations")} aria-label={t("exploreConversations")}>
+            <Icon name="compass" />
+          </Link>
+        </div>
+        {translated.description && (
+          <p className="muted small" dir="auto">
+            {translated.description}
+          </p>
+        )}
+      </section>
 
       <section className="start-section">
         <span className="field-label">{t("conversationReadersLabel")}</span>

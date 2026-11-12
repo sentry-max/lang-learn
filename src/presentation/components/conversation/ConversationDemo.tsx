@@ -1,4 +1,4 @@
-import { Conversation } from "@domain/entities/Conversation";
+import { Conversation, conversationTitle } from "@domain/entities/Conversation";
 import { PlannedLine } from "@domain/services/ConversationPlanner";
 import { useLanguage } from "@presentation/context/LanguageContext";
 import { useConversationDemo } from "@presentation/hooks/useConversationDemo";
@@ -24,6 +24,9 @@ export default function ConversationDemo({ conversation, plan, onEnd }: Props) {
         <button type="button" className="icon-btn" onClick={onEnd} aria-label={t("conversationEndDemo")} title={t("conversationEndDemo")}>
           <Icon name="close" />
         </button>
+        <h1 className="conversation-topic" dir="auto">
+          {conversationTitle(conversation)}
+        </h1>
         <ProgressIndicator value={progress} />
         <span className="quiz-counter">{t("conversationDemoTitle")}</span>
       </div>

@@ -51,6 +51,8 @@ quiz algorithm and all business rules are unit-tested in isolation
 | `sentence_collection_subscriptions` | Downloads of published sentence collections |
 | `sentence_exercises` | Sentence exercises; each belongs to one collection (`kind` plus its fields in `content`) |
 | `sentence_attempts` | Every answered sentence: errors, allowed errors, timer mode, the answer, timing |
+| `conversations` | One dialogue each: its JSON content (title, language, level and file id read from it), author, draft/published |
+| `conversation_subscriptions` | Downloads of published conversations |
 | `conversation_attempts` | One row per conversation run: dialogue id and version, the roles read by people and the bot, turns per person |
 | `conversation_line_results` | Every line read aloud: role, expected text, what was heard, errors, recording path |
 | Storage `conversation-recordings` | Private bucket with one audio file per line read aloud, in a folder per user |
@@ -248,8 +250,10 @@ one answered in the last few minutes almost never repeats.
 
 ## Conversations
 
-The Conversations tab offers ready-made dialogues (`data/dialogue/*.json`, format and CEFR level guide in
-`data/dialogue/dialogue.schema.json`).
+Conversations work like sentence collections. Each one is a dialogue imported as JSON under Vocabularies →
+Conversations (format and CEFR level guide in `data/dialogue/dialogue.schema.json`, samples next to it). Importing the
+same `id` again updates it. Published conversations appear under Explore → Conversations, where others download them.
+The Conversations tab picks one of the own and downloaded conversations from a searchable dropdown.
 
 - **Setup.** 1–5 people read, and the bot can read one more role. A dialogue works with any number of speakers from its
   required roles up to all roles, so optional roles drop out when fewer people take part. Each person reads 3–7 turns.

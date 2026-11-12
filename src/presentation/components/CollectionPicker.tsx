@@ -2,6 +2,7 @@ import { KeyboardEvent, useEffect, useId, useMemo, useRef, useState } from "reac
 import { LanguageCode, languageLabel } from "@domain/entities/Language";
 import { Vocabulary } from "@domain/entities/Vocabulary";
 import { SentenceCollection } from "@domain/entities/SentenceCollection";
+import { Conversation, conversationTitle } from "@domain/entities/Conversation";
 import { UiStringKey } from "@presentation/i18n/translations";
 import { useLanguage } from "@presentation/context/LanguageContext";
 import Icon from "@presentation/components/ui/Icon";
@@ -13,7 +14,12 @@ type Props = {
   onChange: (ids: string[]) => void;
   currentUserId: string;
   placeholder?: string;
-} & ({ kind: "vocabulary"; items: Vocabulary[] } | { kind: "sentenceCollection"; items: SentenceCollection[] });
+} & (
+  | { kind: "vocabulary"; items: Vocabulary[] }
+  | { kind: "sentenceCollection"; items: SentenceCollection[] }
+  /** A conversation is read one at a time, so this kind chooses exactly one */
+  | { kind: "conversation"; items: Conversation[] }
+);
 
 interface PickerEntry {
   id: string;
@@ -21,7 +27,7 @@ interface PickerEntry {
   ownerId: string;
   ownerName: string | null;
   language: LanguageCode;
-  /** Words or exercises in it */
+  /** Words, exercises or roles in it */
   size: number;
 }
 
@@ -44,13 +50,22 @@ const LABELS: Record<Props["kind"], Record<"field" | "choose" | "search" | "none
     several: "sentenceCollectionsSelected",
     size: "exerciseCountLabel",
   },
+  conversation: {
+    field: "conversationPickerLabel",
+    choose: "chooseConversation",
+    search: "searchConversations",
+    none: "noConversationsMatch",
+    all: "chooseConversation",
+    several: "chooseConversation",
+    size: "conversationRoleCount",
+  },
 };
 
 /**
- * Searchable combobox of vocabularies or sentence collections.
+ * Searchable combobox of vocabularies, sentence collections or conversations.
  *  - Type to filter.
  *  - Tap an item's name/subtitle: choose only that one and close.
- *  - Tap a checkbox (or "Select all"): choose several; the list stays open.
+ *  - Tap a checkbox (or "Select all"): choose several; the list stays open. Conversations have no checkboxes.
  */
 export default function CollectionPicker(props: Props) {
   const { selected, onChange, currentUserId, placeholder } = props;
@@ -59,9 +74,12 @@ export default function CollectionPicker(props: Props) {
     () =>
       props.kind === "vocabulary"
         ? props.items.map((vocabulary) => ({ ...vocabulary, language: vocabulary.sourceLanguage, size: vocabulary.wordCount }))
-        : props.items.map((collection) => ({ ...collection, size: collection.exerciseCount })),
+        : props.kind === "sentenceCollection"
+        ? props.items.map((collection) => ({ ...collection, size: collection.exerciseCount }))
+        : props.items.map((conversation) => ({ ...conversation, name: conversationTitle(conversation), size: conversation.roles.length })),
     [props.kind, props.items]
   );
+  const isSingleChoice = props.kind === "conversation";
   const { t, language } = useLanguage();
   const [open, setOpen] = useState(false);
   const [query, setQuery] = useState("");
@@ -97,10 +115,10 @@ export default function CollectionPicker(props: Props) {
   const summary =
     selected.length === 0
       ? ""
-      : selected.length === entries.length
-      ? t(labels.all, { count: entries.length })
       : selected.length === 1
       ? entries.find((entry) => entry.id === selected[0])?.name ?? ""
+      : selected.length === entries.length
+      ? t(labels.all, { count: entries.length })
       : t(labels.several, { count: selected.length });
 
   function chooseOnly(id: string) {
@@ -179,8 +197,8 @@ export default function CollectionPicker(props: Props) {
       </div>
 
       {open && (
-        <div className="dropdown-menu" id={listId} role="listbox" aria-multiselectable="true">
-          {filtered.length > 0 && (
+        <div className="dropdown-menu" id={listId} role="listbox" aria-multiselectable={!isSingleChoice}>
+          {filtered.length > 0 && !isSingleChoice && (
             <label className="dropdown-item select-all">
               <input type="checkbox" checked={allFilteredSelected} onChange={toggleAllFiltered} />
               <span>{query ? t("selectAllMatches", { count: filtered.length }) : t("selectAll")}</span>
@@ -194,12 +212,14 @@ export default function CollectionPicker(props: Props) {
               className={`dropdown-item${index === active ? " active" : ""}${selectedSet.has(entry.id) ? " checked" : ""}`}
               onMouseEnter={() => setActive(index)}
             >
-              <input
-                type="checkbox"
-                checked={selectedSet.has(entry.id)}
-                onChange={() => toggle(entry.id)}
-                aria-label={t("addToSelection", { name: entry.name })}
-              />
+              {!isSingleChoice && (
+                <input
+                  type="checkbox"
+                  checked={selectedSet.has(entry.id)}
+                  onChange={() => toggle(entry.id)}
+                  aria-label={t("addToSelection", { name: entry.name })}
+                />
+              )}
               <button type="button" className="dropdown-item-main" onClick={() => chooseOnly(entry.id)}>
                 <span dir="auto" className="dropdown-item-title">
                   {entry.name}

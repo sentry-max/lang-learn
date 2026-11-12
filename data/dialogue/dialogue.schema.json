@@ -1,7 +1,7 @@
 {
   "$schema": "http://json-schema.org/draft-07/schema#",
   "title": "Conversation",
-  "description": "One ready-made dialogue for the Conversation module (one file per dialogue in data/dialogue/, named <language>-<level>-<topic>.json). Generate one dialogue for the requested language and level. Follow the level guide in `level` strictly. The dialogue has exactly 7 rounds, and every round has exactly one line per role, so each speaker gets one turn per round. Learners choose 3 to 7 turns per person: the app always keeps round 1 (the opening) and round 7 (the closing), and keeps the middle rounds with the lowest `priority` numbers, in their original order. So every middle round must make sense on its own: no line may answer or refer to a line of another middle round. Within a round, lines are read in the order written and may answer each other. Roles marked `optional` are left out when fewer people take part, so their lines must be removable without breaking the flow: nobody answers or names an optional role's line. Write numbers as digits (3, 7, 20), never as words, and avoid decimals and times written with punctuation. Text is in the dialogue's own language; translations go in `translations`.",
+  "description": "One dialogue for the Conversation module, imported under Vocabularies → Conversations (a file may also hold a JSON list of up to 50 dialogues). Generate one dialogue for the requested language and level. Follow the level guide in `level` strictly. The dialogue has exactly 7 rounds, and every round has exactly one line per role, so each speaker gets one turn per round. Learners choose 3 to 7 turns per person: the app always keeps round 1 (the opening) and round 7 (the closing), and keeps the middle rounds with the lowest `priority` numbers, in their original order. So every middle round must make sense on its own: no line may answer or refer to a line of another middle round. Within a round, lines are read in the order written and may answer each other. Roles marked `optional` are left out when fewer people take part, so their lines must be removable without breaking the flow: nobody answers or names an optional role's line. Write numbers as digits (3, 7, 20), never as words, and avoid decimals and times written with punctuation. Text is in the dialogue's own language; translations go in `translations`.",
   "type": "object",
   "required": ["id", "version", "language", "level", "title", "roles", "rounds"],
   "additionalProperties": false,
@@ -12,7 +12,7 @@
       "minLength": 1,
       "maxLength": 200,
       "pattern": "^[a-z0-9-]+$",
-      "description": "Stable key, the same as the file name without .json (e.g. 'de-a2-cafe'). Attempts and scores are stored under it, so never change it once published."
+      "description": "Stable key, e.g. 'de-a2-cafe'. Importing a dialogue with an id the user already has updates that conversation instead of adding a copy, so never change it."
     },
     "version": {
       "type": "integer",

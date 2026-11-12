@@ -362,14 +362,52 @@ create index if not exists sentence_attempts_user_idx
 create index if not exists sentence_attempts_exercise_idx on public.sentence_attempts (exercise_id);
 
 -- -----------------------------------------------------------------------------
+-- Conversations: one dialogue each, imported as JSON (data/dialogue/
+-- dialogue.schema.json) and validated by the app. Draft or published, like
+-- sentence collections. Title, language, level and the file's id are read
+-- from the content, so they can't disagree with it.
+-- -----------------------------------------------------------------------------
+create table if not exists public.conversations (
+  id           uuid primary key default gen_random_uuid(),
+  owner_id     uuid not null default auth.uid() references public.profiles (id) on delete restrict,
+  content      jsonb not null check (jsonb_typeof(content) = 'object' and octet_length(content::text) <= 200000),
+  external_id  text generated always as (content ->> 'id') stored check (char_length(external_id) between 1 and 200),
+  title        text generated always as (content ->> 'title') stored check (char_length(btrim(title)) between 1 and 120),
+  language     text generated always as (content ->> 'language') stored references public.languages (code),
+  level        text generated always as (content ->> 'level') stored check (level in ('A1', 'A2', 'B1', 'B2', 'C1', 'C2')),
+  status       text not null default 'draft' check (status in ('draft', 'published')),
+  published_at timestamptz,
+  created_at   timestamptz not null default now(),
+  updated_at   timestamptz not null default now(),
+  deleted_at   timestamptz
+);
+
+create index if not exists conversations_owner_idx
+  on public.conversations (owner_id) where deleted_at is null;
+create index if not exists conversations_feed_idx
+  on public.conversations (status, published_at desc) where deleted_at is null;
+-- Importing the same file id again updates the owner's conversation instead of adding a copy.
+create unique index if not exists conversations_owner_external_uq
+  on public.conversations (owner_id, external_id) where deleted_at is null;
+
+-- Downloads of published conversations
+create table if not exists public.conversation_subscriptions (
+  user_id         uuid not null default auth.uid() references public.profiles (id) on delete restrict,
+  conversation_id uuid not null references public.conversations (id) on delete restrict,
+  created_at      timestamptz not null default now(),
+  updated_at      timestamptz not null default now(),
+  deleted_at      timestamptz,
+  primary key (user_id, conversation_id)
+);
+
+-- -----------------------------------------------------------------------------
 -- Conversation reading: one attempt per run, one row per line a person read
--- aloud (append-only). Dialogues ship with the app (data/dialogue/*.json), so
--- they are referenced by their text id. Scores are derived, not stored.
+-- aloud (append-only). Scores are derived, not stored.
 -- -----------------------------------------------------------------------------
 create table if not exists public.conversation_attempts (
   id                   uuid primary key,
   user_id              uuid not null default auth.uid() references public.profiles (id) on delete restrict,
-  conversation_id      text not null check (char_length(conversation_id) between 1 and 200),
+  conversation_id      uuid not null references public.conversations (id) on delete restrict,
   conversation_version integer not null check (conversation_version >= 1),
   human_role_ids       text[] not null check (cardinality(human_role_ids) between 1 and 5),
   bot_role_id          text check (char_length(bot_role_id) between 1 and 100),
@@ -388,7 +426,7 @@ create table if not exists public.conversation_line_results (
   id              uuid primary key,
   user_id         uuid not null default auth.uid() references public.profiles (id) on delete restrict,
   attempt_id      uuid not null references public.conversation_attempts (id) on delete restrict,
-  conversation_id text not null check (char_length(conversation_id) between 1 and 200),
+  conversation_id uuid not null references public.conversations (id) on delete restrict,
   role_id         text not null check (char_length(role_id) between 1 and 100),
   line_id         text not null check (char_length(line_id) between 1 and 100),
   -- Kept because the shipped dialogue text may change in a later version.
@@ -697,6 +735,34 @@ begin
 end;
 $$;
 
+-- New conversations start as drafts; publishing stamps published_at, deleting unpublishes.
+create or replace function private.conversations_guard()
+returns trigger language plpgsql set search_path = '' as $$
+begin
+  if tg_op = 'INSERT' then
+    new.status := 'draft';
+    new.published_at := null;
+    new.created_at := now();
+    new.updated_at := now();
+    new.deleted_at := null;
+    return new;
+  end if;
+
+  new.id := old.id;
+  new.owner_id := old.owner_id;
+  new.created_at := old.created_at;
+  new.published_at := old.published_at;
+  if new.deleted_at is not null then
+    new.status := 'draft';
+  end if;
+  if new.status = 'published' and old.status <> 'published' then
+    new.published_at := now();
+  end if;
+  new.updated_at := now();
+  return new;
+end;
+$$;
+
 -- A line result belongs to one of the caller's own attempts at the same dialogue.
 create or replace function private.conversation_line_results_guard()
 returns trigger language plpgsql set search_path = '' as $$
@@ -872,6 +938,21 @@ create trigger sentence_attempts_guard
   before update on public.sentence_attempts
   for each row execute function private.user_rows_guard();
 
+drop trigger if exists conversations_guard on public.conversations;
+create trigger conversations_guard
+  before insert or update on public.conversations
+  for each row execute function private.conversations_guard();
+
+drop trigger if exists conversation_subscriptions_guard on public.conversation_subscriptions;
+create trigger conversation_subscriptions_guard
+  before update on public.conversation_subscriptions
+  for each row execute function private.user_rows_guard();
+
+drop trigger if exists conversation_subscriptions_set_updated_at on public.conversation_subscriptions;
+create trigger conversation_subscriptions_set_updated_at
+  before update on public.conversation_subscriptions
+  for each row execute function private.set_updated_at();
+
 drop trigger if exists conversation_attempts_guard on public.conversation_attempts;
 create trigger conversation_attempts_guard
   before update on public.conversation_attempts
@@ -1042,6 +1123,8 @@ alter table public.sentence_collections     enable row level security;
 alter table public.sentence_collection_subscriptions enable row level security;
 alter table public.sentence_exercises       enable row level security;
 alter table public.sentence_attempts        enable row level security;
+alter table public.conversations            enable row level security;
+alter table public.conversation_subscriptions enable row level security;
 alter table public.conversation_attempts    enable row level security;
 alter table public.conversation_line_results enable row level security;
 
@@ -1333,6 +1416,52 @@ create policy "sentence_attempts: update own" on public.sentence_attempts
   for update to authenticated
   using (user_id = (select auth.uid())) with check (user_id = (select auth.uid()));
 
+-- conversations: own ones, and everyone's published ones --------------------------
+drop policy if exists "conversations: read own or published" on public.conversations;
+create policy "conversations: read own or published" on public.conversations
+  for select to authenticated
+  using (owner_id = (select auth.uid()) or (status = 'published' and deleted_at is null));
+
+drop policy if exists "conversations: insert own" on public.conversations;
+create policy "conversations: insert own" on public.conversations
+  for insert to authenticated with check (owner_id = (select auth.uid()));
+
+drop policy if exists "conversations: update own" on public.conversations;
+create policy "conversations: update own" on public.conversations
+  for update to authenticated
+  using (owner_id = (select auth.uid())) with check (owner_id = (select auth.uid()));
+
+-- conversation_subscriptions: only published conversations of someone else ------
+drop policy if exists "conversation_subscriptions: read own" on public.conversation_subscriptions;
+create policy "conversation_subscriptions: read own" on public.conversation_subscriptions
+  for select to authenticated using (user_id = (select auth.uid()));
+
+drop policy if exists "conversation_subscriptions: insert own" on public.conversation_subscriptions;
+create policy "conversation_subscriptions: insert own" on public.conversation_subscriptions
+  for insert to authenticated
+  with check (
+    user_id = (select auth.uid())
+    and exists (
+      select 1 from public.conversations c
+       where c.id = conversation_id and c.status = 'published' and c.deleted_at is null and c.owner_id <> (select auth.uid())
+    )
+  );
+
+drop policy if exists "conversation_subscriptions: update own" on public.conversation_subscriptions;
+create policy "conversation_subscriptions: update own" on public.conversation_subscriptions
+  for update to authenticated
+  using (user_id = (select auth.uid()))
+  with check (
+    user_id = (select auth.uid())
+    and (
+      deleted_at is not null
+      or exists (
+        select 1 from public.conversations c
+         where c.id = conversation_id and c.status = 'published' and c.deleted_at is null and c.owner_id <> (select auth.uid())
+      )
+    )
+  );
+
 -- conversation attempts and lines: strictly private ------------------------------
 
 drop policy if exists "conversation_attempts: own" on public.conversation_attempts;
@@ -1367,6 +1496,7 @@ revoke all on
   public.quiz_sessions, public.word_progress, public.review_events, public.quiz_collection_rounds,
   public.sentence_collections, public.sentence_collection_subscriptions,
   public.sentence_exercises, public.sentence_attempts,
+  public.conversations, public.conversation_subscriptions,
   public.conversation_attempts, public.conversation_line_results
 from anon, authenticated;
 
@@ -1377,6 +1507,7 @@ grant select, insert, update on
   public.quiz_sessions, public.word_progress, public.review_events, public.quiz_collection_rounds,
   public.sentence_collections, public.sentence_collection_subscriptions,
   public.sentence_exercises, public.sentence_attempts,
+  public.conversations, public.conversation_subscriptions,
   public.conversation_attempts, public.conversation_line_results
 to authenticated;
 

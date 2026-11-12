@@ -1,8 +1,15 @@
-import { Conversation, ConversationAttempt, ConversationLineResult, ConversationSetup } from "@domain/entities/Conversation";
+import {
+  Conversation,
+  ConversationAttempt,
+  ConversationLineResult,
+  ConversationProblem,
+  ConversationSetup,
+} from "@domain/entities/Conversation";
 import { AppError } from "@domain/errors/AppError";
 import { ConversationRepository } from "@domain/repositories/ConversationRepository";
 import { LearningRepository } from "@domain/repositories/LearningRepository";
 import { PlannedLine, planConversation, validateSetup } from "@domain/services/ConversationPlanner";
+import { parseConversationFile } from "@domain/services/ConversationParser";
 import { SpokenLineGrade } from "@domain/services/SpeechGrading";
 import { RecordingGateway } from "@application/ports/RecordingGateway";
 import { randomId } from "@application/util/randomId";
@@ -15,7 +22,17 @@ export interface LineTake {
   durationMs: number | null;
 }
 
-/** Dialogues, runs through them, the lines read aloud and their recordings. Results go through the outbox. */
+export interface ConversationImportResult {
+  importedCount: number;
+  updatedCount: number;
+  /** Dialogues of the file that could not be imported; `entryNumber` is 1-based, null for the whole file */
+  problems: { entryNumber: number | null; title: string | null; codes: ConversationProblem[] }[];
+}
+
+/**
+ * Conversations (import, publish, delete, download) and reading them: runs, the lines read aloud and their
+ * recordings. Reading results go through the outbox.
+ */
 export class ConversationService {
   constructor(
     private readonly conversations: ConversationRepository,
@@ -24,8 +41,74 @@ export class ConversationService {
     private readonly clock: () => Date = () => new Date()
   ) {}
 
-  list(): Promise<Conversation[]> {
-    return this.conversations.list();
+  listOwned(userId: string): Promise<Conversation[]> {
+    return this.conversations.listOwned(userId);
+  }
+
+  listDownloaded(userId: string): Promise<Conversation[]> {
+    return this.conversations.listDownloaded(userId);
+  }
+
+  browse(userId: string, search: string): Promise<Conversation[]> {
+    return this.conversations.listPublished(userId, search);
+  }
+
+  /** Conversations to read: every own one (drafts too) and the downloaded ones. */
+  async listLibrary(userId: string): Promise<Conversation[]> {
+    const [owned, downloaded] = await Promise.all([this.conversations.listOwned(userId), this.conversations.listDownloaded(userId)]);
+    const byId = new Map([...owned, ...downloaded].map((conversation) => [conversation.id, conversation]));
+    return Array.from(byId.values()).sort((a, b) => a.title.localeCompare(b.title));
+  }
+
+  /** Imports a parsed file of one or more dialogues as drafts; a dialogue whose key the user already owns is updated. */
+  async importFile(userId: string, parsed: unknown): Promise<ConversationImportResult> {
+    const results = parseConversationFile(parsed);
+    const isList = Array.isArray(parsed);
+    const ownedByKey = new Map((await this.conversations.listOwned(userId)).map((conversation) => [conversation.key, conversation]));
+    const outcome: ConversationImportResult = { importedCount: 0, updatedCount: 0, problems: [] };
+
+    for (const [index, result] of results.entries()) {
+      if (!("content" in result)) {
+        const isWholeFile = !isList || result.problems[0] === "file_too_many";
+        const title = titleOf(isList ? (parsed as unknown[])[index] : parsed);
+        outcome.problems.push({ entryNumber: isWholeFile ? null : index + 1, title: isWholeFile ? null : title, codes: result.problems });
+        continue;
+      }
+      const existing = ownedByKey.get(result.content.key);
+      const saved = existing
+        ? await this.conversations.update(existing.id, result.content)
+        : await this.conversations.create(userId, randomId(), result.content);
+      if (existing) outcome.updatedCount += 1;
+      else outcome.importedCount += 1;
+      ownedByKey.set(saved.key, saved);
+    }
+    return outcome;
+  }
+
+  async publish(userId: string, conversation: Conversation): Promise<Conversation> {
+    assertOwner(userId, conversation);
+    return this.conversations.setStatus(conversation.id, "published");
+  }
+
+  async unpublish(userId: string, conversation: Conversation): Promise<Conversation> {
+    assertOwner(userId, conversation);
+    return this.conversations.setStatus(conversation.id, "draft");
+  }
+
+  async delete(userId: string, conversation: Conversation): Promise<void> {
+    assertOwner(userId, conversation);
+    return this.conversations.softDelete(conversation.id);
+  }
+
+  async download(userId: string, conversation: Conversation): Promise<void> {
+    if (conversation.ownerId === userId) {
+      throw new AppError("validation", "You can't download your own conversation.", { reason: "invalid_input" });
+    }
+    return this.conversations.download(userId, conversation.id);
+  }
+
+  removeDownload(userId: string, conversationId: string): Promise<void> {
+    return this.conversations.removeDownload(userId, conversationId);
   }
 
   /** Every line the user has read, in every dialogue and role. */
@@ -74,6 +157,15 @@ export class ConversationService {
   playbackUrl(audioPath: string): Promise<string> {
     return this.recordings.playbackUrl(audioPath);
   }
+}
+
+function titleOf(raw: unknown): string | null {
+  const title = typeof raw === "object" && raw !== null ? (raw as { title?: unknown }).title : null;
+  return typeof title === "string" && title.trim() ? title.trim() : null;
+}
+
+function assertOwner(userId: string, conversation: Conversation): void {
+  if (conversation.ownerId !== userId) throw new AppError("forbidden", "Only the owner can change this conversation.");
 }
 
 function audioExtension(mimeType: string): string {

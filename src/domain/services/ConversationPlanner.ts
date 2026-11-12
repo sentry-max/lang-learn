@@ -1,5 +1,5 @@
 import {
-  Conversation,
+  ConversationContent,
   ConversationLine,
   ConversationSetup,
   MAX_BOTS,
@@ -21,7 +21,7 @@ export interface PlannedLine {
 }
 
 /** How many speakers (people plus bot) the dialogue works with: all required roles, up to every role. */
-export function speakerRange(conversation: Conversation): { min: number; max: number } {
+export function speakerRange(conversation: ConversationContent): { min: number; max: number } {
   return {
     min: conversation.roles.filter((role) => !role.optional).length,
     max: Math.min(conversation.roles.length, MAX_HUMANS + MAX_BOTS),
@@ -29,7 +29,7 @@ export function speakerRange(conversation: Conversation): { min: number; max: nu
 }
 
 /** The numbers of people that can read this dialogue, with or without the bot. */
-export function humanCountOptions(conversation: Conversation): number[] {
+export function humanCountOptions(conversation: ConversationContent): number[] {
   const { min, max } = speakerRange(conversation);
   const counts: number[] = [];
   for (let count = MIN_HUMANS; count <= Math.min(MAX_HUMANS, max); count++) {
@@ -38,12 +38,12 @@ export function humanCountOptions(conversation: Conversation): number[] {
   return counts;
 }
 
-export function canAddBot(conversation: Conversation, humanCount: number): boolean {
+export function canAddBot(conversation: ConversationContent, humanCount: number): boolean {
   const { min, max } = speakerRange(conversation);
   return humanCount + 1 >= min && humanCount + 1 <= max;
 }
 
-export function canSkipBot(conversation: Conversation, humanCount: number): boolean {
+export function canSkipBot(conversation: ConversationContent, humanCount: number): boolean {
   const { min, max } = speakerRange(conversation);
   return humanCount >= min && humanCount <= max;
 }
@@ -52,7 +52,7 @@ export function canSkipBot(conversation: Conversation, humanCount: number): bool
  * A valid setup for this many people: required roles first, then optional roles in file order; the bot takes the
  * last role in the cast. The bot is added or left out when the wish would break the speaker range.
  */
-export function defaultSetup(conversation: Conversation, humanCount: number, wantsBot: boolean, turnsPerSpeaker: number): ConversationSetup {
+export function defaultSetup(conversation: ConversationContent, humanCount: number, wantsBot: boolean, turnsPerSpeaker: number): ConversationSetup {
   const withBot = wantsBot ? canAddBot(conversation, humanCount) || !canSkipBot(conversation, humanCount) : !canSkipBot(conversation, humanCount);
   const ordered = [...conversation.roles.filter((role) => !role.optional), ...conversation.roles.filter((role) => role.optional)];
   const cast = ordered.slice(0, humanCount + (withBot ? 1 : 0)).map((role) => role.id);
@@ -79,7 +79,7 @@ export function assignRole(setup: ConversationSetup, seat: number | "bot", roleI
   return { ...setup, humanRoleIds, botRoleId };
 }
 
-export function validateSetup(conversation: Conversation, setup: ConversationSetup): SetupProblem[] {
+export function validateSetup(conversation: ConversationContent, setup: ConversationSetup): SetupProblem[] {
   const problems: SetupProblem[] = [];
   const { humanRoleIds, botRoleId, turnsPerSpeaker } = setup;
   if (humanRoleIds.length < MIN_HUMANS || humanRoleIds.length > MAX_HUMANS) problems.push("human_count");
@@ -98,7 +98,7 @@ export function validateSetup(conversation: Conversation, setup: ConversationSet
  * `turnsPerSpeaker − 2` most important middle rounds in their original order. Every round has one line per role,
  * so every speaker gets exactly `turnsPerSpeaker` turns. Expects a setup that passes `validateSetup`.
  */
-export function planConversation(conversation: Conversation, setup: ConversationSetup): PlannedLine[] {
+export function planConversation(conversation: ConversationContent, setup: ConversationSetup): PlannedLine[] {
   const { rounds } = conversation;
   const middle = rounds
     .slice(1, -1)

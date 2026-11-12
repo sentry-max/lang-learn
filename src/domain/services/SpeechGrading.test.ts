@@ -1,6 +1,8 @@
 import { describe, it, expect } from "vitest";
-import { ConversationLineResult } from "@domain/entities/Conversation";
-import { gradeSpokenLine, lastScoreByConversation, latestRecordings, normalizeSpoken, roleScores } from "@domain/services/SpeechGrading";
+import { Conversation, ConversationLineResult } from "@domain/entities/Conversation";
+import { conversationProgress, followSpokenLine, gradeSpokenLine, latestRecordings, normalizeSpoken, roleScores } from "@domain/services/SpeechGrading";
+import { parseConversation } from "@domain/services/ConversationParser";
+import cafeFile from "../../../data/dialogue/de-a2-cafe.json";
 
 const statuses = (expected: string, heard: string[], language: "de" | "en" | "fa" = "de") =>
   gradeSpokenLine(expected, heard, language).grade.marks.map((mark) => mark.status);
@@ -88,9 +90,45 @@ describe("roleScores", () => {
     expect(jonas).toMatchObject({ attemptCount: 1, lastScore: 1 });
   });
 
-  it("finds the recordings of a role's latest attempt and each dialogue's latest score", () => {
+  it("finds the recordings of a role's latest attempt", () => {
     expect(latestRecordings(results, "attempt-2", "lena").map((result) => result.id)).toEqual(["3"]);
-    expect(lastScoreByConversation(results).get("de-a2-cafe")).toBe(1);
-    expect(lastScoreByConversation(results).get("other")).toBe(0);
+  });
+});
+
+describe("conversationProgress", () => {
+  const parsed = parseConversation(cafeFile);
+  if (!("content" in parsed)) throw new Error("the cafe sample must parse");
+  const cafe = { ...parsed.content, id: "de-a2-cafe" } as Conversation;
+
+  it("scores each dialogue of the library, newest first, and leaves out dialogues no longer in it", () => {
+    const progress = conversationProgress(
+      [
+        line({ id: "1", attemptId: "attempt-1", errorCount: 2, transcript: "wie geht" }),
+        line({ id: "2", attemptId: "attempt-2", errorCount: 0, readAt: "2026-11-02T10:00:00.000Z" }),
+        line({ id: "3", conversationId: "removed", errorCount: 4 }),
+      ],
+      [cafe]
+    );
+    expect(progress).toMatchObject({ attemptCount: 2, lineCount: 2, score: 0.75, missedWords: ["es", "dir"] });
+    expect(progress.byConversation).toEqual([
+      { conversation: cafe, attemptCount: 2, lastScore: 1, score: 0.75, lastReadAt: "2026-11-02T10:00:00.000Z" },
+    ]);
+  });
+});
+
+describe("followSpokenLine", () => {
+  const follow = (heard: string) => followSpokenLine("Ich nehme 2 Stück Kuchen, bitte.", heard, "de");
+  const states = (heard: string) => follow(heard).words.map((word) => word.state);
+
+  it("fills the words in order as they are heard, number words included", () => {
+    expect(states("ich nehme zwei")).toEqual(["heard", "heard", "heard", "pending", "pending", "pending"]);
+    expect(follow("ich nehme zwei").isComplete).toBe(false);
+  });
+
+  it("ignores words that aren't next, passes over one misheard word, and completes on the last word", () => {
+    expect(states("also ich nehme zwei stück kuchen danke bitte")).toEqual(["heard", "heard", "heard", "heard", "heard", "heard"]);
+    expect(states("ich nimm zwei stück kuchen bitte")[1]).toBe("skipped");
+    expect(follow("ich nimm zwei stück kuchen bitte").isComplete).toBe(true);
+    expect(follow("ich").words[5].text).toBe("bitte.");
   });
 });

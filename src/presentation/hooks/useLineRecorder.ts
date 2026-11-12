@@ -83,7 +83,7 @@ interface Session {
 
 /**
  * Listens to one line read aloud and records it on the same microphone stream. `listen` resolves with the take when
- * the reader stops (silence or `stop`), or rejects with a RecorderError. Everything stops when the screen closes.
+ * the reader stops (`stop`, or the browser ending recognition after a long silence), or rejects with a RecorderError. Everything stops when the screen closes.
  */
 export function useLineRecorder() {
   const [isListening, setListening] = useState(false);
@@ -126,7 +126,8 @@ export function useLineRecorder() {
       const recognition = new RecognitionClass();
       recognition.lang = VOICE_LANG[language];
       recognition.interimResults = true;
-      recognition.continuous = false;
+      // Pauses between words don't end the take; it ends when the line is complete or the reader stops.
+      recognition.continuous = true;
       recognition.maxAlternatives = MAX_ALTERNATIVES;
       const session: Session = { recognition, recorder, stream };
       sessionRef.current = session;

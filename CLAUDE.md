@@ -215,24 +215,27 @@ must never crash and never show an empty label, row, table or section.
 
 ## Conversations
 
-Learners pick a ready-made dialogue, choose who reads which role, and read their lines aloud. The app hears each
-line, marks wrong, missing and extra words, and scores every role on its own. A demo plays the whole dialogue with a
-female and a male voice. Every line read aloud is recorded and can be played back.
+Conversations work like sentence collections. Users import their own as JSON (Vocabularies → Conversations),
+publish them, and download other people's published ones from Explore → Conversations. The Conversations screen
+picks one of the own and downloaded conversations with `CollectionPicker` (`kind="conversation"`, single choice).
+Learners choose who reads which role and read their lines aloud. The app hears each line, marks wrong, missing and
+extra words, and scores every role on its own. A demo plays the whole dialogue with a female and a male voice. Every
+line read aloud is recorded and can be played back.
 
 ### Where it lives
 
 | File | Job |
 |---|---|
-| `data/dialogue/*.json` | The shipped dialogues. `dialogue.schema.json` holds the format and the CEFR level guide |
+| `data/dialogue/` | `dialogue.schema.json` (the import format and the CEFR level guide) and sample dialogues to import |
 | `domain/entities/Conversation.ts` | Dialogue, setup, attempt and line result types, and the limits |
-| `domain/services/ConversationParser.ts` | `parseConversation`: checks a dialogue file and returns problem codes |
+| `domain/services/ConversationParser.ts` | `parseConversation` / `parseConversationFile` check imported JSON; `conversationToJson` stores it |
 | `domain/services/ConversationPlanner.ts` | Setup rules (`speakerRange`, `defaultSetup`, `assignRole`, `validateSetup`) and `planConversation` |
-| `domain/services/SpeechGrading.ts` | `gradeSpokenLine` and the per-role history (`roleScores`, `latestRecordings`) |
-| `application/services/ConversationService.ts` | Lists dialogues, starts a run, saves lines, uploads and plays recordings |
-| `infrastructure/content/BundledConversationRepository.ts` | Loads the dialogue files with `import.meta.glob`, one chunk each |
+| `domain/services/SpeechGrading.ts` | `gradeSpokenLine` the per-role history (`roleScores`, `latestRecordings`) and Progress (`conversationProgress`) |
+| `application/services/ConversationService.ts` | Library, import, publish, download; starts a run, saves lines, plays recordings |
+| `infrastructure/supabase/SupabaseConversationRepository.ts`, `infrastructure/offline/OfflineConversationRepository.ts` | The `conversations` table, cached under `conversations:` |
 | `infrastructure/supabase/SupabaseRecordingGateway.ts`, `infrastructure/offline/OfflineRecordingGateway.ts` | Storage bucket, in-memory playback and upload retries |
 | `presentation/hooks/useLineRecorder.ts`, `presentation/speech.ts` | Browser speech recognition, recording and the role voices |
-| `presentation/pages/ConversationPage.tsx`, `presentation/components/conversation/` | The screens |
+| `presentation/pages/ConversationPage.tsx`, `presentation/components/conversation/` | The reading screens, `ConversationsManager` (Vocabularies), `ConversationBrowser` (Explore) and `ConversationProgress` (Progress) |
 
 ### Content rules
 
@@ -240,9 +243,12 @@ female and a male voice. Every line read aloud is recorded and can be played bac
 - Round 1 opens and round 7 closes (priority 0). The middle rounds use priorities 1–5 once each, and each must make
   sense on its own, because only the most important ones are kept.
 - Lines of an optional role must be removable: nobody answers or names them.
-- Numbers are written as digits. Raise `version` whenever a line's text changes. Never change an `id`.
-- A new dialogue is a new file in `data/dialogue/`. The test in `ConversationPlanner.test.ts` plans every file in every
-  valid setup and fails on any problem.
+- Numbers are written as digits. Raise `version` whenever a line's text changes. Never change an `id`: importing
+  the same `id` again updates the owner's conversation (unique per owner in the database).
+- A file holds one dialogue or a list of up to 50. The stored `content` is untrusted JSON: rows are parsed again on
+  read and a row that doesn't parse is left out. Title, language, level and the file id are generated columns.
+- Drafts are private. Publishing needs no minimum; downloads follow the sentence collection rules (only published,
+  never your own). Every sample in `data/dialogue/` is planned in every valid setup by `ConversationPlanner.test.ts`.
 
 ### Participant rules
 
@@ -257,6 +263,8 @@ female and a male voice. Every line read aloud is recorded and can be played bac
   punctuation ignored, `ß` = `ss`, Persian letter, digit, diacritic and ZWNJ variants unified, number words up to 100
   equal to digits, fillers dropped, split or joined compounds accepted.
 - The recogniser returns up to 5 alternatives and the one with the fewest errors counts.
+- While a line is read, `followSpokenLine` fills its words in order as they are heard (one misheard word may be passed
+  over). The take ends by itself once every word is heard, or when the reader stops it.
 - A near miss counts half an error. The score is `scoreOf(errorCount / maxErrors)`.
 - **Scores and history are per role.** A run's attempt row stores the setup; line rows store the expected text, the
   transcript and the errors. Scores are derived, never stored.
@@ -333,7 +341,7 @@ The app must feel instant. Reads go through caches; screens never wait for data 
   starts with data on screen. Words have their own cache (`CachingWordRepository`); learning data is mirrored in
   `OfflineLearningRepository` and served from memory while fresh.
 - **Keys and invalidation.** Cache keys start with the repository's prefix (`vocabularies:`, `reviews:`,
-  `collections:`, `exercises:`, `profile:`). Every write calls `cache.invalidate(prefix)` for each kind of data it
+  `collections:`, `exercises:`, `conversations:`, `profile:`). Every write calls `cache.invalidate(prefix)` for each kind of data it
   changes (a new word changes a vocabulary's word count; an import changes a collection's exercise count), or
   `cache.put` with what the server returned. A new repository that reads from the server goes through the cache
   the same way; never call Supabase directly from a screen.

@@ -1,11 +1,12 @@
 import {
-  Conversation,
+  ConversationContent,
   ConversationLine,
   ConversationProblem,
   ConversationRole,
   ConversationRound,
   ConversationText,
   LINE_TEXT_MAX,
+  MAX_CONVERSATIONS_PER_FILE,
   MAX_ROLES,
   MIN_ROLES,
   ROUND_COUNT,
@@ -13,20 +14,20 @@ import {
 import { LanguageCode, isLanguageCode } from "@domain/entities/Language";
 import { CEFR_LEVELS, CefrLevel, normalizeSentenceTranslationsMap } from "@domain/entities/Word";
 
-export type ConversationParseResult = { conversation: Conversation } | { problems: ConversationProblem[] };
+export type ConversationParseResult = { content: ConversationContent } | { problems: ConversationProblem[] };
 
 type Fields = Record<string, unknown>;
 
 const text = (value: unknown): string => (typeof value === "string" ? value.trim() : "");
 const isObject = (value: unknown): value is Fields => typeof value === "object" && value !== null && !Array.isArray(value);
 
-/** Checks a dialogue file (untrusted JSON) and turns it into a Conversation, or lists every problem found. */
+/** Checks one dialogue (untrusted JSON) and turns it into content, or lists every problem found. */
 export function parseConversation(value: unknown): ConversationParseResult {
   if (!isObject(value)) return { problems: ["not_an_object"] };
   const problems = new Set<ConversationProblem>();
 
-  const id = text(value.id);
-  if (!id) problems.add("id_missing");
+  const key = text(value.id);
+  if (!key || key.length > 200) problems.add("id_missing");
   const version = value.version;
   if (typeof version !== "number" || !Number.isInteger(version) || version < 1) problems.add("version_invalid");
   if (!isLanguageCode(value.language)) problems.add("language_invalid");
@@ -39,8 +40,8 @@ export function parseConversation(value: unknown): ConversationParseResult {
 
   if (problems.size > 0) return { problems: Array.from(problems) };
   return {
-    conversation: {
-      id,
+    content: {
+      key,
       version: version as number,
       language: value.language as LanguageCode,
       level: value.level as CefrLevel,
@@ -116,4 +117,30 @@ function parseTextTranslations(value: unknown): Partial<Record<LanguageCode, Con
     if (title) result[language] = { title, description: text(raw.description) };
   }
   return result;
+}
+
+/** An imported file holds one dialogue or a list of them; each gets its own result, in file order. */
+export function parseConversationFile(value: unknown): ConversationParseResult[] {
+  const entries = Array.isArray(value) ? value : [value];
+  if (entries.length > MAX_CONVERSATIONS_PER_FILE) return [{ problems: ["file_too_many"] }];
+  return entries.map(parseConversation);
+}
+
+/** The content in its file format, as stored and exported; `parseConversation` reads it back unchanged. */
+export function conversationToJson(content: ConversationContent): Record<string, unknown> {
+  return {
+    id: content.key,
+    version: content.version,
+    language: content.language,
+    level: content.level,
+    title: content.title,
+    description: content.description,
+    translations: content.translations,
+    tags: content.tags,
+    roles: content.roles,
+    rounds: content.rounds.map((round) => ({
+      priority: round.priority,
+      lines: round.lines.map((line) => ({ id: line.id, role: line.roleId, text: line.text, translations: line.translations })),
+    })),
+  };
 }

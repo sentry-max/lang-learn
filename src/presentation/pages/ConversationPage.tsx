@@ -1,8 +1,9 @@
 import { useEffect, useMemo, useRef, useState } from "react";
-import { Conversation, ConversationAttempt, ConversationLineResult, ConversationSetup, roleOf } from "@domain/entities/Conversation";
+import { Link } from "react-router-dom";
+import { Conversation, ConversationAttempt, ConversationLineResult, ConversationSetup, conversationTitle, roleOf } from "@domain/entities/Conversation";
 import { PlannedLine, defaultSetup, planConversation, validateSetup } from "@domain/services/ConversationPlanner";
 import { SentenceGrade } from "@domain/services/SentenceGrading";
-import { SpokenLineGrade, gradeSpokenLine, lastScoreByConversation } from "@domain/services/SpeechGrading";
+import { SpokenLineGrade, gradeSpokenLine } from "@domain/services/SpeechGrading";
 import { useCurrentUser } from "@presentation/context/AuthContext";
 import { useServices, useSyncStatus } from "@presentation/context/ServicesContext";
 import { useLanguage } from "@presentation/context/LanguageContext";
@@ -12,7 +13,6 @@ import { useAsync } from "@presentation/hooks/useAsync";
 import { useErrorMessage } from "@presentation/hooks/useErrorMessage";
 import { useFocusMode } from "@presentation/hooks/useFocusMode";
 import { RecordedTake, RecorderError, RecorderFailure, canRecognizeSpeech, useLineRecorder } from "@presentation/hooks/useLineRecorder";
-import ConversationPicker from "@presentation/components/conversation/ConversationPicker";
 import ConversationSetupPanel from "@presentation/components/conversation/ConversationSetupPanel";
 import ConversationDemo from "@presentation/components/conversation/ConversationDemo";
 import ConversationTranscript from "@presentation/components/conversation/ConversationTranscript";
@@ -25,7 +25,7 @@ import { UiStringKey } from "@presentation/i18n/translations";
 import { canSpeak, speakLine, stopSpeaking } from "@presentation/speech";
 import { formatNumber } from "@presentation/format";
 
-type Stage = "pick" | "setup" | "demo" | "reading" | "done";
+type Stage = "setup" | "demo" | "reading" | "done";
 
 const DEFAULT_TURNS = 5;
 
@@ -60,13 +60,12 @@ export default function ConversationPage() {
   const errorMessage = useErrorMessage();
   const recorder = useLineRecorder();
 
-  const library = useAsync(() => conversations.list(), [conversations]);
+  const library = useAsync(() => conversations.listLibrary(user.id), [user.id, version]);
   const history = useAsync(() => conversations.history(user.id), [user.id, version]);
-  const lastScoreById = useMemo(() => lastScoreByConversation(history.data ?? []), [history.data]);
 
-  const [stage, setStage] = useState<Stage>("pick");
-  const [conversation, setConversation] = useState<Conversation | null>(null);
-  const [setup, setSetup] = useState<ConversationSetup | null>(null);
+  const [stage, setStage] = useState<Stage>("setup");
+  const [selectedId, setSelectedId] = useState<string | null>(null);
+  const [chosenSetup, setChosenSetup] = useState<{ conversationId: string; setup: ConversationSetup } | null>(null);
   const [run, setRunState] = useState<ReadingRun | null>(null);
   const [pending, setPending] = useState<PendingTake | null>(null);
   const [failure, setFailure] = useState<string | null>(null);
@@ -84,6 +83,14 @@ export default function ConversationPage() {
     setRunState(next);
   };
 
+  // A conversation stays on screen while a run uses it, even if a background refresh drops it from the library.
+  const [runConversation, setRunConversation] = useState<Conversation | null>(null);
+  const libraryConversation = library.data?.find((candidate) => candidate.id === selectedId) ?? library.data?.[0] ?? null;
+  const conversation = stage === "setup" ? libraryConversation : (runConversation ?? libraryConversation);
+  const setup =
+    conversation && (chosenSetup?.conversationId === conversation.id ? chosenSetup.setup : defaultSetup(conversation, 1, true, DEFAULT_TURNS));
+  const changeSetup = (next: ConversationSetup) => conversation && setChosenSetup({ conversationId: conversation.id, setup: next });
+
   const plan = useMemo(
     () => (conversation && setup && validateSetup(conversation, setup).length === 0 ? planConversation(conversation, setup) : []),
     [conversation, setup]
@@ -93,14 +100,8 @@ export default function ConversationPage() {
 
   function openDemo(from: Stage) {
     setDemoReturnStage(from);
+    setRunConversation(conversation);
     setStage("demo");
-  }
-
-  function pick(chosen: Conversation) {
-    setConversation(chosen);
-    setSetup(defaultSetup(chosen, 1, true, DEFAULT_TURNS));
-    setError(null);
-    setStage("setup");
   }
 
   async function startReading() {
@@ -109,6 +110,7 @@ export default function ConversationPage() {
     setError(null);
     try {
       const started = await conversations.start(user.id, conversation, setup);
+      setRunConversation(conversation);
       setRun({ ...started, index: 0, results: [], gradeByLineId: {}, endedEarly: false });
       setPending(null);
       setFailure(null);
@@ -229,7 +231,7 @@ export default function ConversationPage() {
           endedEarly={run.endedEarly}
           onReadAgain={startReading}
           onDemo={() => openDemo("done")}
-          onChooseAnother={() => setStage("pick")}
+          onChooseAnother={() => setStage("setup")}
         />
       </div>
     );
@@ -243,6 +245,9 @@ export default function ConversationPage() {
           <button type="button" className="icon-btn" onClick={requestExit} aria-label={t("conversationExit")} title={t("conversationExit")}>
             <Icon name="close" />
           </button>
+          <h1 className="conversation-topic" dir="auto">
+            {conversationTitle(conversation)}
+          </h1>
           <ProgressIndicator value={run.index / total} />
           <span className="quiz-counter" aria-label={t("conversationLineOf", { current: run.index + 1, total })}>
             {formatNumber(run.index + 1, language)}/{formatNumber(total, language)}
@@ -267,45 +272,57 @@ export default function ConversationPage() {
     );
   }
 
-  if (stage === "setup" && conversation && setup) {
-    return (
-      <div className="app-main">
-        {error && <ErrorBanner message={error} />}
-        {history.error !== null && <ErrorBanner message={errorMessage(history.error, "conversationHistoryLoadError")} onRetry={history.reload} />}
-        <ConversationSetupPanel
-          conversation={conversation}
-          setup={setup}
-          onChange={setSetup}
-          history={history.data}
-          primaryLanguage={profile.primaryLanguage}
-          canRead={canRecognizeSpeech()}
-          canSpeakOut={canSpeak()}
-          isStarting={isStarting}
-          onBack={() => setStage("pick")}
-          onDemo={() => openDemo("setup")}
-          onRead={startReading}
-        />
-      </div>
-    );
-  }
-
   if (library.loading && !library.data) return <PageLoader />;
-  if (library.error) {
+  if (library.error && !library.data) {
     return (
       <div className="app-main">
         <ErrorBanner message={errorMessage(library.error, "conversationLoadError")} onRetry={library.reload} />
       </div>
     );
   }
+  if (!conversation || !setup) {
+    return (
+      <div className="app-main">
+        <div className="card empty-state">
+          <div className="empty-icon">
+            <Icon name="mic" size={36} />
+          </div>
+          <h2>{t("conversationNoLibraryTitle")}</h2>
+          <p className="muted">{t("conversationNoLibraryBody")}</p>
+          <div className="button-row center">
+            <Link className="btn" to="/vocabularies?section=conversations">
+              {t("manageConversations")}
+            </Link>
+            <Link className="btn btn-secondary" to="/feed?section=conversations">
+              {t("exploreConversations")}
+            </Link>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="app-main">
-      {library.data && library.data.length > 0 ? (
-        <ConversationPicker conversations={library.data} lastScoreById={lastScoreById} primaryLanguage={profile.primaryLanguage} onPick={pick} />
-      ) : (
-        <div className="card empty-state">
-          <p>{t("conversationNoneAvailable")}</p>
-        </div>
-      )}
+      {error && <ErrorBanner message={error} />}
+      {history.error !== null && <ErrorBanner message={errorMessage(history.error, "conversationHistoryLoadError")} onRetry={history.reload} />}
+      <ConversationSetupPanel
+        library={library.data ?? []}
+        conversation={conversation}
+        onSelect={(id) => {
+          setSelectedId(id);
+          setError(null);
+        }}
+        setup={setup}
+        onChange={changeSetup}
+        history={history.data}
+        primaryLanguage={profile.primaryLanguage}
+        canRead={canRecognizeSpeech()}
+        canSpeakOut={canSpeak()}
+        isStarting={isStarting}
+        onDemo={() => openDemo("setup")}
+        onRead={startReading}
+      />
     </div>
   );
 }

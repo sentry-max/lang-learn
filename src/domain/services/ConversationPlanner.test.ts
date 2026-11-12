@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { Conversation, MAX_TURNS, MIN_TURNS } from "@domain/entities/Conversation";
+import { ConversationContent, MAX_TURNS, MIN_TURNS } from "@domain/entities/Conversation";
 import { parseConversation } from "@domain/services/ConversationParser";
 import {
   assignRole,
@@ -14,10 +14,10 @@ import {
 
 const dialogueFiles = import.meta.glob<unknown>(["/data/dialogue/*.json", "!/data/dialogue/*.schema.json"], { eager: true, import: "default" });
 
-function parsed(value: unknown): Conversation {
+function parsed(value: unknown): ConversationContent {
   const result = parseConversation(value);
-  if (!("conversation" in result)) throw new Error(`invalid dialogue: ${result.problems.join(", ")}`);
-  return result.conversation;
+  if (!("content" in result)) throw new Error(`invalid dialogue: ${result.problems.join(", ")}`);
+  return result.content;
 }
 
 const cafe = parsed(dialogueFiles["/data/dialogue/de-a2-cafe.json"]);
@@ -83,7 +83,7 @@ describe("setup rules", () => {
   });
 });
 
-describe("the shipped dialogues", () => {
+describe("the sample dialogues", () => {
   it("includes at least the two samples", () => {
     expect(Object.keys(dialogueFiles).length).toBeGreaterThanOrEqual(2);
   });

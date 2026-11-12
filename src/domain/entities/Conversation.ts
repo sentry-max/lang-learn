@@ -33,9 +33,10 @@ export interface ConversationText {
   description: string;
 }
 
-/** A ready-made dialogue shipped with the app (`data/dialogue/*.json`). */
-export interface Conversation {
-  id: string;
+/** A dialogue as written in its JSON file (`data/dialogue/dialogue.schema.json`). */
+export interface ConversationContent {
+  /** The file's own id: importing the same key again updates the conversation */
+  key: string;
   /** Raised when lines change; stored with each attempt */
   version: number;
   language: LanguageCode;
@@ -48,6 +49,20 @@ export interface Conversation {
   rounds: ConversationRound[];
 }
 
+/** Drafts are private to their owner; published conversations can be found on Explore and downloaded. */
+export type ConversationStatus = "draft" | "published";
+
+/** A stored conversation: its content plus who owns it and whether it is published. */
+export interface Conversation extends ConversationContent {
+  id: string;
+  ownerId: string;
+  ownerName: string | null;
+  status: ConversationStatus;
+  createdAt: string;
+  updatedAt: string;
+  publishedAt: string | null;
+}
+
 export const MIN_ROLES = 2;
 export const MAX_ROLES = 6;
 export const ROUND_COUNT = 7;
@@ -57,10 +72,13 @@ export const MAX_HUMANS = 5;
 export const MAX_BOTS = 1;
 export const MIN_TURNS = 3;
 export const MAX_TURNS = 7;
+/** Dialogues one imported file may hold */
+export const MAX_CONVERSATIONS_PER_FILE = 50;
 
 /** Why a dialogue file can't be used. */
 export type ConversationProblem =
   | "not_an_object"
+  | "file_too_many"
   | "id_missing"
   | "version_invalid"
   | "language_invalid"
@@ -117,10 +135,15 @@ export interface ConversationLineResult {
   readAt: string;
 }
 
-export function conversationText(conversation: Conversation, language: LanguageCode): ConversationText {
+/** The title with the CEFR level, as lists and the picker show it: "Im Café (A2)". */
+export function conversationTitle(conversation: ConversationContent): string {
+  return `${conversation.title} (${conversation.level})`;
+}
+
+export function conversationText(conversation: ConversationContent, language: LanguageCode): ConversationText {
   return conversation.translations[language] ?? { title: conversation.title, description: conversation.description };
 }
 
-export function roleOf(conversation: Conversation, roleId: string): ConversationRole | undefined {
+export function roleOf(conversation: Pick<ConversationContent, "roles">, roleId: string): ConversationRole | undefined {
   return conversation.roles.find((role) => role.id === roleId);
 }
