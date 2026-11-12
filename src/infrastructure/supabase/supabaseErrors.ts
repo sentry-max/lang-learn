@@ -18,6 +18,9 @@ const DATABASE_RULES: Record<string, { reason: AppErrorReason; message: string }
   },
   VOCABULARY_NOT_FOUND: { reason: "vocabulary_not_found", message: "That vocabulary no longer exists." },
   VOCABULARY_INVALID_LANGUAGE: { reason: "invalid_input", message: "That language isn't supported." },
+  SENTENCE_EXERCISE_LIMIT: { reason: "sentence_exercise_limit", message: "A collection can hold at most 2000 sentence exercises." },
+  SENTENCE_COLLECTION_EMPTY: { reason: "collection_empty", message: "A sentence collection needs at least one exercise to be published." },
+  SENTENCE_COLLECTION_NOT_FOUND: { reason: "collection_not_found", message: "That sentence collection no longer exists." },
 };
 
 /** Converts a Supabase/PostgREST error into an AppError the UI can show. */

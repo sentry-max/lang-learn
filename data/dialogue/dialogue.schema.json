@@ -1,0 +1,100 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "Conversation",
+  "description": "One dialogue for the Conversation module, imported under Vocabularies → Conversations (a file may also hold a JSON list of up to 50 dialogues). Generate one dialogue for the requested language and level. Follow the level guide in `level` strictly. The dialogue has exactly 7 rounds, and every round has exactly one line per role, so each speaker gets one turn per round. Learners choose 3 to 7 turns per person: the app always keeps round 1 (the opening) and round 7 (the closing), and keeps the middle rounds with the lowest `priority` numbers, in their original order. So every middle round must make sense on its own: no line may answer or refer to a line of another middle round. Within a round, lines are read in the order written and may answer each other. Roles marked `optional` are left out when fewer people take part, so their lines must be removable without breaking the flow: nobody answers or names an optional role's line. Write numbers as digits (3, 7, 20), never as words, and avoid decimals and times written with punctuation. Text is in the dialogue's own language; translations go in `translations`.",
+  "type": "object",
+  "required": ["id", "version", "language", "level", "title", "roles", "rounds"],
+  "additionalProperties": false,
+  "properties": {
+    "$schema": { "type": "string" },
+    "id": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 200,
+      "pattern": "^[a-z0-9-]+$",
+      "description": "Stable key, e.g. 'de-a2-cafe'. Importing a dialogue with an id the user already has updates that conversation instead of adding a copy, so never change it."
+    },
+    "version": {
+      "type": "integer",
+      "minimum": 1,
+      "description": "Start at 1. Raise it whenever a line's text changes."
+    },
+    "language": {
+      "type": "string",
+      "enum": ["de", "en", "fa"],
+      "description": "The language the lines are written and read in."
+    },
+    "level": {
+      "type": "string",
+      "enum": ["A1", "A2", "B1", "B2", "C1", "C2"],
+      "description": "CEFR level. Every line must fit it. A1: 3–8 words per line; present tense, simple main clauses, yes/no and W-questions, 'und'/'aber' (English: present simple and continuous, 'and'/'but'; Persian: present tense, simple questions); greetings, numbers, food, family, places; only very common words. A2: 5–12 words; Perfekt and simple past, modal verbs, 'weil'/'dass'/'wenn', comparisons (English: past simple, present perfect, 'going to', 'because'; Persian: simple past and present perfect, 'چون'/'که'); shopping, travel, appointments, routines; polite set phrases. B1: 8–16 words; all common tenses, subordinate clauses, Konjunktiv II for politeness, present passive (English: first and second conditionals, present passive, reported speech in the past; Persian: subjunctive, 'اگر' clauses); work, plans, opinions, small problems; giving reasons and suggestions. B2: 10–20 words; complex sentences, passive in all tenses, Konjunktiv I in reported speech, connectors like 'trotzdem'/'obwohl' (English: third conditional, passive in all tenses, 'although'/'whereas'; Persian: past subjunctive, passive, formal connectors); arguing a point, negotiating, abstract topics; some idioms. C1: 12–25 words; nominal style, participle clauses, nuanced modality (English: inversion, cleft sentences, mixed conditionals; Persian: formal written register where it fits); register shifts between formal and informal, idioms, implied meaning. C2: no length limit; the full range used precisely; native-level idiom, irony, specialised vocabulary."
+    },
+    "title": { "type": "string", "minLength": 1, "maxLength": 120, "description": "Short title in the dialogue's language, sentence case, no final period." },
+    "description": { "type": "string", "maxLength": 300, "description": "One sentence on the situation, in the dialogue's language." },
+    "translations": {
+      "type": "object",
+      "description": "The title and description in other languages, keyed by language code. Missing languages fall back to the original.",
+      "propertyNames": { "enum": ["de", "en", "fa"] },
+      "additionalProperties": {
+        "type": "object",
+        "required": ["title"],
+        "properties": {
+          "title": { "type": "string", "minLength": 1, "maxLength": 120 },
+          "description": { "type": "string", "maxLength": 300 }
+        }
+      }
+    },
+    "tags": { "type": "array", "items": { "type": "string", "minLength": 1, "maxLength": 40 }, "maxItems": 10 },
+    "roles": {
+      "type": "array",
+      "minItems": 2,
+      "maxItems": 6,
+      "description": "The speakers. At least 2 must be required (not optional). Up to 5 people and 1 bot read at once, so a dialogue works with any number of speakers from its required roles up to all roles.",
+      "items": {
+        "type": "object",
+        "required": ["id", "name", "gender"],
+        "additionalProperties": false,
+        "properties": {
+          "id": { "type": "string", "minLength": 1, "maxLength": 100, "pattern": "^[a-z0-9-]+$", "description": "Stable key; scores are kept per role under it." },
+          "name": { "type": "string", "minLength": 1, "maxLength": 60, "description": "Shown above the role's lines: a first name or a job title." },
+          "gender": { "type": "string", "enum": ["female", "male"], "description": "Chooses the voice the bot and the demo use for this role." },
+          "optional": { "type": "boolean", "default": false, "description": "Left out when fewer people take part. Its lines must be removable without breaking the flow." }
+        }
+      }
+    },
+    "rounds": {
+      "type": "array",
+      "minItems": 7,
+      "maxItems": 7,
+      "description": "Exactly 7 rounds. Round 1 opens and round 7 closes (priority 0). Rounds 2–6 use priorities 1 to 5, each once: 1 is kept first when the learner chooses fewer turns.",
+      "items": {
+        "type": "object",
+        "required": ["priority", "lines"],
+        "additionalProperties": false,
+        "properties": {
+          "priority": { "type": "integer", "minimum": 0, "maximum": 5 },
+          "lines": {
+            "type": "array",
+            "description": "Exactly one line per role, in reading order.",
+            "items": {
+              "type": "object",
+              "required": ["id", "role", "text"],
+              "additionalProperties": false,
+              "properties": {
+                "id": { "type": "string", "minLength": 1, "maxLength": 100, "description": "Unique in the dialogue, e.g. 'r3-guest-a'." },
+                "role": { "type": "string", "description": "The id of the role that speaks this line." },
+                "text": { "type": "string", "minLength": 1, "maxLength": 300, "description": "What is read aloud, in the dialogue's language. Natural speech at the dialogue's level." },
+                "translations": {
+                  "type": "object",
+                  "description": "The line in other languages, keyed by language code. Shown under the active line.",
+                  "propertyNames": { "enum": ["de", "en", "fa"] },
+                  "additionalProperties": { "type": "string", "minLength": 1, "maxLength": 400 }
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  }
+}

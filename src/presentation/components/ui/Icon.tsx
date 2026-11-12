@@ -14,6 +14,7 @@ type Shape =
 
 const ICONS = {
   quiz: ["M13 2 3 14h9l-1 8 10-12h-9l1-8z"],
+  sentence: ["M4 6h16", "M4 12h10", "M4 18h13", "M17 12h3"],
   history: [{ circle: [12, 12, 10] }, "M12 6v6l4 2"],
   book: ["M4 19.5A2.5 2.5 0 0 1 6.5 17H20", "M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"],
   compass: [{ circle: [12, 12, 10] }, "M16.24 7.76 14.12 14.12 7.76 16.24 9.88 9.88z"],
@@ -142,7 +143,7 @@ export default function Icon({ name, size = 20, className, label }: Props) {
       viewBox="0 0 24 24"
       fill="none"
       stroke="currentColor"
-      strokeWidth={liquid ? 1.8 : 2}
+      strokeWidth={liquid ? 1.8 : 1.75}
       strokeLinecap="round"
       strokeLinejoin="round"
       role={label ? "img" : undefined}

@@ -1,4 +1,5 @@
 import { DependencyList, useCallback, useEffect, useRef, useState } from "react";
+import { beginLoading } from "@presentation/loadingActivity";
 
 export interface AsyncState<T> {
   data: T | undefined;
@@ -23,12 +24,14 @@ export function useAsync<T>(load: () => Promise<T>, deps: DependencyList): Async
     const id = ++runId.current;
     setLoading(true);
     setError(null);
+    const endLoading = beginLoading();
     try {
       const result = await load();
       if (id === runId.current) setDataState(result);
     } catch (error) {
       if (id === runId.current) setError(error);
     } finally {
+      endLoading();
       if (id === runId.current) setLoading(false);
     }
     // The caller's deps decide when to reload.

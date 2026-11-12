@@ -1,0 +1,106 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "SentenceExerciseImport",
+  "description": "Array of sentence exercises importable into one sentence collection (Sentences → Manage sentence collections → ⬆ on a collection). The collection decides the sentences' language. Three kinds: \"fill_blank\" (pick the missing word for one or two blanks), \"jumble\" (put scrambled words in order) and \"transform\" (rewrite the sentence: tense, negative, question, active/passive). Import the same \"id\" again to update an exercise; an entry with the same kind and sentence but no matching id is skipped as a duplicate. A collection holds at most 2000 exercises.",
+  "type": "array",
+  "items": {
+    "type": "object",
+    "required": ["kind", "sentence"],
+    "properties": {
+      "id": {
+        "type": "string",
+        "maxLength": 200,
+        "description": "Optional stable id, e.g. 'b1-fill-001'. Re-importing an exercise with the same id updates it."
+      },
+      "kind": {
+        "type": "string",
+        "enum": ["fill_blank", "jumble", "transform"]
+      },
+      "sentence": {
+        "type": "string",
+        "minLength": 1,
+        "maxLength": 300,
+        "description": "fill_blank: the sentence with each blank written as ___ (three underscores), one or two blanks. jumble: the correct sentence; its words are shuffled into tiles (split on spaces; a final . ? ! stays fixed at the end). transform: the sentence the user starts from."
+      },
+      "answers": {
+        "type": "array",
+        "items": { "type": "string", "minLength": 1 },
+        "description": "fill_blank: exactly one word per blank, in order (each at most 60 characters). transform: the accepted results, best first (1–10, each at most 300 characters); the closest one is used to grade the answer and shown as the correction."
+      },
+      "distractors": {
+        "type": "array",
+        "items": { "type": "string", "minLength": 1, "maxLength": 60 },
+        "maxItems": 10,
+        "description": "Wrong words offered next to the right ones. fill_blank: required, at least one. jumble: optional; added only when the user turns on \"Extra words\". A distractor equal to an answer (or to a word of the sentence) is ignored."
+      },
+      "alternatives": {
+        "type": "array",
+        "items": { "type": "string", "minLength": 1, "maxLength": 300 },
+        "maxItems": 10,
+        "description": "jumble only: other correct word orders. Each must use exactly the same words as \"sentence\" (case aside), e.g. 'Morgen gehe ich ins Kino.' for 'Ich gehe morgen ins Kino.'."
+      },
+      "task": {
+        "type": "string",
+        "enum": [
+          "present",
+          "simple_past",
+          "present_perfect",
+          "past_perfect",
+          "future",
+          "future_perfect",
+          "negative",
+          "question",
+          "passive",
+          "active"
+        ],
+        "description": "transform only, required: what to turn the sentence into. German: present = Präsens, simple_past = Präteritum, present_perfect = Perfekt, past_perfect = Plusquamperfekt, future = Futur I, future_perfect = Futur II. English: present simple, past simple, present perfect, past perfect, will-future, future perfect."
+      },
+      "translations": {
+        "type": "object",
+        "description": "Translation of the complete (correct) sentence, keyed by language code. Shown with the hint and after answering.",
+        "properties": {
+          "de": { "type": "string", "maxLength": 500 },
+          "en": { "type": "string", "maxLength": 500 },
+          "fa": { "type": "string", "maxLength": 500 }
+        },
+        "additionalProperties": false
+      },
+      "hint": {
+        "type": "string",
+        "maxLength": 500,
+        "description": "Optional short hint in any language, shown when the user asks for it, e.g. 'Dativ nach \"mit\"'."
+      },
+      "level": {
+        "type": "string",
+        "enum": ["A1", "A2", "B1", "B2", "C1", "C2"]
+      },
+      "tags": {
+        "type": "array",
+        "items": { "type": "string", "maxLength": 40 },
+        "maxItems": 20,
+        "description": "Grammar topics, e.g. 'dative', 'word-order', 'perfect'. The app learns which topics you score low on and offers their sentences more often."
+      }
+    },
+    "allOf": [
+      {
+        "if": { "properties": { "kind": { "const": "fill_blank" } } },
+        "then": {
+          "required": ["answers", "distractors"],
+          "properties": {
+            "sentence": { "pattern": "___" },
+            "answers": { "minItems": 1, "maxItems": 2 },
+            "distractors": { "minItems": 1 }
+          }
+        }
+      },
+      {
+        "if": { "properties": { "kind": { "const": "transform" } } },
+        "then": {
+          "required": ["task", "answers"],
+          "properties": { "answers": { "minItems": 1, "maxItems": 10 } }
+        }
+      }
+    ],
+    "additionalProperties": false
+  }
+}

@@ -14,6 +14,10 @@ import { LanguagePair, StatusPill } from "@presentation/components/VocabularyBad
 import { StarDisplay } from "@presentation/components/StarRating";
 import { formatDate, formatNumber } from "@presentation/format";
 import { InlineLoader } from "@presentation/components/ui/Loader";
+import { useSection } from "@presentation/hooks/useSection";
+import SectionTabs from "@presentation/components/SectionTabs";
+import SentenceCollectionsManager from "@presentation/components/sentence/SentenceCollectionsManager";
+import ConversationsManager from "@presentation/components/conversation/ConversationsManager";
 
 type Tab = "mine" | "downloaded";
 
@@ -22,6 +26,7 @@ export default function VocabulariesPage() {
   const user = useCurrentUser();
   const { vocabularies } = useServices();
   const { t } = useLanguage();
+  const [section, setSection] = useSection();
   const errorMessage = useErrorMessage();
   const confirm = useConfirm();
   const navigate = useNavigate();
@@ -58,8 +63,19 @@ export default function VocabulariesPage() {
   const owned = data.data?.owned ?? [];
   const downloaded = data.data?.downloaded ?? [];
 
+  const sectionTabs = <SectionTabs value={section} onChange={setSection} wordsLabel="navVocabularies" hasConversations />;
+  if (section !== "words") {
+    return (
+      <div className="app-main">
+        {sectionTabs}
+        {section === "sentences" ? <SentenceCollectionsManager /> : <ConversationsManager />}
+      </div>
+    );
+  }
+
   return (
     <div className="app-main">
+      {sectionTabs}
       <div className="page-header">
         <h2>{t("navVocabularies")}</h2>
         {/* In the header on wide screens; floating at the bottom on phones. */}

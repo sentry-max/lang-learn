@@ -1,8 +1,7 @@
 import { Word } from "@domain/entities/Word";
 import { isNetworkError, offlineError } from "@domain/errors/AppError";
 import { WordRepository } from "@domain/repositories/WordRepository";
-import { Connectivity } from "@infrastructure/offline/Connectivity";
-import { assertOnline } from "@infrastructure/offline/OfflineReadCache";
+import { Connectivity, assertOnline } from "@infrastructure/offline/Connectivity";
 
 interface Entry {
   words: Word[];
@@ -28,7 +27,9 @@ export class CachingWordRepository implements WordRepository {
     private readonly inner: WordRepository,
     private readonly ttlMs = 5 * 60 * 1000,
     private readonly clock: () => number = () => Date.now(),
-    private readonly connectivity: Connectivity = ALWAYS_ONLINE
+    private readonly connectivity: Connectivity = ALWAYS_ONLINE,
+    /** Runs after every write, e.g. to refresh the vocabularies whose word counts changed */
+    private readonly afterWrite: () => void = () => {}
   ) {}
 
   async listByVocabularies(vocabularyIds: string[]): Promise<Word[]> {
@@ -94,6 +95,7 @@ export class CachingWordRepository implements WordRepository {
       await this.inner.saveMany(words);
     } finally {
       this.invalidate(words.map((word) => word.vocabularyId));
+      this.afterWrite();
     }
   }
 
@@ -103,6 +105,7 @@ export class CachingWordRepository implements WordRepository {
       await this.inner.softDelete(words);
     } finally {
       this.invalidate(words.map((word) => word.vocabularyId));
+      this.afterWrite();
     }
   }
 

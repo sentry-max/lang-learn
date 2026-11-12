@@ -7,15 +7,14 @@ interface Props {
 }
 
 /**
- * The app logo: the ring-and-dot mark. The classic style uses the logo image;
- * Liquid Glass draws the same mark as a glass iOS app icon (system blue to
- * indigo, a glossy sheen and a bright rim).
+ * The app logo: a three-quarter ring and the progress piece that completes it. The classic style uses the logo image;
+ * Liquid Glass draws the same mark as a glass iOS app icon (system blue to indigo, a glossy sheen and a bright rim).
  */
 export default function AppLogo({ size, className }: Props) {
   const liquid = useLiquidGlass();
   const id = useId();
   if (!liquid) {
-    return <img className={className} src="/icons/logo-128.png" alt="" width={size} height={size} decoding="async" />;
+    return <img className={className} src="/icons/logo-128.png?v=2" alt="" width={size} height={size} decoding="async" />;
   }
   return (
     <svg className={`${className ?? ""} glass-logo`} width={size} height={size} viewBox="0 0 100 100" aria-hidden="true">
@@ -42,8 +41,8 @@ export default function AppLogo({ size, className }: Props) {
       </defs>
       <rect width="100" height="100" rx="23" fill={`url(#${id}bg)`} />
       <rect width="100" height="100" rx="23" fill={`url(#${id}sheen)`} />
-      <circle cx="53.3" cy="44.3" r="21.7" fill="none" stroke={`url(#${id}ring)`} strokeWidth="8.5" />
-      <circle cx="25.4" cy="72.4" r="8.6" fill="#fff" />
+      <path d="M26.76 48.24A25 25 0 1 1 51.76 73.24" fill="none" stroke={`url(#${id}ring)`} strokeWidth="8.6" />
+      <path d="M48.24 51.76H18.94A29.3 29.3 0 0 0 48.24 81.06Z" fill="var(--brand-piece)" />
       <rect x="1" y="1" width="98" height="98" rx="22" fill="none" stroke={`url(#${id}rim)`} strokeWidth="2" />
     </svg>
   );

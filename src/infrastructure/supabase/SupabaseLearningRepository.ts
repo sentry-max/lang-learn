@@ -7,6 +7,10 @@ import {
   isQuestionMode,
 } from "@domain/entities/Learning";
 import { LearningRepository, QuizSessionRecord } from "@domain/repositories/LearningRepository";
+import { TIMER_MODES, TimerMode } from "@domain/entities/QuizSettings";
+import { isSentenceExerciseKind } from "@domain/entities/SentenceExercise";
+import { SentenceAttempt, normalizeSentenceAnswer } from "@domain/entities/SentencePractice";
+import { ConversationAttempt, ConversationLineResult } from "@domain/entities/Conversation";
 import { guard, throwIfSupabaseError } from "@infrastructure/supabase/supabaseErrors";
 import { ID_CHUNK_SIZE, chunk, fetchAllPages, nowIso, unique } from "@infrastructure/supabase/queryHelpers";
 
@@ -94,6 +98,80 @@ function rowToEvent(row: EventRow): ReviewEvent | null {
     answeredAt: row.answered_at,
     responseMs: row.response_ms,
     collectionKey: row.collection_key,
+  };
+}
+
+const ATTEMPT_COLUMNS =
+  "id, exercise_id, session_id, kind, timer_mode, error_count, max_errors, timed_out, answer, shown_at, answered_at, response_ms";
+
+interface AttemptRow {
+  id: string;
+  exercise_id: string;
+  session_id: string;
+  kind: string;
+  timer_mode: string;
+  error_count: number;
+  max_errors: number;
+  timed_out: boolean;
+  answer: unknown;
+  shown_at: string;
+  answered_at: string;
+  response_ms: number | null;
+}
+
+function rowToAttempt(row: AttemptRow): SentenceAttempt | null {
+  if (!isSentenceExerciseKind(row.kind)) return null;
+  return {
+    id: row.id,
+    exerciseId: row.exercise_id,
+    sessionId: row.session_id,
+    kind: row.kind,
+    timerMode: TIMER_MODES.includes(row.timer_mode as TimerMode) ? (row.timer_mode as TimerMode) : "none",
+    errorCount: row.error_count,
+    maxErrors: row.max_errors,
+    timedOut: row.timed_out,
+    answer: normalizeSentenceAnswer(row.answer, row.kind),
+    shownAt: row.shown_at,
+    answeredAt: row.answered_at,
+    responseMs: row.response_ms,
+  };
+}
+
+const CONVERSATION_LINE_COLUMNS =
+  "id, attempt_id, conversation_id, role_id, line_id, expected_text, transcript, error_count, max_errors, confidence, audio_path, duration_ms, read_at";
+
+interface ConversationLineRow {
+  id: string;
+  attempt_id: string;
+  conversation_id: string;
+  role_id: string;
+  line_id: string;
+  expected_text: string;
+  transcript: string;
+  error_count: number | string;
+  max_errors: number;
+  confidence: number | null;
+  audio_path: string | null;
+  duration_ms: number | null;
+  read_at: string;
+}
+
+function rowToConversationLine(row: ConversationLineRow): ConversationLineResult {
+  return {
+    id: row.id,
+    attemptId: row.attempt_id,
+    conversationId: row.conversation_id,
+    roleId: row.role_id,
+    lineId: row.line_id,
+    expectedText: row.expected_text,
+    transcript: row.transcript,
+    // numeric columns arrive as strings
+    errorCount: Number(row.error_count) || 0,
+    maxErrors: row.max_errors,
+    confidence: row.confidence,
+    audioPath: row.audio_path,
+    durationMs: row.duration_ms,
+    readAt: row.read_at,
   };
 }
 
@@ -251,6 +329,51 @@ export class SupabaseLearningRepository implements LearningRepository {
     });
   }
 
+  recordSentenceAttempt(userId: string, attempt: SentenceAttempt): Promise<void> {
+    return guard("Failed to save your answer.", async () => {
+      // Upsert-ignore: an attempt queued while offline may be sent twice.
+      const { error } = await this.client.from("sentence_attempts").upsert(
+        {
+          id: attempt.id,
+          user_id: userId,
+          exercise_id: attempt.exerciseId,
+          session_id: attempt.sessionId,
+          kind: attempt.kind,
+          timer_mode: attempt.timerMode,
+          error_count: attempt.errorCount,
+          max_errors: attempt.maxErrors,
+          timed_out: attempt.timedOut,
+          answer: attempt.answer,
+          shown_at: attempt.shownAt,
+          answered_at: attempt.answeredAt,
+          response_ms: attempt.responseMs,
+        },
+        { onConflict: "id", ignoreDuplicates: true }
+      );
+      throwIfSupabaseError(error, "Failed to save your answer.");
+    });
+  }
+
+  getSentenceAttempts(userId: string): Promise<SentenceAttempt[]> {
+    return guard("Failed to load your sentence history.", async () => {
+      // shortcut: reads every attempt the user ever made; upgrade to a per-exercise summary table past ~50k attempts.
+      const rows = await fetchAllPages<AttemptRow>(
+        (from, to) =>
+          this.client
+            .from("sentence_attempts")
+            .select(ATTEMPT_COLUMNS)
+            .eq("user_id", userId)
+            .is("deleted_at", null)
+            .order("answered_at")
+            .order("id")
+            .range(from, to)
+            .returns<AttemptRow[]>(),
+        "Failed to load your sentence history."
+      );
+      return rows.flatMap((row) => rowToAttempt(row) ?? []);
+    });
+  }
+
   completeSession(userId: string, sessionId: string): Promise<void> {
     return guard("Failed to finish the quiz.", async () => {
       const { error } = await this.client
@@ -259,6 +382,71 @@ export class SupabaseLearningRepository implements LearningRepository {
         .eq("id", sessionId)
         .eq("user_id", userId);
       throwIfSupabaseError(error, "Failed to finish the quiz.");
+    });
+  }
+
+  recordConversationAttempt(userId: string, attempt: ConversationAttempt): Promise<void> {
+    return guard("Failed to save the conversation.", async () => {
+      // Upsert-ignore: an attempt queued while offline may be sent twice.
+      const { error } = await this.client.from("conversation_attempts").upsert(
+        {
+          id: attempt.id,
+          user_id: userId,
+          conversation_id: attempt.conversationId,
+          conversation_version: attempt.conversationVersion,
+          human_role_ids: attempt.humanRoleIds,
+          bot_role_id: attempt.botRoleId,
+          turns_per_speaker: attempt.turnsPerSpeaker,
+          started_at: attempt.startedAt,
+        },
+        { onConflict: "id", ignoreDuplicates: true }
+      );
+      throwIfSupabaseError(error, "Failed to save the conversation.");
+    });
+  }
+
+  recordConversationLine(userId: string, result: ConversationLineResult): Promise<void> {
+    return guard("Failed to save the line.", async () => {
+      const { error } = await this.client.from("conversation_line_results").upsert(
+        {
+          id: result.id,
+          user_id: userId,
+          attempt_id: result.attemptId,
+          conversation_id: result.conversationId,
+          role_id: result.roleId,
+          line_id: result.lineId,
+          expected_text: result.expectedText,
+          transcript: result.transcript,
+          error_count: result.errorCount,
+          max_errors: result.maxErrors,
+          confidence: result.confidence,
+          audio_path: result.audioPath,
+          duration_ms: result.durationMs,
+          read_at: result.readAt,
+        },
+        { onConflict: "id", ignoreDuplicates: true }
+      );
+      throwIfSupabaseError(error, "Failed to save the line.");
+    });
+  }
+
+  getConversationLines(userId: string): Promise<ConversationLineResult[]> {
+    return guard("Failed to load the conversation history.", async () => {
+      // shortcut: reads every line the user ever read; upgrade to a per-role summary when histories grow past ~50k lines.
+      const rows = await fetchAllPages<ConversationLineRow>(
+        (from, to) =>
+          this.client
+            .from("conversation_line_results")
+            .select(CONVERSATION_LINE_COLUMNS)
+            .eq("user_id", userId)
+            .is("deleted_at", null)
+            .order("read_at")
+            .order("id")
+            .range(from, to)
+            .returns<ConversationLineRow[]>(),
+        "Failed to load the conversation history."
+      );
+      return rows.map(rowToConversationLine);
     });
   }
 }

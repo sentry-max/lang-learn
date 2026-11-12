@@ -3,7 +3,6 @@ import { Link, useNavigate, useParams } from "react-router-dom";
 import { MAX_VOCABULARY_WORDS, MIN_PUBLISH_WORDS, publishBlocker } from "@domain/entities/Vocabulary";
 import { Word, displayForm, getTranslations } from "@domain/entities/Word";
 import { firstLetter } from "@domain/services/LetterService";
-import { ImportResult } from "@application/services/WordService";
 import { useCurrentUser } from "@presentation/context/AuthContext";
 import { useServices, useSyncStatus } from "@presentation/context/ServicesContext";
 import { useLanguage } from "@presentation/context/LanguageContext";
@@ -18,20 +17,14 @@ import ReviewsSection from "@presentation/components/ReviewsSection";
 import WordFormDialog from "@presentation/components/WordFormDialog";
 import WordFormsDetail from "@presentation/components/WordFormsDetail";
 import { describeWordProblem } from "@presentation/i18n/describeWordProblem";
+import ImportResults, { ImportOutcome } from "@presentation/components/ImportResults";
+import { useFileImport } from "@presentation/hooks/useFileImport";
 import { LanguagePair, StatusPill } from "@presentation/components/VocabularyBadges";
 import { StarDisplay } from "@presentation/components/StarRating";
 import { formatDate, formatNumber } from "@presentation/format";
 import { InlineLoader, PageLoader } from "@presentation/components/ui/Loader";
 
-const MAX_IMPORT_FILE_BYTES = 5 * 1024 * 1024;
 const WORDS_PAGE = 200;
-
-interface FileImport {
-  fileName: string;
-  result: ImportResult;
-  /** Set when the whole file could not be read */
-  failureMessage?: string;
-}
 
 type Dialog = { kind: "none" } | { kind: "details"; word: Word } | { kind: "form"; word?: Word };
 
@@ -54,8 +47,9 @@ export default function VocabularyDetailPage() {
   const [search, setSearch] = useState("");
   const [limit, setLimit] = useState(WORDS_PAGE);
   const [dialog, setDialog] = useState<Dialog>({ kind: "none" });
-  const [imports, setImports] = useState<FileImport[]>([]);
-  const [busy, setBusy] = useState(false);
+  const [isActing, setIsActing] = useState(false);
+  const { imports, isImporting, importFiles } = useFileImport();
+  const busy = isActing || isImporting;
   const [error, setError] = useState<string | null>(null);
   const [message, setMessage] = useState<string | null>(null);
 
@@ -79,7 +73,7 @@ export default function VocabularyDetailPage() {
   }
 
   async function act(action: () => Promise<unknown>, fallback: Parameters<typeof errorMessage>[1], after?: () => void) {
-    setBusy(true);
+    setIsActing(true);
     setError(null);
     setMessage(null);
     try {
@@ -88,31 +82,18 @@ export default function VocabularyDetailPage() {
     } catch (error) {
       setError(errorMessage(error, fallback));
     } finally {
-      setBusy(false);
+      setIsActing(false);
     }
   }
 
-  async function handleFiles(files: FileList) {
-    if (!currentVocabulary) return;
-    setBusy(true);
-    setError(null);
-    const results: FileImport[] = [];
-    for (const file of Array.from(files)) {
-      if (file.size > MAX_IMPORT_FILE_BYTES) {
-        results.push({ fileName: file.name, result: EMPTY_IMPORT, failureMessage: t("importFileTooLarge") });
-        continue;
-      }
-      try {
-        const parsed: unknown = JSON.parse(await file.text());
-        results.push({ fileName: file.name, result: await wordService.importWords(user.id, currentVocabulary, parsed) });
-      } catch (error) {
-        const failureMessage = error instanceof SyntaxError ? t("importInvalidJson") : errorMessage(error, "importError");
-        results.push({ fileName: file.name, result: EMPTY_IMPORT, failureMessage });
-      }
-    }
-    setImports(results);
-    await refreshAll();
-    setBusy(false);
+  async function importWordFile(parsed: unknown): Promise<ImportOutcome> {
+    const result = await wordService.importWords(user.id, currentVocabulary!, parsed);
+    return {
+      importedCount: result.importedCount,
+      updatedCount: result.updatedCount,
+      duplicateMessage: result.duplicateHeadwords.length > 0 ? t("duplicateSkipped", { words: result.duplicateHeadwords.slice(0, 50).join(", ") }) : null,
+      problems: result.errors.map((problem) => describeWordProblem(t, problem)),
+    };
   }
 
   if (vocabulary.loading && !currentVocabulary) return <PageLoader />;
@@ -176,7 +157,7 @@ export default function VocabularyDetailPage() {
 
       <div className="card">
         <div className="section-header">
-          <h2 dir="auto" style={{ margin: 0 }}>
+          <h2 dir="auto">
             {currentVocabulary.name}
           </h2>
           {isOwner && <StatusPill vocabulary={currentVocabulary} />}
@@ -289,7 +270,7 @@ export default function VocabularyDetailPage() {
                 multiple
                 hidden
                 onChange={(event) => {
-                  if (event.target.files?.length) handleFiles(event.target.files);
+                  if (event.target.files?.length) importFiles(event.target.files, importWordFile).then(refreshAll);
                   event.target.value = "";
                 }}
               />
@@ -298,28 +279,7 @@ export default function VocabularyDetailPage() {
         </div>
         {isOwner && <p className="muted form-hint">{t("importHint")}</p>}
 
-        {imports.map(({ fileName, result, failureMessage }) => (
-          <div key={fileName} className="import-result">
-            <strong dir="auto">{fileName}</strong>
-            <p className={result.importedCount + result.updatedCount > 0 ? "feedback-correct" : "feedback-incorrect"}>
-              {t("importSummary", { imported: result.importedCount, updated: result.updatedCount })}
-            </p>
-            {result.duplicateHeadwords.length > 0 && (
-              <p className="muted">
-                {t("duplicateSkipped", { words: result.duplicateHeadwords.slice(0, 50).join(", ") })}
-              </p>
-            )}
-            {failureMessage && <p className="feedback-incorrect">{failureMessage}</p>}
-            {result.errors.length > 0 && (
-              <ul className="muted small">
-                {result.errors.slice(0, 20).map((problem, index) => (
-                  <li key={index}>{describeWordProblem(t, problem)}</li>
-                ))}
-                {result.errors.length > 20 && <li>{t("moreErrors", { count: result.errors.length - 20 })}</li>}
-              </ul>
-            )}
-          </div>
-        ))}
+        <ImportResults imports={imports} />
 
         {words.error ? (
           <ErrorBanner message={errorMessage(words.error, "vocabLoadError")} onRetry={words.reload} />
@@ -420,5 +380,3 @@ export default function VocabularyDetailPage() {
     </div>
   );
 }
-
-const EMPTY_IMPORT: ImportResult = { importedCount: 0, updatedCount: 0, errors: [], duplicateHeadwords: [] };

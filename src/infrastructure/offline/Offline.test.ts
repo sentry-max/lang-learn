@@ -10,7 +10,10 @@ import { PrepareOfflineUseCase } from "@application/usecases/PrepareOfflineUseCa
 import { ManualConnectivity } from "@infrastructure/offline/Connectivity";
 import { Outbox } from "@infrastructure/offline/Outbox";
 import { OfflineLearningRepository } from "@infrastructure/offline/OfflineLearningRepository";
-import { OfflineReadCache } from "@infrastructure/offline/OfflineReadCache";
+import { OfflineRecordingGateway } from "@infrastructure/offline/OfflineRecordingGateway";
+import { SupabaseRecordingGateway } from "@infrastructure/supabase/SupabaseRecordingGateway";
+import { SupabaseClient } from "@supabase/supabase-js";
+import { QueryCache } from "@infrastructure/cache/QueryCache";
 import { OfflineSyncManager } from "@infrastructure/offline/OfflineSyncManager";
 import { OfflineVocabularyRepository } from "@infrastructure/offline/OfflineVocabularyRepository";
 import { CachingWordRepository } from "@infrastructure/cache/CachingWordRepository";
@@ -52,23 +55,69 @@ function setupLearning(online = true) {
   return { connectivity, storage, remote, learning };
 }
 
-describe("OfflineReadCache", () => {
-  it("returns fresh data online and the last result offline", async () => {
-    const connectivity = new ManualConnectivity(true);
-    const cache = new OfflineReadCache(connectivity);
-    expect(await cache.read("k", async () => 1)).toBe(1);
+describe("QueryCache", () => {
+  function setup(online = true) {
+    let now = 0;
+    const connectivity = new ManualConnectivity(online);
+    const storage = new MemoryStorage() as unknown as Storage;
+    const cache = new QueryCache(connectivity, { ttlMs: 1000, clock: () => now, storage, storageKey: "cache" });
+    return { connectivity, storage, cache, advance: (ms: number) => (now += ms) };
+  }
+
+  it("serves a fresh result without asking the server again", async () => {
+    const { cache } = setup();
+    const fetcher = vi.fn(async () => 1);
+    await cache.read("k", fetcher);
+    expect(await cache.read("k", fetcher)).toBe(1);
+    expect(fetcher).toHaveBeenCalledTimes(1);
+  });
+
+  it("shows a stale result at once, refreshes it in the background and reports only a real change", async () => {
+    const { cache, advance } = setup();
+    const changed = vi.fn();
+    cache.subscribe(changed);
+    await cache.read("k", async () => [1]);
+    advance(2000);
+    expect(await cache.read("k", async () => [1])).toEqual([1]);
+    await Promise.resolve();
+    expect(changed).not.toHaveBeenCalled();
+    advance(2000);
+    expect(await cache.read("k", async () => [2])).toEqual([1]);
+    await vi.waitFor(() => expect(changed).toHaveBeenCalledTimes(1));
+    expect(await cache.read("k", async () => [3])).toEqual([2]);
+  });
+
+  it("waits for the server after a write invalidated the key", async () => {
+    const { cache } = setup();
+    await cache.read("lists:own", async () => "before");
+    cache.invalidate("lists:");
+    expect(await cache.read("lists:own", async () => "after")).toBe("after");
+  });
+
+  it("falls back to the last result offline or on a network failure, never on other errors", async () => {
+    const { cache, connectivity } = setup();
+    await cache.read("k", async () => "cached");
+    cache.invalidate("k");
+    expect(await cache.read("k", async () => Promise.reject(networkError()))).toBe("cached");
+    await expect(cache.read("k", async () => Promise.reject(new AppError("forbidden", "no")))).rejects.toMatchObject({ code: "forbidden" });
     connectivity.set(false);
-    expect(await cache.read("k", async () => 2)).toBe(1);
+    expect(await cache.read("k", async () => "ignored")).toBe("cached");
     await expect(cache.read("other", async () => 3)).rejects.toMatchObject({ reason: "offline" });
   });
 
-  it("falls back when the request fails for network reasons only", async () => {
-    const cache = new OfflineReadCache(new ManualConnectivity(true));
-    await cache.read("k", async () => "cached");
-    expect(await cache.read("k", async () => Promise.reject(networkError()))).toBe("cached");
-    await expect(cache.read("k", async () => Promise.reject(new AppError("forbidden", "no")))).rejects.toMatchObject({
-      code: "forbidden",
-    });
+  it("keeps results between visits and refreshes them on first use", async () => {
+    vi.useFakeTimers();
+    try {
+      const { cache, storage, connectivity } = setup();
+      await cache.read("k", async () => "yesterday");
+      vi.advanceTimersByTime(1000);
+      const nextVisit = new QueryCache(connectivity, { ttlMs: 1000, clock: () => 0, storage, storageKey: "cache" });
+      const fetcher = vi.fn(async () => "today");
+      expect(await nextVisit.read("k", fetcher)).toBe("yesterday");
+      expect(fetcher).toHaveBeenCalledTimes(1);
+    } finally {
+      vi.useRealTimers();
+    }
   });
 });
 
@@ -202,7 +251,7 @@ describe("OfflineLearningRepository", () => {
 describe("offline quiz, end to end", () => {
   it("keeps quizzing and learning offline, then syncs and refetches when back online", async () => {
     const connectivity = new ManualConnectivity(true);
-    const vocabularies = new OfflineVocabularyRepository(new InMemoryVocabularyRepository([makeVocabulary("v1")]), connectivity);
+    const vocabularies = new OfflineVocabularyRepository(new InMemoryVocabularyRepository([makeVocabulary("v1")]), connectivity, new QueryCache(connectivity));
     const remoteWords = new InMemoryWordRepository(alphabetWords(2));
     const words = new CachingWordRepository(remoteWords, 60_000, () => 0, connectivity);
     const remoteLearning = new InMemoryLearningRepository();
@@ -251,5 +300,108 @@ describe("offline quiz, end to end", () => {
     const progressAfter: WordProgress[] = await learning.getAllProgress(USER);
     expect(progressAfter.filter((progress) => progress.lastRating === "easy")).toHaveLength(5);
     stop();
+  });
+});
+
+describe("sentence attempts offline", () => {
+  it("queues an attempt made offline, includes it in reads and sends it once on reconnect", async () => {
+    const { connectivity, remote, learning } = setupLearning(false);
+    const attempt = {
+      id: "a1", exerciseId: "x1", sessionId: "s1", kind: "transform" as const, timerMode: "none" as const,
+      errorCount: 1, maxErrors: 4, timedOut: false, answer: { kind: "transform" as const, text: "Geht er" },
+      shownAt: NOW.toISOString(), answeredAt: NOW.toISOString(), responseMs: 3000,
+    };
+    await learning.recordSentenceAttempt(USER, attempt);
+    expect(await learning.getSentenceAttempts(USER)).toEqual([attempt]);
+    expect(remote.sentenceAttempts).toEqual([]);
+
+    connectivity.set(true);
+    expect(await learning.getSentenceAttempts(USER)).toEqual([attempt]);
+    expect(remote.sentenceAttempts).toEqual([attempt]);
+  });
+});
+
+describe("conversation results offline", () => {
+  const attempt = {
+    id: "attempt-1", conversationId: "de-a2-cafe", conversationVersion: 1, humanRoleIds: ["lena"], botRoleId: "jonas",
+    turnsPerSpeaker: 3, startedAt: NOW.toISOString(),
+  };
+  const line = {
+    id: "line-1", attemptId: "attempt-1", conversationId: "de-a2-cafe", roleId: "lena", lineId: "r1-lena",
+    expectedText: "Wie geht es dir?", transcript: "wie geht es dir", errorCount: 0, maxErrors: 4, confidence: 0.9,
+    audioPath: "u1/attempt-1/r1-lena.webm", durationMs: 1500, readAt: NOW.toISOString(),
+  };
+
+  it("queues the attempt before its lines, shows queued lines in reads and sends each once on reconnect", async () => {
+    const { connectivity, remote, learning } = setupLearning(false);
+    await learning.recordConversationAttempt(USER, attempt);
+    await learning.recordConversationLine(USER, line);
+    expect(await learning.getConversationLines(USER)).toEqual([line]);
+    expect(remote.conversationLines).toEqual([]);
+
+    connectivity.set(true);
+    expect(await learning.getConversationLines(USER)).toEqual([line]);
+    await learning.recordConversationLine(USER, line);
+    await learning.flush();
+    expect(remote.conversationAttempts).toEqual([attempt]);
+    expect(remote.conversationLines).toEqual([line]);
+  });
+});
+
+describe("OfflineRecordingGateway", () => {
+  class FakeRecordings {
+    readonly uploaded: string[] = [];
+    failNext = false;
+    async upload(path: string) {
+      if (this.failNext) {
+        this.failNext = false;
+        throw networkError();
+      }
+      this.uploaded.push(path);
+    }
+    async playbackUrl(path: string) {
+      return `https://storage/${path}`;
+    }
+  }
+
+  it("keeps a recording made offline, plays it from memory and uploads it when the connection returns", async () => {
+    const connectivity = new ManualConnectivity(false);
+    const remote = new FakeRecordings();
+    const gateway = new OfflineRecordingGateway(remote, connectivity, () => "blob:local");
+    await gateway.upload("u1/a/r1.webm", new Blob(["audio"]));
+    expect(remote.uploaded).toEqual([]);
+    expect(await gateway.playbackUrl("u1/a/r1.webm")).toBe("blob:local");
+    expect(await gateway.playbackUrl("u1/a/other.webm")).toBe("https://storage/u1/a/other.webm");
+
+    connectivity.set(true);
+    await vi.waitFor(() => expect(remote.uploaded).toEqual(["u1/a/r1.webm"]));
+    expect(gateway.pendingCount).toBe(0);
+  });
+
+  it("retries an upload that failed for lack of a connection", async () => {
+    const connectivity = new ManualConnectivity(true);
+    const remote = new FakeRecordings();
+    remote.failNext = true;
+    const gateway = new OfflineRecordingGateway(remote, connectivity, () => "blob:local");
+    await gateway.upload("u1/a/r2.webm", new Blob(["audio"]));
+    expect(gateway.pendingCount).toBe(1);
+    connectivity.set(false);
+    connectivity.set(true);
+    await vi.waitFor(() => expect(remote.uploaded).toEqual(["u1/a/r2.webm"]));
+  });
+});
+
+describe("SupabaseRecordingGateway", () => {
+  const clientAnswering = (error: { message: string; statusCode?: string } | null) =>
+    ({ storage: { from: () => ({ upload: async () => ({ data: null, error }) }) } }) as unknown as SupabaseClient;
+
+  it("counts a file that already exists as uploaded", async () => {
+    const gateway = new SupabaseRecordingGateway(clientAnswering({ message: "The resource already exists", statusCode: "409" }));
+    await expect(gateway.upload("u1/a/r1.webm", new Blob(["audio"]))).resolves.toBeUndefined();
+  });
+
+  it("reports any other failure", async () => {
+    const gateway = new SupabaseRecordingGateway(clientAnswering({ message: "new row violates row-level security policy", statusCode: "403" }));
+    await expect(gateway.upload("u1/a/r1.webm", new Blob(["audio"]))).rejects.toMatchObject({ code: "forbidden" });
   });
 });

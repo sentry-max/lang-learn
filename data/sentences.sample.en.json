@@ -1,0 +1,305 @@
+[
+  {
+    "id": "en-fill-001",
+    "kind": "fill_blank",
+    "sentence": "She has lived here ___ 2015.",
+    "answers": [
+      "since"
+    ],
+    "distractors": [
+      "for",
+      "from",
+      "during"
+    ],
+    "translations": {
+      "de": "Sie wohnt seit 2015 hier.",
+      "fa": "او از سال ۲۰۱۵ اینجا زندگی می‌کند."
+    },
+    "level": "B1",
+    "tags": [
+      "present-perfect",
+      "prepositions"
+    ],
+    "hint": "A point in time takes “since”."
+  },
+  {
+    "id": "en-fill-002",
+    "kind": "fill_blank",
+    "sentence": "If it ___ tomorrow, we ___ stay at home.",
+    "answers": [
+      "rains",
+      "will"
+    ],
+    "distractors": [
+      "will rain",
+      "would",
+      "rained"
+    ],
+    "translations": {
+      "de": "Wenn es morgen regnet, bleiben wir zu Hause.",
+      "fa": "اگر فردا باران ببارد، در خانه می‌مانیم."
+    },
+    "level": "B1",
+    "tags": [
+      "conditionals"
+    ],
+    "hint": "First conditional: if + present, will + verb"
+  },
+  {
+    "id": "en-fill-003",
+    "kind": "fill_blank",
+    "sentence": "He is good ___ playing the piano.",
+    "answers": [
+      "at"
+    ],
+    "distractors": [
+      "in",
+      "on",
+      "for"
+    ],
+    "translations": {
+      "de": "Er spielt gut Klavier.",
+      "fa": "او در نواختن پیانو مهارت دارد."
+    },
+    "level": "B1",
+    "tags": [
+      "prepositions"
+    ]
+  },
+  {
+    "id": "en-jumble-001",
+    "kind": "jumble",
+    "sentence": "I have never been to London.",
+    "distractors": [
+      "went",
+      "ever"
+    ],
+    "translations": {
+      "de": "Ich war noch nie in London.",
+      "fa": "من هرگز به لندن نرفته‌ام."
+    },
+    "level": "B1",
+    "tags": [
+      "present-perfect",
+      "word-order"
+    ],
+    "hint": "“never” goes between “have” and the participle."
+  },
+  {
+    "id": "en-jumble-002",
+    "kind": "jumble",
+    "sentence": "Yesterday we visited our grandparents.",
+    "alternatives": [
+      "We visited our grandparents yesterday."
+    ],
+    "distractors": [
+      "visit",
+      "us"
+    ],
+    "translations": {
+      "de": "Gestern haben wir unsere Großeltern besucht.",
+      "fa": "دیروز به دیدن پدربزرگ و مادربزرگمان رفتیم."
+    },
+    "level": "A2",
+    "tags": [
+      "past-simple",
+      "word-order"
+    ]
+  },
+  {
+    "id": "en-jumble-003",
+    "kind": "jumble",
+    "sentence": "Do you know where the station is?",
+    "distractors": [
+      "does",
+      "are"
+    ],
+    "translations": {
+      "de": "Weißt du, wo der Bahnhof ist?",
+      "fa": "می‌دانی ایستگاه کجاست؟"
+    },
+    "level": "B1",
+    "tags": [
+      "indirect-questions",
+      "word-order"
+    ]
+  },
+  {
+    "id": "en-transform-001",
+    "kind": "transform",
+    "sentence": "She wrote a letter.",
+    "task": "present",
+    "answers": [
+      "She writes a letter."
+    ],
+    "translations": {
+      "de": "Sie schreibt einen Brief.",
+      "fa": "او نامه‌ای می‌نویسد."
+    },
+    "level": "A2",
+    "tags": [
+      "present-simple"
+    ]
+  },
+  {
+    "id": "en-transform-002",
+    "kind": "transform",
+    "sentence": "They play tennis.",
+    "task": "simple_past",
+    "answers": [
+      "They played tennis."
+    ],
+    "translations": {
+      "de": "Sie spielten Tennis.",
+      "fa": "آن‌ها تنیس بازی کردند."
+    },
+    "level": "A2",
+    "tags": [
+      "past-simple"
+    ]
+  },
+  {
+    "id": "en-transform-003",
+    "kind": "transform",
+    "sentence": "I finish my work.",
+    "task": "present_perfect",
+    "answers": [
+      "I have finished my work.",
+      "I've finished my work."
+    ],
+    "translations": {
+      "de": "Ich habe meine Arbeit beendet.",
+      "fa": "کارم را تمام کرده‌ام."
+    },
+    "level": "A2",
+    "tags": [
+      "present-perfect"
+    ]
+  },
+  {
+    "id": "en-transform-004",
+    "kind": "transform",
+    "sentence": "We leave the house.",
+    "task": "past_perfect",
+    "answers": [
+      "We had left the house.",
+      "We'd left the house."
+    ],
+    "translations": {
+      "de": "Wir hatten das Haus verlassen.",
+      "fa": "ما خانه را ترک کرده بودیم."
+    },
+    "level": "B1",
+    "tags": [
+      "past-perfect"
+    ],
+    "hint": "leave – left – left"
+  },
+  {
+    "id": "en-transform-005",
+    "kind": "transform",
+    "sentence": "He calls his mother.",
+    "task": "future",
+    "answers": [
+      "He will call his mother.",
+      "He'll call his mother."
+    ],
+    "translations": {
+      "de": "Er wird seine Mutter anrufen.",
+      "fa": "او به مادرش زنگ خواهد زد."
+    },
+    "level": "A2",
+    "tags": [
+      "future"
+    ]
+  },
+  {
+    "id": "en-transform-006",
+    "kind": "transform",
+    "sentence": "They build the bridge.",
+    "task": "future_perfect",
+    "answers": [
+      "They will have built the bridge."
+    ],
+    "translations": {
+      "de": "Sie werden die Brücke gebaut haben.",
+      "fa": "آن‌ها پل را ساخته خواهند بود."
+    },
+    "level": "B2",
+    "tags": [
+      "future-perfect"
+    ]
+  },
+  {
+    "id": "en-transform-007",
+    "kind": "transform",
+    "sentence": "She likes coffee.",
+    "task": "negative",
+    "answers": [
+      "She doesn't like coffee.",
+      "She does not like coffee."
+    ],
+    "translations": {
+      "de": "Sie mag keinen Kaffee.",
+      "fa": "او قهوه دوست ندارد."
+    },
+    "level": "A1",
+    "tags": [
+      "negation"
+    ],
+    "hint": "does not + base form"
+  },
+  {
+    "id": "en-transform-008",
+    "kind": "transform",
+    "sentence": "You speak German.",
+    "task": "question",
+    "answers": [
+      "Do you speak German?"
+    ],
+    "translations": {
+      "de": "Sprichst du Deutsch?",
+      "fa": "آلمانی صحبت می‌کنی؟"
+    },
+    "level": "A1",
+    "tags": [
+      "questions"
+    ]
+  },
+  {
+    "id": "en-transform-009",
+    "kind": "transform",
+    "sentence": "The chef cooks the meal.",
+    "task": "passive",
+    "answers": [
+      "The meal is cooked by the chef."
+    ],
+    "translations": {
+      "de": "Das Essen wird vom Koch gekocht.",
+      "fa": "غذا توسط سرآشپز پخته می‌شود."
+    },
+    "level": "B1",
+    "tags": [
+      "passive"
+    ],
+    "hint": "be + past participle"
+  },
+  {
+    "id": "en-transform-010",
+    "kind": "transform",
+    "sentence": "The window was broken by the boy.",
+    "task": "active",
+    "answers": [
+      "The boy broke the window."
+    ],
+    "translations": {
+      "de": "Der Junge hat das Fenster zerbrochen.",
+      "fa": "پسر پنجره را شکست."
+    },
+    "level": "B1",
+    "tags": [
+      "passive",
+      "past-simple"
+    ]
+  }
+]

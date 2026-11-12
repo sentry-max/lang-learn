@@ -18,6 +18,9 @@ import ErrorBanner from "@presentation/components/ErrorBanner";
 import RatingPill, { MODE_KEYS, RATING_KEYS } from "@presentation/components/RatingPill";
 import { formatDateTime, formatSeconds } from "@presentation/format";
 import { InlineLoader, PageLoader } from "@presentation/components/ui/Loader";
+import { useSection } from "@presentation/hooks/useSection";
+import SectionTabs from "@presentation/components/SectionTabs";
+import SentenceHistory from "@presentation/components/sentence/SentenceHistory";
 
 /**
  * The History tab: letters that have seen words; per letter every seen word
@@ -28,6 +31,7 @@ export default function HistoryPage() {
   const user = useCurrentUser();
   const { history } = useServices();
   const { t } = useLanguage();
+  const [section, setSection] = useSection();
   const errorMessage = useErrorMessage();
   const confirm = useConfirm();
 
@@ -57,6 +61,16 @@ export default function HistoryPage() {
     }
   }
 
+  const sectionTabs = <SectionTabs value={section} onChange={setSection} wordsLabel="sectionWords" />;
+  if (section === "sentences") {
+    return (
+      <div className="app-main">
+        {sectionTabs}
+        <SentenceHistory />
+      </div>
+    );
+  }
+
   if (overview.loading && !overview.data) return <PageLoader />;
   if (overview.error && !overview.data) {
     return (
@@ -70,6 +84,7 @@ export default function HistoryPage() {
 
   return (
     <div className="app-main">
+      {sectionTabs}
       <div className="page-header">
         <h2>{t("navHistory")}</h2>
         <span className="pill">{t("seenWordsCount", { count: data.words.length })}</span>

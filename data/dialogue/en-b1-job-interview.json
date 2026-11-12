@@ -1,0 +1,69 @@
+{
+  "$schema": "./dialogue.schema.json",
+  "id": "en-b1-job-interview",
+  "version": 1,
+  "language": "en",
+  "level": "B1",
+  "title": "A job interview",
+  "description": "Daniel has an interview for a job at a travel company.",
+  "translations": {
+    "fa": { "title": "مصاحبهٔ کاری", "description": "دنیل برای کاری در یک شرکت مسافرتی مصاحبه دارد." },
+    "de": { "title": "Ein Vorstellungsgespräch", "description": "Daniel hat ein Vorstellungsgespräch bei einem Reiseunternehmen." }
+  },
+  "tags": ["work"],
+  "roles": [
+    { "id": "interviewer", "name": "Ms Carter", "gender": "female" },
+    { "id": "candidate", "name": "Daniel", "gender": "male" }
+  ],
+  "rounds": [
+    {
+      "priority": 0,
+      "lines": [
+        { "id": "r1-interviewer", "role": "interviewer", "text": "Good morning, Daniel. Thank you for coming in today. Please have a seat.", "translations": { "fa": "صبح بخیر دنیل. ممنون که امروز آمدید. لطفاً بنشینید." } },
+        { "id": "r1-candidate", "role": "candidate", "text": "Good morning. Thank you for inviting me, I have been looking forward to it.", "translations": { "fa": "صبح بخیر. ممنون که دعوتم کردید، منتظرش بودم." } }
+      ]
+    },
+    {
+      "priority": 1,
+      "lines": [
+        { "id": "r2-interviewer", "role": "interviewer", "text": "Could you tell me a little about your current job and what you do there?", "translations": { "fa": "ممکن است کمی دربارهٔ کار فعلی‌تان و کاری که آن‌جا انجام می‌دهید بگویید؟" } },
+        { "id": "r2-candidate", "role": "candidate", "text": "I work at a small travel agency, where I plan trips and answer customer emails.", "translations": { "fa": "در یک آژانس مسافرتی کوچک کار می‌کنم و سفرها را برنامه‌ریزی می‌کنم و به ایمیل مشتری‌ها جواب می‌دهم." } }
+      ]
+    },
+    {
+      "priority": 3,
+      "lines": [
+        { "id": "r3-interviewer", "role": "interviewer", "text": "Why are you interested in working for our company?", "translations": { "fa": "چرا به کار در شرکت ما علاقه دارید؟" } },
+        { "id": "r3-candidate", "role": "candidate", "text": "I would like to work in a bigger team, and your projects sound really exciting.", "translations": { "fa": "دوست دارم در تیم بزرگ‌تری کار کنم و پروژه‌های شما واقعاً جذاب به نظر می‌رسند." } }
+      ]
+    },
+    {
+      "priority": 2,
+      "lines": [
+        { "id": "r4-interviewer", "role": "interviewer", "text": "What would you say is your biggest strength at work?", "translations": { "fa": "به نظرتان بزرگ‌ترین نقطهٔ قوت شما در کار چیست؟" } },
+        { "id": "r4-candidate", "role": "candidate", "text": "I am very organised, so I usually finish my tasks before the deadline.", "translations": { "fa": "خیلی منظم هستم، برای همین معمولاً کارهایم را قبل از مهلت تمام می‌کنم." } }
+      ]
+    },
+    {
+      "priority": 4,
+      "lines": [
+        { "id": "r5-interviewer", "role": "interviewer", "text": "Have you ever had a difficult customer, and how did you deal with it?", "translations": { "fa": "تا به حال مشتری سختی داشته‌اید، و چطور با آن کنار آمدید؟" } },
+        { "id": "r5-candidate", "role": "candidate", "text": "Yes, last year a customer lost his passport, so I helped him rebook everything.", "translations": { "fa": "بله، پارسال مشتری‌ای گذرنامه‌اش را گم کرد و من کمکش کردم همه چیز را دوباره رزرو کند." } }
+      ]
+    },
+    {
+      "priority": 5,
+      "lines": [
+        { "id": "r6-interviewer", "role": "interviewer", "text": "If you got the job, when would you be able to start?", "translations": { "fa": "اگر این کار را بگیرید، از چه زمانی می‌توانید شروع کنید؟" } },
+        { "id": "r6-candidate", "role": "candidate", "text": "I have to give 4 weeks of notice, so I could start next month.", "translations": { "fa": "باید چهار هفته قبل استعفا بدهم، پس می‌توانم از ماه بعد شروع کنم." } }
+      ]
+    },
+    {
+      "priority": 0,
+      "lines": [
+        { "id": "r7-interviewer", "role": "interviewer", "text": "Thank you, Daniel. We will contact you by the end of next week.", "translations": { "fa": "ممنون دنیل. تا آخر هفتهٔ بعد با شما تماس می‌گیریم." } },
+        { "id": "r7-candidate", "role": "candidate", "text": "Thank you very much for your time. I hope to hear from you soon.", "translations": { "fa": "خیلی ممنون از وقتی که گذاشتید. امیدوارم به زودی از شما خبر بگیرم." } }
+      ]
+    }
+  ]
+}

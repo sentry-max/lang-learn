@@ -96,7 +96,7 @@ export default function VocabularyEditorPage() {
   return (
     <div className="app-main">
       <form className="card" onSubmit={submit} noValidate>
-        <h2 style={{ marginTop: 0 }}>{isEdit ? t("editVocabulary") : t("newVocabulary")}</h2>
+        <h2>{isEdit ? t("editVocabulary") : t("newVocabulary")}</h2>
         {errors.length > 0 && (
           <div role="alert">
             {errors.map((error) => (

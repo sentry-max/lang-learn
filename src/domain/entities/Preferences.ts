@@ -46,6 +46,14 @@ export interface Preferences {
   continuousAdd: boolean;
   /** Vocabularies pre-selected when opening the quiz; empty = choose each time */
   defaultVocabularyIds: string[];
+  /** Sentence collections pre-selected when opening sentence practice; empty = choose each time */
+  defaultSentenceCollectionIds: string[];
+  /** Misspelt words in a rewritten sentence are marked but not counted as errors */
+  sentenceTolerateTypos: boolean;
+  /** Show a sentence's translation and hint right away instead of behind "Show hint" */
+  sentenceAutoShowHint: boolean;
+  /** Start word-order exercises with extra words turned on */
+  sentenceDistractors: boolean;
 }
 
 export const DEFAULT_PREFERENCES: Preferences = {
@@ -69,6 +77,10 @@ export const DEFAULT_PREFERENCES: Preferences = {
   keyboardShortcuts: true,
   continuousAdd: false,
   defaultVocabularyIds: [],
+  defaultSentenceCollectionIds: [],
+  sentenceTolerateTypos: true,
+  sentenceAutoShowHint: false,
+  sentenceDistractors: false,
 };
 
 export function clampAdvanceDelay(value: number, fallback: number): number {
@@ -80,6 +92,10 @@ function clampNumber(value: unknown, min: number, max: number, fallback: number)
   const parsed = typeof value === "number" ? value : Number(value);
   if (value === undefined || value === null || !Number.isFinite(parsed)) return fallback;
   return Math.min(max, Math.max(min, Math.round(parsed * 100) / 100));
+}
+
+function idList(value: unknown): string[] {
+  return Array.isArray(value) ? Array.from(new Set(value.filter((item): item is string => typeof item === "string"))).slice(0, 200) : [];
 }
 
 /** Coerces stored/unknown preferences into valid ones, filling gaps with defaults. */
@@ -120,9 +136,11 @@ export function normalizePreferences(value: unknown): Preferences {
     speechRate: clampNumber(raw.speechRate, 0.5, 1.5, defaults.speechRate),
     keyboardShortcuts: bool("keyboardShortcuts", defaults.keyboardShortcuts),
     continuousAdd: bool("continuousAdd", defaults.continuousAdd),
-    defaultVocabularyIds: Array.isArray(raw.defaultVocabularyIds)
-      ? Array.from(new Set(raw.defaultVocabularyIds.filter((value): value is string => typeof value === "string"))).slice(0, 200)
-      : [],
+    defaultVocabularyIds: idList(raw.defaultVocabularyIds),
+    defaultSentenceCollectionIds: idList(raw.defaultSentenceCollectionIds),
+    sentenceTolerateTypos: bool("sentenceTolerateTypos", defaults.sentenceTolerateTypos),
+    sentenceAutoShowHint: bool("sentenceAutoShowHint", defaults.sentenceAutoShowHint),
+    sentenceDistractors: bool("sentenceDistractors", defaults.sentenceDistractors),
   };
 }
 

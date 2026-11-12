@@ -21,3 +21,5 @@ update public.review_events e
  where e.session_id = s.id
    and e.user_id = s.user_id
    and e.collection_key is null;
+-000
+0

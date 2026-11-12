@@ -1,0 +1,355 @@
+[
+  {
+    "id": "de-fill-001",
+    "kind": "fill_blank",
+    "sentence": "Ich fahre jeden Tag mit ___ Bus zur Arbeit.",
+    "answers": [
+      "dem"
+    ],
+    "distractors": [
+      "den",
+      "der",
+      "das"
+    ],
+    "translations": {
+      "en": "I take the bus to work every day.",
+      "fa": "من هر روز با اتوبوس سر کار می‌روم."
+    },
+    "level": "A2",
+    "tags": [
+      "dative",
+      "articles"
+    ],
+    "hint": "Dativ nach „mit“"
+  },
+  {
+    "id": "de-fill-002",
+    "kind": "fill_blank",
+    "sentence": "Wenn ich Zeit ___, ___ ich dich besuchen.",
+    "answers": [
+      "hätte",
+      "würde"
+    ],
+    "distractors": [
+      "habe",
+      "werde",
+      "hatte"
+    ],
+    "translations": {
+      "en": "If I had time, I would visit you.",
+      "fa": "اگر وقت داشتم، به دیدنت می‌آمدم."
+    },
+    "level": "B1",
+    "tags": [
+      "konjunktiv-2",
+      "conditionals"
+    ],
+    "hint": "Konjunktiv II: hätte + würde"
+  },
+  {
+    "id": "de-fill-003",
+    "kind": "fill_blank",
+    "sentence": "Er interessiert sich sehr ___ Politik.",
+    "answers": [
+      "für"
+    ],
+    "distractors": [
+      "an",
+      "auf",
+      "über"
+    ],
+    "translations": {
+      "en": "He is very interested in politics.",
+      "fa": "او خیلی به سیاست علاقه دارد."
+    },
+    "level": "B1",
+    "tags": [
+      "prepositions",
+      "reflexive-verbs"
+    ]
+  },
+  {
+    "id": "de-fill-004",
+    "kind": "fill_blank",
+    "sentence": "Kannst du mir sagen, ___ der Zug abfährt?",
+    "answers": [
+      "wann"
+    ],
+    "distractors": [
+      "wenn",
+      "als",
+      "ob"
+    ],
+    "translations": {
+      "en": "Can you tell me when the train leaves?",
+      "fa": "می‌توانی به من بگویی قطار کی حرکت می‌کند؟"
+    },
+    "level": "B1",
+    "tags": [
+      "conjunctions",
+      "subordinate-clause"
+    ]
+  },
+  {
+    "id": "de-jumble-001",
+    "kind": "jumble",
+    "sentence": "Ich gehe morgen ins Kino.",
+    "alternatives": [
+      "Morgen gehe ich ins Kino."
+    ],
+    "distractors": [
+      "gehst",
+      "im"
+    ],
+    "translations": {
+      "en": "I'm going to the cinema tomorrow.",
+      "fa": "من فردا به سینما می‌روم."
+    },
+    "level": "A2",
+    "tags": [
+      "word-order"
+    ],
+    "hint": "Das Verb steht an zweiter Stelle."
+  },
+  {
+    "id": "de-jumble-002",
+    "kind": "jumble",
+    "sentence": "Ich weiß nicht, ob er heute kommt.",
+    "distractors": [
+      "kommen",
+      "wenn"
+    ],
+    "translations": {
+      "en": "I don't know whether he's coming today.",
+      "fa": "نمی‌دانم امروز می‌آید یا نه."
+    },
+    "level": "B1",
+    "tags": [
+      "word-order",
+      "subordinate-clause"
+    ],
+    "hint": "Im Nebensatz steht das Verb am Ende."
+  },
+  {
+    "id": "de-jumble-003",
+    "kind": "jumble",
+    "sentence": "Hast du deine Hausaufgaben schon gemacht?",
+    "alternatives": [
+      "Hast du schon deine Hausaufgaben gemacht?"
+    ],
+    "distractors": [
+      "hat",
+      "machen"
+    ],
+    "translations": {
+      "en": "Have you already done your homework?",
+      "fa": "تکالیفت را انجام داده‌ای؟"
+    },
+    "level": "A2",
+    "tags": [
+      "perfect",
+      "questions"
+    ]
+  },
+  {
+    "id": "de-jumble-004",
+    "kind": "jumble",
+    "sentence": "Am Wochenende fahren wir mit unseren Kindern an den See.",
+    "alternatives": [
+      "Wir fahren am Wochenende mit unseren Kindern an den See."
+    ],
+    "distractors": [
+      "dem",
+      "fährt"
+    ],
+    "translations": {
+      "en": "At the weekend we're going to the lake with our children.",
+      "fa": "آخر هفته با بچه‌هایمان به دریاچه می‌رویم."
+    },
+    "level": "B1",
+    "tags": [
+      "word-order",
+      "dative"
+    ]
+  },
+  {
+    "id": "de-transform-001",
+    "kind": "transform",
+    "sentence": "Sie hat einen Brief geschrieben.",
+    "task": "present",
+    "answers": [
+      "Sie schreibt einen Brief."
+    ],
+    "translations": {
+      "en": "She writes a letter.",
+      "fa": "او نامه‌ای می‌نویسد."
+    },
+    "level": "A2",
+    "tags": [
+      "present",
+      "perfect"
+    ]
+  },
+  {
+    "id": "de-transform-002",
+    "kind": "transform",
+    "sentence": "Er geht in die Schule.",
+    "task": "simple_past",
+    "answers": [
+      "Er ging in die Schule."
+    ],
+    "translations": {
+      "en": "He went to school.",
+      "fa": "او به مدرسه رفت."
+    },
+    "level": "A2",
+    "tags": [
+      "präteritum"
+    ],
+    "hint": "gehen – ging – gegangen"
+  },
+  {
+    "id": "de-transform-003",
+    "kind": "transform",
+    "sentence": "Ich lese das Buch.",
+    "task": "present_perfect",
+    "answers": [
+      "Ich habe das Buch gelesen."
+    ],
+    "translations": {
+      "en": "I have read the book.",
+      "fa": "کتاب را خوانده‌ام."
+    },
+    "level": "A2",
+    "tags": [
+      "perfect"
+    ]
+  },
+  {
+    "id": "de-transform-004",
+    "kind": "transform",
+    "sentence": "Wir fahren nach Berlin.",
+    "task": "past_perfect",
+    "answers": [
+      "Wir waren nach Berlin gefahren."
+    ],
+    "translations": {
+      "en": "We had gone to Berlin.",
+      "fa": "ما به برلین رفته بودیم."
+    },
+    "level": "B1",
+    "tags": [
+      "plusquamperfekt"
+    ],
+    "hint": "fahren bildet das Perfekt mit „sein“."
+  },
+  {
+    "id": "de-transform-005",
+    "kind": "transform",
+    "sentence": "Ich lerne Deutsch.",
+    "task": "future",
+    "answers": [
+      "Ich werde Deutsch lernen."
+    ],
+    "translations": {
+      "en": "I will learn German.",
+      "fa": "آلمانی یاد خواهم گرفت."
+    },
+    "level": "A2",
+    "tags": [
+      "futur-1"
+    ]
+  },
+  {
+    "id": "de-transform-006",
+    "kind": "transform",
+    "sentence": "Er beendet die Arbeit.",
+    "task": "future_perfect",
+    "answers": [
+      "Er wird die Arbeit beendet haben."
+    ],
+    "translations": {
+      "en": "He will have finished the work.",
+      "fa": "او کار را تمام کرده خواهد بود."
+    },
+    "level": "B2",
+    "tags": [
+      "futur-2"
+    ]
+  },
+  {
+    "id": "de-transform-007",
+    "kind": "transform",
+    "sentence": "Er spielt Fußball.",
+    "task": "negative",
+    "answers": [
+      "Er spielt keinen Fußball.",
+      "Er spielt nicht Fußball."
+    ],
+    "translations": {
+      "en": "He doesn't play football.",
+      "fa": "او فوتبال بازی نمی‌کند."
+    },
+    "level": "A2",
+    "tags": [
+      "negation"
+    ],
+    "hint": "kein + Akkusativ"
+  },
+  {
+    "id": "de-transform-008",
+    "kind": "transform",
+    "sentence": "Du hast heute Zeit.",
+    "task": "question",
+    "answers": [
+      "Hast du heute Zeit?"
+    ],
+    "translations": {
+      "en": "Do you have time today?",
+      "fa": "امروز وقت داری؟"
+    },
+    "level": "A1",
+    "tags": [
+      "questions",
+      "word-order"
+    ]
+  },
+  {
+    "id": "de-transform-009",
+    "kind": "transform",
+    "sentence": "Der Mechaniker repariert das Auto.",
+    "task": "passive",
+    "answers": [
+      "Das Auto wird von dem Mechaniker repariert.",
+      "Das Auto wird vom Mechaniker repariert."
+    ],
+    "translations": {
+      "en": "The car is repaired by the mechanic.",
+      "fa": "ماشین توسط مکانیک تعمیر می‌شود."
+    },
+    "level": "B1",
+    "tags": [
+      "passive"
+    ],
+    "hint": "werden + Partizip II"
+  },
+  {
+    "id": "de-transform-010",
+    "kind": "transform",
+    "sentence": "Das Haus wurde von meinem Großvater gebaut.",
+    "task": "active",
+    "answers": [
+      "Mein Großvater baute das Haus.",
+      "Mein Großvater hat das Haus gebaut."
+    ],
+    "translations": {
+      "en": "My grandfather built the house.",
+      "fa": "پدربزرگم خانه را ساخت."
+    },
+    "level": "B1",
+    "tags": [
+      "passive",
+      "präteritum"
+    ]
+  }
+]

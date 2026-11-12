@@ -25,6 +25,11 @@ src/
                    presentation/context/ServicesContext.tsx)
 ```
 
+Reads are cached (`src/infrastructure/cache/QueryCache.ts`): data loaded in the last 90 seconds is shown without a
+request, older data is shown at once and refreshed in the background, writes refresh what they changed, and the
+lists are kept per user between visits so the app opens with data on screen. A thin bar under the top bar shows
+when anything is loading.
+
 The domain and application layers have no React or Supabase imports, so the
 quiz algorithm and all business rules are unit-tested in isolation
 (`src/test/inMemoryRepositories.ts` provides in-memory ports for tests).
@@ -42,6 +47,15 @@ quiz algorithm and all business rules are unit-tested in isolation
 | `quiz_sessions` | One row per quiz started |
 | `word_progress` | What the app has learned per (user, word) |
 | `review_events` | Every answer: when shown, how long it took, direction, rating |
+| `sentence_collections` | Named sets of sentence exercises: name, description, language, draft/published, exercise counter |
+| `sentence_collection_subscriptions` | Downloads of published sentence collections |
+| `sentence_exercises` | Sentence exercises; each belongs to one collection (`kind` plus its fields in `content`) |
+| `sentence_attempts` | Every answered sentence: errors, allowed errors, timer mode, the answer, timing |
+| `conversations` | One dialogue each: its JSON content (title, language, level and file id read from it), author, draft/published |
+| `conversation_subscriptions` | Downloads of published conversations |
+| `conversation_attempts` | One row per conversation run: dialogue id and version, the roles read by people and the bot, turns per person |
+| `conversation_line_results` | Every line read aloud: role, expected text, what was heard, errors, recording path |
+| Storage `conversation-recordings` | Private bucket with one audio file per line read aloud, in a folder per user |
 
 Rules enforced in the database (not just the UI):
 
@@ -181,6 +195,81 @@ tab stays open (`src/infrastructure/offline/`):
   need a connection and say so when you're offline.
 - A reload or a new visit starts with an empty memory cache, so it needs to
   be online to load data again.
+
+## Sentence practice
+
+Sentences are a section of their own, next to words. The **Sentences** tab
+(`src/presentation/pages/SentencePracticePage.tsx`) practices them, and **Vocabularies**, **Explore**,
+**History** and **Progress** each have a *Words | Sentences* switch (`?section=sentences` in the URL):
+
+- **Vocabularies → Sentences** – your sentence collections (create, edit, import JSON with ⬆, publish,
+  delete) and the ones you downloaded. A collection starts as a private draft; one with at least one exercise
+  can be published. Import format: `data/sentences.schema.json`; `data/sentences.sample.json` (German) and
+  `data/sentences.sample.en.json` (English) show every kind and field.
+- **Explore → Sentences** – other people's published collections, searchable, to download.
+- **History → Sentences** – every answered sentence, newest first by day; tap one for the graded answer.
+- **Progress → Sentences** – overall score, the last 7 days against the 7 before, weak areas, a score per
+  exercise type and per grammar topic, kinds of mistakes, words to review, and 14 days of activity.
+- **Settings → Sentences** – default collections, forgive typos, show translation and hint right away, extra
+  words in word order by default.
+
+Practice draws from your own collections (drafts too) and downloaded ones; the dropdown lists only collections
+that have exercises. The task is shown in a highlighted banner.
+
+- **Fill in** – one or two blanks (`___`). A tapped word goes into the chosen blank (tap a blank to choose it),
+  else the first empty one, else the last one, replacing the word there; with one blank a new word simply
+  replaces the old. **Submit** turns on when every blank is filled.
+- **Word order** – tapped words fly onto the answer line in tap order. Drag a placed word to move it (touch or
+  mouse; the arrow keys move it too), tap it to send it back. **Extra words** mixes in distractors. Other
+  accepted orders (`alternatives`) count as correct.
+- **Rewrite** – turn the sentence into another tense, a negative, a question, or active ↔ passive. The answer
+  is compared word by word with the closest accepted sentence. With **Forgive typos** on, a misspelt word is
+  marked (amber, with the right spelling) but not counted: up to 1 letter off (2 for words of 8+ letters,
+  ß/ä/ö/ü typed as ss/ae/oe/ue are fine), never for words under 4 letters, never when the last two letters
+  differ (that is where grammar lives: *spielt/spielte*, *den/dem*), and capitals only on the first word.
+
+Each mode runs **Classic** (untimed), with a **Total time**, or with a **Time per sentence** (when it runs out,
+what you have is graded as it is; when the total time runs out, sentences not reached aren't recorded).
+
+**Scoring** (`src/domain/services/SentenceGrading.ts`): every exercise has a most-errors benchmark (blanks,
+words in the sentence, or words in the accepted answer), and the score is `1 − errors ÷ benchmark`, never
+below 0. A run's score is all its errors against all its benchmarks. Results show a score ring, a chip per kind
+of mark (correct, wrong, missing, not needed, typo), the answer word by word and the correct sentence; the run
+summary lists the topics and words to practice more.
+
+**Insights** (`src/domain/services/SentenceInsights.ts`) are worked out from the stored attempts, re-grading
+each answer against its exercise: scores per exercise type, per tag and per transformation task, mistake types,
+words missed at least twice, the weekly trend and daily activity. Nothing extra is stored.
+
+Every answer goes to `sentence_attempts` through the offline outbox. **Choosing sentences**
+(`src/domain/services/SentenceSelectionService.ts`) is weighted random sampling with weights learned from
+those attempts: low last and recent scores raise an exercise's weight, as does a weak topic (a tag or a
+transformation task) and each word you keep getting wrong that the exercise contains; mastered exercises
+(90%+) rest 1, 2, 4, 8 … days; slow answers come back a bit more often; untried exercises get a steady share;
+one answered in the last few minutes almost never repeats.
+
+## Conversations
+
+Conversations work like sentence collections. Each one is a dialogue imported as JSON under Vocabularies →
+Conversations (format and CEFR level guide in `data/dialogue/dialogue.schema.json`, samples next to it). Importing the
+same `id` again updates it. Published conversations appear under Explore → Conversations, where others download them.
+The Conversations tab picks one of the own and downloaded conversations from a searchable dropdown.
+
+- **Setup.** 1–5 people read, and the bot can read one more role. A dialogue works with any number of speakers from its
+  required roles up to all roles, so optional roles drop out when fewer people take part. Each person reads 3–7 turns.
+- **Demo.** The app's voices read the whole dialogue, a female and a male voice by role. It can be paused, resumed and
+  played again.
+- **Reading.** The active line sits at the bottom of the screen with its role, its reader and its translation. The
+  browser's speech recognition hears it, and each word is marked correct, nearly right (half an error), wrong, missing
+  or extra. Fillers, case, punctuation, digits for number words and split compounds don't count. A line can be read
+  again before moving on.
+- **Scores per role.** Every role keeps its own readings, last, best and average score and words to review, because a
+  learner who always takes the same role needs that role's own progress. The latest take of each role can be played
+  back.
+- **Recordings.** Every line read aloud is stored as its own audio file in Supabase Storage, under the user's folder
+  and the run's id. Nothing is ever replaced or deleted.
+- Everything is free: browser speech synthesis, speech recognition (Chrome, Edge, Safari) and recording, plus the
+  existing Supabase project. Speech recognition needs a connection; the demo works offline when the device has voices.
 
 ## Phones
 

@@ -2,6 +2,9 @@ import { SyncGateway, SyncStatus } from "@application/ports/SyncGateway";
 import { Connectivity } from "@infrastructure/offline/Connectivity";
 import { OfflineLearningRepository } from "@infrastructure/offline/OfflineLearningRepository";
 
+/** Background refreshes that land together cause one re-read. */
+const CHANGE_BATCH_MS = 100;
+
 /**
  * Coordinates going offline and coming back:
  *   back online -> send queued learning changes -> mark cached data stale
@@ -10,6 +13,7 @@ import { OfflineLearningRepository } from "@infrastructure/offline/OfflineLearni
 export class OfflineSyncManager implements SyncGateway {
   private readonly listeners = new Set<() => void>();
   private version = 0;
+  private changeTimer: ReturnType<typeof setTimeout> | null = null;
   private status: SyncStatus;
 
   constructor(
@@ -49,6 +53,16 @@ export class OfflineSyncManager implements SyncGateway {
     this.version += 1;
     this.refreshStatus();
   }
+
+  /** Cached data was refreshed in the background and changed: bump `version` (once per burst) so open pages re-read it. */
+  markDataChanged = (): void => {
+    if (this.changeTimer) return;
+    this.changeTimer = setTimeout(() => {
+      this.changeTimer = null;
+      this.version += 1;
+      this.refreshStatus();
+    }, CHANGE_BATCH_MS);
+  };
 
   private refreshStatus(): void {
     const next = this.computeStatus();

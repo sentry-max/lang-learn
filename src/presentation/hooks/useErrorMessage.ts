@@ -6,6 +6,9 @@ import { UiStringKey } from "@presentation/i18n/translations";
 const REASON_KEYS: Record<AppErrorReason, UiStringKey> = {
   publish_word_limit: "errorPublishLimit",
   vocabulary_word_limit: "errorVocabularyFull",
+  sentence_exercise_limit: "errorSentenceExerciseLimit",
+  collection_empty: "errorCollectionEmpty",
+  collection_not_found: "errorCollectionNotFound",
   vocabulary_language_locked: "errorLanguageLocked",
   vocabulary_not_found: "errorVocabularyNotFound",
   duplicate_word: "errorDuplicateWord",

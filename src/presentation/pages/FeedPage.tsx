@@ -14,6 +14,10 @@ import { LanguagePair } from "@presentation/components/VocabularyBadges";
 import { StarDisplay } from "@presentation/components/StarRating";
 import { formatDate, formatNumber } from "@presentation/format";
 import { PageLoader, Spinner } from "@presentation/components/ui/Loader";
+import { useSection } from "@presentation/hooks/useSection";
+import SectionTabs from "@presentation/components/SectionTabs";
+import SentenceCollectionBrowser from "@presentation/components/sentence/SentenceCollectionBrowser";
+import ConversationBrowser from "@presentation/components/conversation/ConversationBrowser";
 
 const PAGE_SIZE = 20;
 
@@ -23,6 +27,7 @@ export default function FeedPage() {
   const { vocabularies, prepareOffline } = useServices();
   const { version } = useSyncStatus();
   const { t, language } = useLanguage();
+  const [section, setSection] = useSection();
   const errorMessage = useErrorMessage();
   const navigate = useNavigate();
 
@@ -73,8 +78,19 @@ export default function FeedPage() {
 
   const items = feed.data?.items ?? [];
 
+  const sectionTabs = <SectionTabs value={section} onChange={setSection} wordsLabel="navVocabularies" hasConversations />;
+  if (section !== "words") {
+    return (
+      <div className="app-main">
+        {sectionTabs}
+        {section === "sentences" ? <SentenceCollectionBrowser /> : <ConversationBrowser />}
+      </div>
+    );
+  }
+
   return (
     <div className="app-main wide">
+      {sectionTabs}
       <div className="page-header">
         <h2>{t("navFeed")}</h2>
         <div className="page-actions">

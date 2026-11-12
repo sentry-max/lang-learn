@@ -1,42 +1,42 @@
 import { Vocabulary, VocabularyInput, VocabularyStatus } from "@domain/entities/Vocabulary";
 import { isNetworkError } from "@domain/errors/AppError";
 import { FeedQuery, Page, VocabularyRepository } from "@domain/repositories/VocabularyRepository";
-import { Connectivity } from "@infrastructure/offline/Connectivity";
-import { OfflineReadCache, assertOnline } from "@infrastructure/offline/OfflineReadCache";
+import { Connectivity, assertOnline } from "@infrastructure/offline/Connectivity";
+import { QueryCache } from "@infrastructure/cache/QueryCache";
 
 /**
  * Keeps the last loaded vocabularies (own, downloaded, feed pages) usable
- * offline for the life of the tab. Changes need a connection.
+ * offline between visits. Changes need a connection.
  */
 export class OfflineVocabularyRepository implements VocabularyRepository {
-  private readonly cache: OfflineReadCache;
-
   constructor(
     private readonly inner: VocabularyRepository,
-    private readonly connectivity: Connectivity
-  ) {
-    this.cache = new OfflineReadCache(connectivity);
-  }
+    private readonly connectivity: Connectivity,
+    private readonly cache: QueryCache
+  ) {}
 
   listOwned(userId: string): Promise<Vocabulary[]> {
-    return this.cache.read(`owned:${userId}`, () => this.inner.listOwned(userId));
+    return this.cache.read(`vocabularies:owned:${userId}`, () => this.inner.listOwned(userId));
   }
 
   listDownloaded(userId: string): Promise<Vocabulary[]> {
-    return this.cache.read(`downloaded:${userId}`, () => this.inner.listDownloaded(userId));
+    return this.cache.read(`vocabularies:downloaded:${userId}`, () => this.inner.listDownloaded(userId));
   }
 
   listPublished(query: FeedQuery): Promise<Page<Vocabulary>> {
-    return this.cache.read(`feed:${JSON.stringify(query)}`, () => this.inner.listPublished(query));
+    return this.cache.read(`vocabularies:feed:${JSON.stringify(query)}`, () => this.inner.listPublished(query));
   }
 
   listDownloadedIds(userId: string): Promise<Set<string>> {
-    return this.cache.read(`downloaded-ids:${userId}`, () => this.inner.listDownloadedIds(userId));
+    // Cached as a list: a Set doesn't survive being stored.
+    return this.cache
+      .read(`vocabularies:downloaded-ids:${userId}`, async () => Array.from(await this.inner.listDownloadedIds(userId)))
+      .then((ids) => new Set(ids));
   }
 
   async getById(id: string): Promise<Vocabulary | null> {
     try {
-      return await this.cache.read(`vocabulary:${id}`, () => this.inner.getById(id));
+      return await this.cache.read(`vocabularies:vocabulary:${id}`, () => this.inner.getById(id));
     } catch (error) {
       // Offline: any list loaded earlier may already contain it.
       const known = this.knownVocabularies().find((vocabulary) => vocabulary.id === id);
@@ -47,39 +47,65 @@ export class OfflineVocabularyRepository implements VocabularyRepository {
 
   async create(ownerId: string, id: string, input: VocabularyInput): Promise<Vocabulary> {
     assertOnline(this.connectivity);
-    return this.inner.create(ownerId, id, input);
+    try {
+      return await this.inner.create(ownerId, id, input);
+    } finally {
+      this.cache.invalidate("vocabularies:");
+    }
   }
 
   async update(id: string, input: VocabularyInput): Promise<Vocabulary> {
     assertOnline(this.connectivity);
-    return this.inner.update(id, input);
+    try {
+      return await this.inner.update(id, input);
+    } finally {
+      this.cache.invalidate("vocabularies:");
+    }
   }
 
   async setStatus(id: string, status: VocabularyStatus): Promise<Vocabulary> {
     assertOnline(this.connectivity);
-    return this.inner.setStatus(id, status);
+    try {
+      return await this.inner.setStatus(id, status);
+    } finally {
+      this.cache.invalidate("vocabularies:");
+    }
   }
 
   async softDelete(id: string): Promise<void> {
     assertOnline(this.connectivity);
-    return this.inner.softDelete(id);
+    try {
+      return await this.inner.softDelete(id);
+    } finally {
+      this.cache.invalidate("vocabularies:");
+    }
   }
 
   async download(userId: string, vocabularyId: string): Promise<void> {
     assertOnline(this.connectivity);
-    return this.inner.download(userId, vocabularyId);
+    try {
+      return await this.inner.download(userId, vocabularyId);
+    } finally {
+      this.cache.invalidate("vocabularies:");
+    }
   }
 
   async removeDownload(userId: string, vocabularyId: string): Promise<void> {
     assertOnline(this.connectivity);
-    return this.inner.removeDownload(userId, vocabularyId);
+    try {
+      return await this.inner.removeDownload(userId, vocabularyId);
+    } finally {
+      this.cache.invalidate("vocabularies:");
+    }
   }
 
   private knownVocabularies(): Vocabulary[] {
+    // The cache is shared with other repositories: keep only values that are vocabularies.
+    const isVocabulary = (value: unknown): value is Vocabulary => typeof value === "object" && value !== null && "sourceLanguage" in value;
     return this.cache.values().flatMap((value) => {
-      if (Array.isArray(value)) return value as Vocabulary[];
+      if (Array.isArray(value)) return value.filter(isVocabulary);
       if (value && typeof value === "object" && "items" in value) return (value as Page<Vocabulary>).items;
-      return [];
+      return isVocabulary(value) ? [value] : [];
     });
   }
 }
